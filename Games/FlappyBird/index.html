@@ -282,13 +282,16 @@
         });
 
       // === FIX UNITY FOCUS STEALING ===
-      searchBar.addEventListener("focus", () => {
-        canvas.style.pointerEvents = "none"; // temporarily disable Unity interaction
-      });
+      // Disable Unity keyboard input while typing in search bar
+searchBar.addEventListener("focus", () => {
+  canvas.tabIndex = -1; // remove canvas from keyboard focus
+  document.activeElement.blur(); // ensure search bar is active
+});
 
-      searchBar.addEventListener("blur", () => {
-        canvas.style.pointerEvents = "auto"; // re-enable Unity interaction
-      });
+searchBar.addEventListener("blur", () => {
+  canvas.tabIndex = 0; // restore canvas tab index for Unity input
+});
+
 
       // === UNITY GAME LOADER ===
       var buildUrl = "Build";
