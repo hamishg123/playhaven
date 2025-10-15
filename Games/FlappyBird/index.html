@@ -156,6 +156,11 @@
         transform: translateY(-3px);
       }
 
+      .game-card.active {
+        box-shadow: 0 0 10px #00ffb3;
+        border: 1px solid #00ffb3;
+      }
+
       .game-card img {
         width: 100%;
         height: 100px;
@@ -222,45 +227,80 @@
     </main>
 
     <script>
-  const searchBar = document.getElementById("searchBar");
-  const gameList = document.getElementById("gameList");
+      const searchBar = document.getElementById("searchBar");
+      const gameList = document.getElementById("gameList");
 
-  // === LOAD GAMES FROM JSON ===
-  fetch("/Games/games.json")
-    .then((res) => res.json())
-    .then((games) => {
-      gameList.innerHTML = ""; // Clear any existing content
+      // === LOAD GAMES FROM JSON ===
+      fetch("/Games/games.json")
+        .then((res) => res.json())
+        .then((games) => {
+          gameList.innerHTML = "";
 
-      games
-        .filter((g) => g.name !== "flappy-bird") // Hide current game
-        .forEach((game) => {
-          const card = document.createElement("div");
-          card.className = "game-card";
-          card.dataset.name = game.name.toLowerCase();
-          card.onclick = () => (window.location.href = `/Games/${game.name}/`);
+          games.forEach((game) => {
+            const card = document.createElement("div");
+            card.className = "game-card";
+            card.dataset.name = game.name.toLowerCase();
+            card.onclick = () => (window.location.href = `/Games/${game.name}/`);
 
-          card.innerHTML = `
-            <img src="${game.thumbnail}" alt="${game.title}" onerror="this.src='/images/default-thumb.jpg'">
-            <h4>${game.title}</h4>
-          `;
+            card.innerHTML = `
+              <img src="${game.thumbnail}" alt="${game.title}" onerror="this.src='/images/default-thumb.jpg'">
+              <h4>${game.title}</h4>
+            `;
 
-          gameList.appendChild(card);
+            // Highlight the current game
+            if (window.location.pathname.includes(game.name)) {
+              card.classList.add("active");
+            }
+
+            gameList.appendChild(card);
+          });
+
+          // === SEARCH FUNCTION ===
+          searchBar.addEventListener("input", () => {
+            const query = searchBar.value.toLowerCase();
+            document.querySelectorAll(".game-card").forEach((card) => {
+              const name = card.dataset.name.toLowerCase();
+              card.style.display = name.includes(query) ? "block" : "none";
+            });
+          });
+        })
+        .catch((err) => {
+          console.error("Error loading games:", err);
+          gameList.innerHTML = "<p>Failed to load games list.</p>";
         });
 
-      // Enable search after games are loaded
-      searchBar.addEventListener("input", () => {
-        const query = searchBar.value.toLowerCase();
-        document.querySelectorAll(".game-card").forEach((card) => {
-          const name = card.dataset.name.toLowerCase();
-          card.style.display = name.includes(query) ? "block" : "none";
-        });
-      });
-    })
-    .catch((err) => {
-      console.error("Error loading games:", err);
-      gameList.innerHTML = "<p>Failed to load games!</p>";
-    });
-</script>
+      // === UNITY GAME LOADER ===
+      var buildUrl = "Build";
+      var loaderUrl = buildUrl + "/FlappyBird1.loader.js";
+      var config = {
+        dataUrl: buildUrl + "/FlappyBird1.data",
+        frameworkUrl: buildUrl + "/FlappyBird1.framework.js",
+        codeUrl: buildUrl + "/FlappyBird1.wasm",
+        streamingAssetsUrl: "StreamingAssets",
+        companyName: "Hami2h123 Games",
+        productName: "Flappy Bird",
+        productVersion: "1.1",
+      };
 
+      var canvas = document.querySelector("#unity-canvas");
+      var loadingBar = document.querySelector("#unity-loading-bar");
+      var progressBarFull = document.querySelector("#unity-progress-bar-full");
+      var fullscreenButton = document.querySelector("#unity-fullscreen-button");
+
+      loadingBar.style.display = "block";
+      var script = document.createElement("script");
+      script.src = loaderUrl;
+      script.onload = () => {
+        createUnityInstance(canvas, config, (progress) => {
+          progressBarFull.style.width = 100 * progress + "%";
+        })
+          .then((unityInstance) => {
+            loadingBar.style.display = "none";
+            fullscreenButton.onclick = () => unityInstance.SetFullscreen(1);
+          })
+          .catch((message) => alert(message));
+      };
+      document.body.appendChild(script);
+    </script>
   </body>
 </html>
