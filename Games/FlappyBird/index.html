@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>PlayHaven | Flappy Bird</title>
+<title>PlayHaven | Game</title>
 <link rel="icon" href="/images/square-logo-transparent.png" />
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
 
@@ -20,14 +20,26 @@ header img.logo:hover { opacity:0.8; }
 main { display:flex; height:calc(100vh - 80px); }
 #unity-container { flex:3; display:flex; justify-content:center; align-items:center; position:relative; background:#0e0e0e; border-right:2px solid #111; padding:1rem; }
 #unity-canvas { width:100%; max-width:960px; aspect-ratio:16/9; border-radius:10px; background:#000; }
-#unity-loading-bar { position:absolute; top:10%; width:80%; height:10px; background:#222; border-radius:5px; overflow:hidden; }
-#unity-progress-bar-full { width:0%; height:100%; background:#00ffb3; transition:width 0.2s; }
 
-/* UNITY FOOTER WITH BOX */
+/* GAME NAME TOP CENTER */
+#unity-title {
+  position:absolute;
+  top:15px;
+  left:50%;
+  transform:translateX(-50%);
+  padding:0.5rem 1rem;
+  background:rgba(0,0,0,0.6);
+  color:#00ffb3;
+  font-weight:600;
+  font-size:1.2rem;
+  border-radius:10px;
+  z-index:10;
+}
+
+/* UNITY FOOTER */
 #unity-footer { position:absolute; bottom:15px; left:50%; transform:translateX(-50%); display:flex; align-items:center; gap:10px; padding:0.3rem 1rem; background:rgba(0,0,0,0.6); border-radius:10px; }
 #unity-fullscreen-button { background:#00ffb3; color:#000; padding:0.6rem 1rem; border-radius:30px; font-weight:600; cursor:pointer; transition:0.2s ease; }
 #unity-fullscreen-button:hover { background:#00d6a1; }
-#unity-build-title { color:#00ffb3; font-weight:600; }
 
 /* SIDEBAR */
 .sidebar { flex:1; background:#141414; padding:1rem; overflow-y:auto; }
@@ -55,12 +67,16 @@ main { display:flex; height:calc(100vh - 80px); }
 
 <main>
 <div id="unity-container">
-<canvas id="unity-canvas" width="960" height="600"></canvas>
-<div id="unity-loading-bar"><div id="unity-progress-bar-full"></div></div>
-<div id="unity-footer">
-<div id="unity-fullscreen-button">⛶ Fullscreen</div>
-<div id="unity-build-title">Flappy Bird</div>
-</div>
+  <canvas id="unity-canvas" width="960" height="600"></canvas>
+  <div id="unity-loading-bar"><div id="unity-progress-bar-full"></div></div>
+
+  <!-- GAME TITLE TOP CENTER -->
+  <div id="unity-title">Loading...</div>
+
+  <!-- FOOTER -->
+  <div id="unity-footer">
+    <div id="unity-fullscreen-button">⛶ Fullscreen</div>
+  </div>
 </div>
 
 <aside class="sidebar">
@@ -71,18 +87,26 @@ main { display:flex; height:calc(100vh - 80px); }
 
 <script>
 const gameList = document.getElementById("gameList");
+const unityTitle = document.getElementById("unity-title");
 
-// Load games dynamically
+// Detect current game from URL
 const currentGame = window.location.pathname.split("/").filter(Boolean).pop() || "flappy-bird";
+
+// Load games
 fetch("/Games/games.json").then(res=>res.json()).then(games=>{
   gameList.innerHTML="";
-  games.filter(g=>g.name!==currentGame).forEach(game=>{
+  games.forEach(game=>{
     const card=document.createElement("div");
     card.className="game-card";
     card.dataset.name=game.name.toLowerCase();
     card.onclick=()=>window.location.href=`/Games/${game.name}/`;
     card.innerHTML=`<img src="${game.thumbnail}" alt="${game.title}" onerror="this.src='/images/full-logo.png'"><h4>${game.title}</h4>`;
     gameList.appendChild(card);
+
+    // Set the title for current game
+    if(game.name === currentGame){
+      unityTitle.textContent = game.title;
+    }
   });
 }).catch(err=>{console.error(err); gameList.innerHTML="<p>Failed to load games!</p>";});
 
@@ -94,7 +118,6 @@ var canvas=document.getElementById("unity-canvas");
 var loadingBar=document.getElementById("unity-loading-bar");
 var progressBarFull=document.getElementById("unity-progress-bar-full");
 var fullscreenButton=document.getElementById("unity-fullscreen-button");
-
 loadingBar.style.display="block";
 var script=document.createElement("script");
 script.src=loaderUrl;
