@@ -112,7 +112,7 @@ l.parentNode.insertBefore(s, l);
           div.dataset.name = game.name.toLowerCase();
           div.onclick = () => window.location.href = `/Games/${game.name}/`;
           div.innerHTML = `
-            <img src="${game.thumbnail}" alt="${game.title}" onerror="this.src='images/square-logo-transparent.png'">
+            <img src="${game.thumbnail}" alt="${game.title}" onerror="this.src='images/full-logo.png'">
             <h3>${game.title}</h3>
           `;
           gameGrid.appendChild(div);
