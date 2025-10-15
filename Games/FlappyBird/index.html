@@ -255,16 +255,16 @@
       const progressBarFull = document.querySelector("#unity-progress-bar-full");
       const fullscreenButton = document.querySelector("#unity-fullscreen-button");
 
-      // === FIX: Allow typing in search bar ===
-searchBar.addEventListener("focus", () => {
-  // Disable Unity keyboard capture when typing
-  canvas.blur();
-  document.activeElement.blur();
+      document.addEventListener("click", (event) => {
+  // If click is inside the search bar, stop Unity from refocusing
+  if (event.target.id === "searchBar") {
+    event.stopPropagation();
+  }
 });
 
-searchBar.addEventListener("blur", () => {
-  // Return focus to Unity once done typing
-  canvas.focus();
+// Prevent Unity focus grabbing on keypress
+document.getElementById("searchBar").addEventListener("keydown", (e) => {
+  e.stopPropagation();
 });
 
       // Detect current game folder from URL
