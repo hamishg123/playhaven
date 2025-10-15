@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>PlayHaven | Game</title>
+<title>PlayHaven | Loading...</title>
 <link rel="icon" href="/images/square-logo-transparent.png" />
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
 
@@ -12,29 +12,24 @@
 body { background:#0b0b0b; color:#fff; overflow-x:hidden; }
 
 /* HEADER */
-header { display:flex; align-items:center; justify-content:flex-start; padding:1rem 2rem; background:#111; border-bottom:2px solid #00ffb3; position:relative; }
-header img.logo { height:60px; cursor:pointer; transition:0.2s ease; }
+header { display:flex; align-items:center; justify-content:center; padding:1rem 2rem; background:#111; border-bottom:2px solid #00ffb3; position:relative; }
+header img.logo { height:60px; cursor:pointer; transition:0.2s ease; margin-right:1rem; }
 header img.logo:hover { opacity:0.8; }
+#header-title {
+  font-size:1.5rem;
+  font-weight:600;
+  color:#00ffb3;
+  text-align:center;
+  white-space:nowrap;
+  background:rgba(0,0,0,0.6);
+  padding:0.2rem 0.6rem;
+  border-radius:10px;
+}
 
 /* UNITY */
 main { display:flex; height:calc(100vh - 80px); }
 #unity-container { flex:3; display:flex; justify-content:center; align-items:center; position:relative; background:#0e0e0e; border-right:2px solid #111; padding:1rem; }
 #unity-canvas { width:100%; max-width:960px; aspect-ratio:16/9; border-radius:10px; background:#000; }
-
-/* GAME NAME TOP CENTER */
-#unity-title {
-  position:absolute;
-  top:15px;
-  left:50%;
-  transform:translateX(-50%);
-  padding:0.5rem 1rem;
-  background:rgba(0,0,0,0.6);
-  color:#00ffb3;
-  font-weight:600;
-  font-size:1.2rem;
-  border-radius:10px;
-  z-index:10;
-}
 
 /* UNITY FOOTER */
 #unity-footer { position:absolute; bottom:15px; left:50%; transform:translateX(-50%); display:flex; align-items:center; gap:10px; padding:0.3rem 1rem; background:rgba(0,0,0,0.6); border-radius:10px; }
@@ -55,23 +50,22 @@ main { display:flex; height:calc(100vh - 80px); }
   main { flex-direction:column; }
   #unity-canvas { width:95%; height:auto; aspect-ratio:16/10; }
   .sidebar { order:2; width:100%; }
-  header img.logo { height:50px; }
+  header img.logo { height:50px; margin-right:0.5rem; }
+  #header-title { font-size:1.2rem; }
 }
 </style>
 </head>
 
 <body>
 <header>
-<img src="/images/full-logo.png" alt="PlayHaven Logo" class="logo" onclick="window.location.href='/'" />
+  <img src="/images/full-logo.png" alt="PlayHaven Logo" class="logo" onclick="window.location.href='/'" />
+  <div id="header-title">Loading...</div>
 </header>
 
 <main>
 <div id="unity-container">
   <canvas id="unity-canvas" width="960" height="600"></canvas>
   <div id="unity-loading-bar"><div id="unity-progress-bar-full"></div></div>
-
-  <!-- GAME TITLE TOP CENTER -->
-  <div id="unity-title">Loading...</div>
 
   <!-- FOOTER -->
   <div id="unity-footer">
@@ -87,7 +81,7 @@ main { display:flex; height:calc(100vh - 80px); }
 
 <script>
 const gameList = document.getElementById("gameList");
-const unityTitle = document.getElementById("unity-title");
+const headerTitle = document.getElementById("header-title");
 
 // Detect current game from URL
 const currentGame = window.location.pathname.split("/").filter(Boolean).pop() || "flappy-bird";
@@ -105,7 +99,8 @@ fetch("/Games/games.json").then(res=>res.json()).then(games=>{
 
     // Set the title for current game
     if(game.name === currentGame){
-      unityTitle.textContent = game.title;
+      headerTitle.textContent = game.title;
+      document.title = `PlayHaven | ${game.title}`; // Update browser tab title
     }
   });
 }).catch(err=>{console.error(err); gameList.innerHTML="<p>Failed to load games!</p>";});
