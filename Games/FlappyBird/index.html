@@ -14,45 +14,6 @@ header { display:flex; align-items:center; justify-content:space-between; paddin
 header img.logo { height:45px; cursor:pointer; transition:0.2s ease; }
 header img.logo:hover { opacity:0.8; }
 
-/* SEARCH ICON BUTTON */
-#searchButton {
-  background:#1b1b1b; border:none; color:#fff; padding:0.5rem 1rem; border-radius:2rem; cursor:pointer;
-  z-index:9999;
-}
-
-/* MODAL */
-#searchModal {
-  display:none;
-  position:fixed;
-  top:0; left:0;
-  width:100vw; height:100vh;
-  background:rgba(0,0,0,0.95);
-  z-index:100000;
-  justify-content:center;
-  align-items:center;
-  flex-direction:column;
-}
-#searchModal input {
-  width:50%; max-width:500px;
-  padding:1rem 1.5rem;
-  border-radius:2rem;
-  border:none;
-  outline:none;
-  font-size:1rem;
-  text-align:center;
-  background:#1b1b1b;
-  color:#fff;
-}
-#searchModal #closeModal {
-  margin-top:1rem;
-  padding:0.5rem 1rem;
-  border:none;
-  border-radius:2rem;
-  background:#00ffb3;
-  color:#000;
-  cursor:pointer;
-}
-
 /* UNITY */
 main { display:flex; height:calc(100vh - 80px); }
 #unity-container { flex:3; display:flex; justify-content:center; align-items:center; position:relative; background:#0e0e0e; border-right:2px solid #111; padding:1rem; }
@@ -65,7 +26,21 @@ main { display:flex; height:calc(100vh - 80px); }
 
 /* SIDEBAR */
 .sidebar { flex:1; background:#141414; padding:1rem; overflow-y:auto; }
-.sidebar h2 { font-size:1.2rem; color:#00ffb3; margin-bottom:1rem; text-align:center; }
+.sidebar h2 { font-size:1.2rem; color:#00ffb3; margin-bottom:0.5rem; text-align:center; }
+/* SEARCH BAR IN SIDEBAR */
+#sidebarSearch {
+  width:90%;
+  margin:0 auto 1rem auto;
+  padding:0.5rem 1rem;
+  border-radius:2rem;
+  border:none;
+  outline:none;
+  font-size:1rem;
+  text-align:center;
+  background:#1b1b1b;
+  color:#fff;
+  display:block;
+}
 /* GAME CARDS */
 .game-list { display:flex; flex-wrap:wrap; justify-content:center; gap:1rem; padding:0.5rem; }
 .game-card { background:#1b1b1b; border-radius:1rem; overflow:hidden; cursor:pointer; transition: transform 0.3s ease, box-shadow 0.3s ease; flex:1 1 clamp(150px,40%,250px); max-width:250px; min-width:150px; }
@@ -84,14 +59,7 @@ main { display:flex; height:calc(100vh - 80px); }
 <body>
 <header>
 <img src="/images/full-logo.png" alt="PlayHaven Logo" class="logo" onclick="window.location.href='/'" />
-<button id="searchButton">Search 🔍</button>
 </header>
-
-<!-- SEARCH MODAL -->
-<div id="searchModal">
-<input type="text" id="modalSearch" placeholder="Type to search games..." />
-<button id="closeModal">Close</button>
-</div>
 
 <main>
 <div id="unity-container">
@@ -105,30 +73,14 @@ main { display:flex; height:calc(100vh - 80px); }
 
 <aside class="sidebar">
 <h2>Other Games</h2>
+<input type="text" id="sidebarSearch" placeholder="Search games..." />
 <div class="game-list" id="gameList"></div>
 </aside>
 </main>
 
 <script>
-const searchButton = document.getElementById("searchButton");
-const searchModal = document.getElementById("searchModal");
-const closeModal = document.getElementById("closeModal");
-const modalSearch = document.getElementById("modalSearch");
+const sidebarSearch = document.getElementById("sidebarSearch");
 const gameList = document.getElementById("gameList");
-
-// Open search modal
-searchButton.addEventListener("click", ()=>{
-  searchModal.style.display="flex";
-  modalSearch.focus();
-});
-
-// Close modal
-closeModal.addEventListener("click", ()=>{
-  searchModal.style.display="none";
-  modalSearch.value="";
-  // Reset all cards
-  document.querySelectorAll(".game-card").forEach(card=>card.style.display="block");
-});
 
 // Load games
 const currentGame = window.location.pathname.split("/").filter(Boolean).pop() || "flappy-bird";
@@ -143,12 +95,12 @@ fetch("/Games/games.json").then(res=>res.json()).then(games=>{
     gameList.appendChild(card);
   });
 
-  // Search input works inside modal
-  modalSearch.addEventListener("input", ()=>{
-    const query=modalSearch.value.toLowerCase();
+  // Search filter
+  sidebarSearch.addEventListener("input", ()=>{
+    const query = sidebarSearch.value.toLowerCase();
     document.querySelectorAll(".game-card").forEach(card=>{
-      const name=card.dataset.name.toLowerCase();
-      card.style.display=name.includes(query)?"block":"none";
+      const name = card.dataset.name.toLowerCase();
+      card.style.display = name.includes(query) ? "block" : "none";
     });
   });
 }).catch(err=>{console.error(err); gameList.innerHTML="<p>Failed to load games!</p>";});
