@@ -104,9 +104,9 @@ fetch("/Games/games.json").then(res=>res.json()).then(games=>{
 }).catch(err=>{console.error(err); gameList.innerHTML="<p>Failed to load games!</p>";});
 
 // Unity loader
-var buildUrl="Build";
-var loaderUrl=buildUrl+"/FlappyBird1.loader.js";
-var config={dataUrl:buildUrl+"/FlappyBird1.data", frameworkUrl:buildUrl+"/FlappyBird1.framework.js", codeUrl:buildUrl+"/FlappyBird1.wasm", streamingAssetsUrl:"StreamingAssets", companyName:"Hami2h123 Games", productName:"Flappy Bird", productVersion:"1.1"};
+var buildUrl="Build/FlappyBird1";
+var loaderUrl=buildUrl+".loader.js";
+var config={dataUrl:buildUrl+".data", frameworkUrl:buildUrl+".framework.js", codeUrl:buildUrl+".wasm", streamingAssetsUrl:"StreamingAssets", companyName:"Hami2h123 Games", productName:"Flappy Bird", productVersion:"1.1"};
 var canvas=document.getElementById("unity-canvas");
 var loadingBar=document.getElementById("unity-loading-bar");
 var progressBarFull=document.getElementById("unity-progress-bar-full");
