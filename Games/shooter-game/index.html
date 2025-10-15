@@ -156,6 +156,11 @@
         transform: translateY(-3px);
       }
 
+      .game-card.active {
+        box-shadow: 0 0 10px #00ffb3;
+        border: 1px solid #00ffb3;
+      }
+
       .game-card img {
         width: 100%;
         height: 100px;
@@ -210,7 +215,7 @@
         </div>
         <div id="unity-footer">
           <div id="unity-fullscreen-button">⛶ Fullscreen</div>
-          <div id="unity-build-title">Shooter Game 2D</div>
+          <div id="unity-build-title">Flappy Bird</div>
         </div>
       </div>
 
@@ -225,50 +230,55 @@
       const searchBar = document.getElementById("searchBar");
       const gameList = document.getElementById("gameList");
 
-      // === AUTO-GENERATE SIDEBAR GAMES ===
-      fetch("/Games/")
-        .then((res) => res.text())
-        .then((html) => {
-          // Extract folder names using regex
-          const matches = [...html.matchAll(/href="([^"]+)\/"/g)]
-            .map((m) => m[1])
-            .filter((name) => name && !name.includes("flappy-bird"));
+      // === LOAD GAMES FROM JSON ===
+      fetch("/Games/games.json")
+        .then((res) => res.json())
+        .then((games) => {
+          gameList.innerHTML = "";
 
-          matches.forEach((folder) => {
-            const gameDiv = document.createElement("div");
-            gameDiv.className = "game-card";
-            gameDiv.setAttribute("data-name", folder);
-            gameDiv.onclick = () =>
-              (window.location.href = `/Games/${folder}/`);
+          games.forEach((game) => {
+            const card = document.createElement("div");
+            card.className = "game-card";
+            card.dataset.name = game.name.toLowerCase();
+            card.onclick = () => (window.location.href = `/Games/${game.name}/`);
 
-            gameDiv.innerHTML = `
-              <img src="/Games/${folder}/thumbnail.jpg" alt="${folder}" onerror="this.src='/images/default-thumb.jpg'">
-              <h4>${folder.replace(/-/g, " ")}</h4>
+            card.innerHTML = `
+              <img src="${game.thumbnail}" alt="${game.title}" onerror="this.src='/images/full-logo.png'">
+              <h4>${game.title}</h4>
             `;
 
-            gameList.appendChild(gameDiv);
+            // Highlight the current game
+            if (window.location.pathname.includes(game.name)) {
+              card.classList.add("active");
+            }
+
+            gameList.appendChild(card);
           });
+
+          // === SEARCH FUNCTION ===
+          searchBar.addEventListener("input", () => {
+            const query = searchBar.value.toLowerCase();
+            document.querySelectorAll(".game-card").forEach((card) => {
+              const name = card.dataset.name.toLowerCase();
+              card.style.display = name.includes(query) ? "block" : "none";
+            });
+          });
+        })
+        .catch((err) => {
+          console.error("Error loading games:", err);
+          gameList.innerHTML = "<p>Failed to load games!</p>";
         });
 
-      // === SEARCH FUNCTION ===
-      searchBar.addEventListener("input", () => {
-        const query = searchBar.value.toLowerCase();
-        document.querySelectorAll(".game-card").forEach((card) => {
-          const name = card.getAttribute("data-name").toLowerCase();
-          card.style.display = name.includes(query) ? "block" : "none";
-        });
-      });
-
-      // === UNITY LOADER ===
+      // === UNITY GAME LOADER ===
       var buildUrl = "Build";
       var loaderUrl = buildUrl + "/shooter-game.loader.js";
       var config = {
-        dataUrl: buildUrl + "/shooter-game..data",
+        dataUrl: buildUrl + "/shooter-game.data",
         frameworkUrl: buildUrl + "/shooter-game.framework.js",
-        codeUrl: buildUrl + "/shooter-game..wasm",
+        codeUrl: buildUrl + "/shooter-game.wasm",
         streamingAssetsUrl: "StreamingAssets",
         companyName: "Hami2h123 Games",
-        productName: "Shooter Game",
+        productName: "ShooterGame 2D",
         productVersion: "1.0",
       };
 
