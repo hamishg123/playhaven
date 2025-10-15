@@ -224,11 +224,14 @@
     </main>
 
     <script>
-      
       const searchBar = document.getElementById("searchBar");
       const gameList = document.getElementById("gameList");
+      const canvas = document.querySelector("#unity-canvas");
+      const loadingBar = document.querySelector("#unity-loading-bar");
+      const progressBarFull = document.querySelector("#unity-progress-bar-full");
+      const fullscreenButton = document.querySelector("#unity-fullscreen-button");
 
-      // Detect the current game folder name from the URL
+      // Detect current game folder from URL
       const currentGame =
         window.location.pathname.split("/").filter(Boolean).pop() || "flappy-bird";
 
@@ -237,21 +240,17 @@
         .then((res) => res.json())
         .then((games) => {
           gameList.innerHTML = "";
-
           games
-            .filter((g) => g.name !== currentGame) // Hide the current game
+            .filter((g) => g.name !== currentGame)
             .forEach((game) => {
               const card = document.createElement("div");
               card.className = "game-card";
               card.dataset.name = game.name.toLowerCase();
-              card.onclick = () =>
-                (window.location.href = `/Games/${game.name}/`);
-
+              card.onclick = () => (window.location.href = `/Games/${game.name}/`);
               card.innerHTML = `
                 <img src="${game.thumbnail}" alt="${game.title}" onerror="this.src='/images/full-logo.png'">
                 <h4>${game.title}</h4>
               `;
-
               gameList.appendChild(card);
             });
 
@@ -282,23 +281,6 @@
         productVersion: "1.1",
       };
 
-      var canvas = document.querySelector("#unity-canvas");
-      var loadingBar = document.querySelector("#unity-loading-bar");
-      var progressBarFull = document.querySelector("#unity-progress-bar-full");
-      var fullscreenButton = document.querySelector("#unity-fullscreen-button");
-
-      // Fix: prevent Unity from stealing keyboard focus
-      // Clicking outside Unity (like on search bar) re-enables typing
-      window.addEventListener("click", () => {
-        if (document.activeElement === canvas) {
-          canvas.blur();
-        }
-      });
-
-      searchBar.addEventListener("focus", () => {
-        document.activeElement.blur(); // Release Unity input lock
-      });
-
       loadingBar.style.display = "block";
       var script = document.createElement("script");
       script.src = loaderUrl;
@@ -313,24 +295,20 @@
           .catch((message) => alert(message));
       };
       document.body.appendChild(script);
-      // === FIX UNITY FOCUS STEALING ===
-      
 
-      // Whenever you click the search bar, force Unity to release keyboard control
+      // === FIX UNITY FOCUS STEALING ===
       searchBar.addEventListener("focus", () => {
-        canvas.blur(); // Release Unity's input
+        canvas.blur(); // Release Unity input
       });
 
-      // Clicking anywhere else (except canvas) gives keyboard back to the browser
       document.addEventListener("click", (e) => {
         if (!canvas.contains(e.target)) {
           canvas.blur();
         }
       });
 
-      // Optional: if you click the Unity canvas again, it regains keyboard focus
       canvas.addEventListener("click", () => {
-        canvas.focus();
+        canvas.focus(); // Regain Unity focus when clicked
       });
     </script>
   </body>
