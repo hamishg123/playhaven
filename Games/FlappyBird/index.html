@@ -243,7 +243,7 @@
             card.onclick = () => (window.location.href = `/Games/${game.name}/`);
 
             card.innerHTML = `
-              <img src="${game.thumbnail}" alt="${game.title}" onerror="this.src='/images/default-thumb.jpg'">
+              <img src="${game.thumbnail}" alt="${game.title}" onerror="this.src='/images/full-logo-transparent.png'">
               <h4>${game.title}</h4>
             `;
 
@@ -266,7 +266,7 @@
         })
         .catch((err) => {
           console.error("Error loading games:", err);
-          gameList.innerHTML = "<p>Failed to load games list.</p>";
+          gameList.innerHTML = "<p>Failed to load games!</p>";
         });
 
       // === UNITY GAME LOADER ===
