@@ -21,9 +21,6 @@ header img.logo:hover { opacity:0.8; }
   color:#00ffb3;
   text-align:center;
   white-space:nowrap;
-  background:rgba(0,0,0,0.6);
-  padding:0.2rem 0.6rem;
-  border-radius:10px;
 }
 
 /* UNITY */
@@ -32,7 +29,7 @@ main { display:flex; height:calc(100vh - 80px); }
 #unity-canvas { width:100%; max-width:960px; aspect-ratio:16/9; border-radius:10px; background:#000; }
 
 /* UNITY FOOTER */
-#unity-footer { position:absolute; bottom:15px; left:50%; transform:translateX(-50%); display:flex; align-items:center; gap:10px; padding:0.3rem 1rem; background:rgba(0,0,0,0.6); border-radius:10px; }
+#unity-footer { position:absolute; bottom:15px; left:50%; transform:translateX(-50%); display:flex; align-items:center; gap:10px; }
 #unity-fullscreen-button { background:#00ffb3; color:#000; padding:0.6rem 1rem; border-radius:30px; font-weight:600; cursor:pointer; transition:0.2s ease; }
 #unity-fullscreen-button:hover { background:#00d6a1; }
 
@@ -90,18 +87,19 @@ const currentGame = window.location.pathname.split("/").filter(Boolean).pop() ||
 fetch("/Games/games.json").then(res=>res.json()).then(games=>{
   gameList.innerHTML="";
   games.forEach(game=>{
+    // Set header and title for current game
+    if(game.name === currentGame){
+      headerTitle.textContent = game.title;
+      document.title = `PlayHaven | ${game.title}`;
+      return; // Skip adding current game to sidebar
+    }
+
     const card=document.createElement("div");
     card.className="game-card";
     card.dataset.name=game.name.toLowerCase();
     card.onclick=()=>window.location.href=`/Games/${game.name}/`;
     card.innerHTML=`<img src="${game.thumbnail}" alt="${game.title}" onerror="this.src='/images/full-logo.png'"><h4>${game.title}</h4>`;
     gameList.appendChild(card);
-
-    // Set the title for current game
-    if(game.name === currentGame){
-      headerTitle.textContent = game.title;
-      document.title = `PlayHaven | ${game.title}`; // Update browser tab title
-    }
   });
 }).catch(err=>{console.error(err); gameList.innerHTML="<p>Failed to load games!</p>";});
 
