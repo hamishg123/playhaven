@@ -1,13 +1,18 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <!-- Basic Meta -->
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#0e0e0e" />
     <title>PlayHaven – Play Free Online Games Instantly | No Downloads</title>
 
     <!-- SEO Meta -->
+     <script type="application/ld+json"> 
+      { "@context": "https://schema.org",
+       "@type": "WebSite", "name": "PlayHaven", "url": "https://playhaven.site",
+        "description": "Play free online games instantly with no downloads.",
+         "publisher": { "@type": "Organization", "name": "PlayHaven" },
+          "potentialAction": { "@type": "SearchAction", "target": "https://playhaven.site/search?q={search_term_string}", "query-input": "required name=search_term_string" } } </script>
     <meta
       name="description"
       content="PlayHaven is your ultimate destination for free online games! Play action, adventure, arcade, and casual browser games instantly with no downloads."
@@ -18,46 +23,7 @@
     />
     <meta name="author" content="PlayHaven" />
 
-    <!-- Open Graph -->
-    <meta property="og:title" content="PlayHaven – Free Online Games" />
-    <meta
-      property="og:description"
-      content="Play free games instantly in your browser! New titles added daily. Join the fun at PlayHaven.site."
-    />
-    <meta property="og:image" content="https://playhaven.site/images/preview.jpg" />
-    <meta property="og:url" content="https://playhaven.site" />
-    <meta property="og:type" content="website" />
-
-    <!-- Twitter Card -->
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="PlayHaven – Play Free Online Games" />
-    <meta
-      name="twitter:description"
-      content="Instantly play thousands of free online games with no downloads. Discover your next favorite at PlayHaven!"
-    />
-    <meta name="twitter:image" content="https://playhaven.site/images/full-logo-transparent.png" />
-
-    <!-- Schema.org JSON-LD -->
-    <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "WebSite",
-      "name": "PlayHaven",
-      "url": "https://playhaven.site",
-      "description": "Play free online games instantly with no downloads.",
-      "publisher": {
-        "@type": "Organization",
-        "name": "PlayHaven"
-      },
-      "potentialAction": {
-        "@type": "SearchAction",
-        "target": "https://playhaven.site/search?q={search_term_string}",
-        "query-input": "required name=search_term_string"
-      }
-    }
-    </script>
-
-    <!-- Performance -->
+    <!-- Fonts & Favicon -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -68,96 +34,22 @@
 
     <!-- Styles -->
     <style>
-      * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-        font-family: "Poppins", sans-serif;
-      }
-      body {
-        background: radial-gradient(circle at center, #121212, #0a0a0a);
-        color: #fff;
-        text-align: center;
-      }
-      header {
-        padding: 2rem 1rem 1rem;
-        background: #1b1b1b;
-        box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
-      }
-      h1 {
-        font-size: 2.5rem;
-        font-weight: 700;
-        color: #00ffb3;
-      }
-      p {
-        margin-top: 1rem;
-        font-size: 1.1rem;
-        color: #ccc;
-      }
-      #searchBar {
-        margin: 2rem auto 1rem;
-        padding: 0.8rem 1rem;
-        width: 90%;
-        max-width: 500px;
-        border-radius: 2rem;
-        border: none;
-        font-size: 1rem;
-        outline: none;
-        text-align: center;
-        background: #222;
-        color: #fff;
-      }
-      #searchBar::placeholder {
-        color: #999;
-      }
-      .game-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
-        gap: 1.5rem;
-        padding: 2rem;
-        max-width: 1200px;
-        margin: auto;
-      }
-      .game {
-        background: #1b1b1b;
-        border-radius: 1rem;
-        overflow: hidden;
-        cursor: pointer;
-        transition: transform 0.3s ease, box-shadow 0.3s ease;
-      }
-      .game:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 0 15px #00ffb3;
-      }
-      .game img {
-        width: 100%;
-        height: 160px;
-        object-fit: cover;
-      }
-      .game h3 {
-        padding: 1rem;
-        font-size: 1.1rem;
-        color: #00ffb3;
-      }
-      footer {
-        background: #0a0a0a;
-        padding: 2rem;
-        font-size: 0.9rem;
-        color: #777;
-      }
-      footer a {
-        color: #00ffb3;
-        text-decoration: none;
-        margin: 0 0.5rem;
-      }
-      footer a:hover {
-        text-decoration: underline;
-      }
-      @media (max-width: 600px) {
-        h1 {
-          font-size: 1.8rem;
-        }
-      }
+      * {margin:0;padding:0;box-sizing:border-box;font-family:"Poppins",sans-serif;}
+      body {background: radial-gradient(circle at center,#121212,#0a0a0a);color:#fff;text-align:center;}
+      header {padding:2rem 1rem 1rem;background:#1b1b1b;box-shadow:0 0 20px rgba(0,0,0,0.5);}
+      h1 {font-size:2.5rem;font-weight:700;color:#00ffb3;}
+      p {margin-top:1rem;font-size:1.1rem;color:#ccc;}
+      #searchBar {margin:2rem auto 1rem;padding:0.8rem 1rem;width:90%;max-width:500px;border-radius:2rem;border:none;font-size:1rem;outline:none;text-align:center;background:#222;color:#fff;}
+      #searchBar::placeholder {color:#999;}
+      .game-grid {display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:1.5rem;padding:2rem;max-width:1200px;margin:auto;}
+      .game {background:#1b1b1b;border-radius:1rem;overflow:hidden;cursor:pointer;transition:transform 0.3s ease,box-shadow 0.3s ease;}
+      .game:hover {transform:translateY(-5px);box-shadow:0 0 15px #00ffb3;}
+      .game img {width:100%;height:160px;object-fit:cover;}
+      .game h3 {padding:1rem;font-size:1.1rem;color:#00ffb3;}
+      footer {background:#0a0a0a;padding:2rem;font-size:0.9rem;color:#777;}
+      footer a {color:#00ffb3;text-decoration:none;margin:0 0.5rem;}
+      footer a:hover {text-decoration:underline;}
+      @media(max-width:600px){h1{font-size:1.8rem;}}
     </style>
   </head>
 
@@ -165,27 +57,12 @@
     <header>
       <h1>Welcome to PlayHaven</h1>
       <p>Play free online games instantly – no downloads, no waiting, just fun!</p>
-      <input
-        type="text"
-        id="searchBar"
-        placeholder="Search for a game ..."
-      />
+      <input type="text" id="searchBar" placeholder="Search for a game ..." />
     </header>
 
     <main>
       <section class="game-grid" id="gameGrid">
-        <!-- 🕹️ Add new games here! Just copy one <div class="game"> block -->
-        <div class="game" data-name="Flappy Bird" onclick="window.location.href='Games/FlappyBird/'">
-          <img src="images/flappy-bird.jpg" alt="Flappy Bird Game" />
-          <h3>🐦 Flappy Bird</h3>
-        </div>
-
-        <div class="game" data-name="Shooter Game 2D" onclick="window.location.href='Games/shooter-game'">
-          <img src="images/shooter-game.png" alt="Shooter Game 2D" />
-          <h3>🐦 Flappy Bird</h3>
-        </div>
-
-        
+        <!-- Games will be loaded here dynamically from JSON -->
       </section>
     </main>
     <script>
@@ -209,17 +86,46 @@ l.parentNode.insertBefore(s, l);
       </p>
     </footer>
 
-    <!-- Search Script -->
+    <!-- Load games from JSON -->
     <script>
+      const gameGrid = document.getElementById("gameGrid");
       const searchBar = document.getElementById("searchBar");
-      const games = document.querySelectorAll(".game");
+      let allGames = [];
 
+      // Fetch games from JSON
+      fetch("/Games/games.json")
+        .then(res => res.json())
+        .then(games => {
+          allGames = games; // store all games for search
+          renderGames(games);
+        })
+        .catch(err => {
+          console.error("Failed to load games:", err);
+          gameGrid.innerHTML = "<p>Failed to load games!</p>";
+        });
+
+      function renderGames(games) {
+        gameGrid.innerHTML = "";
+        games.forEach(game => {
+          const div = document.createElement("div");
+          div.className = "game";
+          div.dataset.name = game.name.toLowerCase();
+          div.onclick = () => window.location.href = `/Games/${game.name}/`;
+          div.innerHTML = `
+            <img src="${game.thumbnail}" alt="${game.title}" onerror="this.src='images/square-logo-transparent.png'">
+            <h3>${game.title}</h3>
+          `;
+          gameGrid.appendChild(div);
+        });
+      }
+
+      // Search functionality
       searchBar.addEventListener("input", () => {
         const query = searchBar.value.toLowerCase();
-        games.forEach((game) => {
-          const name = game.getAttribute("data-name").toLowerCase();
-          game.style.display = name.includes(query) ? "block" : "none";
-        });
+        const filtered = allGames.filter(game =>
+          game.name.toLowerCase().includes(query) || game.title.toLowerCase().includes(query)
+        );
+        renderGames(filtered);
       });
     </script>
   </body>
