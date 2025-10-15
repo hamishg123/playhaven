@@ -310,19 +310,24 @@
       document.body.appendChild(script);
 
       // === FIX UNITY FOCUS STEALING ===
-      searchBar.addEventListener("focus", () => {
-        canvas.blur(); // Release Unity input
-      });
+// Prevent Unity from capturing keystrokes when typing in search bar
+searchBar.addEventListener("focus", () => {
+  if (typeof unityInstance !== "undefined") {
+    unityInstance.SendMessage('GameManager', 'PauseInput'); // optional if your Unity game supports pausing input
+  }
+});
 
-      document.addEventListener("click", (e) => {
-        if (!canvas.contains(e.target)) {
-          canvas.blur();
-        }
-      });
+searchBar.addEventListener("blur", () => {
+  if (typeof unityInstance !== "undefined") {
+    unityInstance.SendMessage('GameManager', 'ResumeInput'); // optional
+  }
+});
 
-      canvas.addEventListener("click", () => {
-        canvas.focus(); // Regain Unity focus when clicked
-      });
+// Ensure canvas only captures input when clicked
+canvas.addEventListener("click", () => {
+  canvas.focus();
+});
+
     </script>
   </body>
 </html>
