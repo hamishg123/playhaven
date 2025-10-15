@@ -56,8 +56,8 @@
         background: #1b1b1b;
         color: #fff;
         text-align: center;
-        z-index: 9999;
         position: relative;
+        z-index: 9999; /* ensure it's above canvas */
       }
 
       #searchBar::placeholder {
@@ -199,8 +199,7 @@
         }
 
         #searchBar {
-          position: relative;
-          z-index: 9999; /* ensure it’s above the Unity canvas */
+          width: 60%;
         }
       }
     </style>
@@ -282,6 +281,15 @@
           gameList.innerHTML = "<p>Failed to load games!</p>";
         });
 
+      // === FIX UNITY FOCUS STEALING ===
+      searchBar.addEventListener("focus", () => {
+        canvas.style.pointerEvents = "none"; // temporarily disable Unity interaction
+      });
+
+      searchBar.addEventListener("blur", () => {
+        canvas.style.pointerEvents = "auto"; // re-enable Unity interaction
+      });
+
       // === UNITY GAME LOADER ===
       var buildUrl = "Build";
       var loaderUrl = buildUrl + "/FlappyBird1.loader.js";
@@ -309,26 +317,6 @@
           .catch((message) => alert(message));
       };
       document.body.appendChild(script);
-
-      // === FIX UNITY FOCUS STEALING ===
-// Prevent Unity from capturing keystrokes when typing in search bar
-searchBar.addEventListener("focus", () => {
-  if (typeof unityInstance !== "undefined") {
-    unityInstance.SendMessage('GameManager', 'PauseInput'); // optional if your Unity game supports pausing input
-  }
-});
-
-searchBar.addEventListener("blur", () => {
-  if (typeof unityInstance !== "undefined") {
-    unityInstance.SendMessage('GameManager', 'ResumeInput'); // optional
-  }
-});
-
-// Ensure canvas only captures input when clicked
-canvas.addEventListener("click", () => {
-  canvas.focus();
-});
-
     </script>
   </body>
 </html>
