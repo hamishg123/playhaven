@@ -57,6 +57,8 @@
         background: #1b1b1b;
         color: #fff;
         text-align: center;
+        z-index: 9999;
+        position: relative;
       }
 
       #searchBar::placeholder {
@@ -156,11 +158,6 @@
         transform: translateY(-3px);
       }
 
-      .game-card.active {
-        box-shadow: 0 0 10px #00ffb3;
-        border: 1px solid #00ffb3;
-      }
-
       .game-card img {
         width: 100%;
         height: 100px;
@@ -209,7 +206,7 @@
     <main>
       <!-- UNITY GAME -->
       <div id="unity-container" class="unity-desktop">
-        <canvas id="unity-canvas" width="960" height="600"></canvas>
+        <canvas id="unity-canvas" width="960" height="600" tabindex="1"></canvas>
         <div id="unity-loading-bar">
           <div id="unity-progress-bar-full"></div>
         </div>
@@ -230,30 +227,32 @@
       const searchBar = document.getElementById("searchBar");
       const gameList = document.getElementById("gameList");
 
+      // Detect the current game folder name from the URL
+      const currentGame =
+        window.location.pathname.split("/").filter(Boolean).pop() || "flappy-bird";
+
       // === LOAD GAMES FROM JSON ===
       fetch("/Games/games.json")
         .then((res) => res.json())
         .then((games) => {
           gameList.innerHTML = "";
 
-          games.forEach((game) => {
-            const card = document.createElement("div");
-            card.className = "game-card";
-            card.dataset.name = game.name.toLowerCase();
-            card.onclick = () => (window.location.href = `/Games/${game.name}/`);
+          games
+            .filter((g) => g.name !== currentGame) // Hide the current game
+            .forEach((game) => {
+              const card = document.createElement("div");
+              card.className = "game-card";
+              card.dataset.name = game.name.toLowerCase();
+              card.onclick = () =>
+                (window.location.href = `/Games/${game.name}/`);
 
-            card.innerHTML = `
-              <img src="${game.thumbnail}" alt="${game.title}" onerror="this.src='/images/full-logo.png'">
-              <h4>${game.title}</h4>
-            `;
+              card.innerHTML = `
+                <img src="${game.thumbnail}" alt="${game.title}" onerror="this.src='/images/full-logo.png'">
+                <h4>${game.title}</h4>
+              `;
 
-            // Highlight the current game
-            if (window.location.pathname.includes(game.name)) {
-              card.classList.add("active");
-            }
-
-            gameList.appendChild(card);
-          });
+              gameList.appendChild(card);
+            });
 
           // === SEARCH FUNCTION ===
           searchBar.addEventListener("input", () => {
@@ -286,6 +285,18 @@
       var loadingBar = document.querySelector("#unity-loading-bar");
       var progressBarFull = document.querySelector("#unity-progress-bar-full");
       var fullscreenButton = document.querySelector("#unity-fullscreen-button");
+
+      // Fix: prevent Unity from stealing keyboard focus
+      // Clicking outside Unity (like on search bar) re-enables typing
+      window.addEventListener("click", () => {
+        if (document.activeElement === canvas) {
+          canvas.blur();
+        }
+      });
+
+      searchBar.addEventListener("focus", () => {
+        document.activeElement.blur(); // Release Unity input lock
+      });
 
       loadingBar.style.display = "block";
       var script = document.createElement("script");
