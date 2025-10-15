@@ -1,339 +1,124 @@
 <!DOCTYPE html>
 <html lang="en-us">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>PlayHaven | Flappy Bird</title>
-    <meta
-      name="description"
-      content="Play Flappy Bird online free on PlayHaven — the best place for fun and addictive browser games!"
-    />
-    <link rel="icon" href="/images/square-logo-transparent.png" />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap"
-      rel="stylesheet"
-    />
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>PlayHaven | Flappy Bird</title>
+<link rel="icon" href="/images/square-logo-transparent.png" />
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
 
-    <style>
-      * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-        font-family: "Poppins", sans-serif;
-      }
-
-      body {
-        background: #0b0b0b;
-        color: #fff;
-        overflow-x: hidden;
-      }
-
-      header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 1rem 2rem;
-        background: #111;
-        border-bottom: 2px solid #00ffb3;
-      }
-
-      header img.logo {
-        height: 45px;
-        cursor: pointer;
-        transition: 0.2s ease;
-      }
-
-      header img.logo:hover {
-        opacity: 0.8;
-      }
-
-      #searchBar {
-        width: 40%;
-        padding: 0.7rem 1rem;
-        border-radius: 2rem;
-        border: none;
-        outline: none;
-        background: #1b1b1b;
-        color: #fff;
-        text-align: center;
-        position: relative;
-        z-index: 9999; /* ensure it's above canvas */
-      }
-
-      #searchBar::placeholder {
-        color: #888;
-      }
-
-      main {
-        display: flex;
-        height: calc(100vh - 80px);
-      }
-
-      /* UNITY CONTAINER */
-      #unity-container {
-        flex: 3;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        position: relative;
-        background: #0e0e0e;
-        border-right: 2px solid #111;
-        padding: 1rem;
-      }
-
-      #unity-canvas {
-        width: 100%;
-        max-width: 960px;
-        aspect-ratio: 16 / 9;
-        border-radius: 10px;
-        background: #000;
-      }
-
-      #unity-loading-bar {
-        position: absolute;
-        top: 10%;
-        width: 80%;
-        height: 10px;
-        background: #222;
-        border-radius: 5px;
-        overflow: hidden;
-      }
-
-      #unity-progress-bar-full {
-        width: 0%;
-        height: 100%;
-        background: #00ffb3;
-        transition: width 0.2s;
-      }
-
-      #unity-footer {
-        position: absolute;
-        bottom: 15px;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        color: #00ffb3;
-      }
-
-      #unity-fullscreen-button {
-        background: #00ffb3;
-        color: #000;
-        padding: 0.6rem 1rem;
-        border-radius: 30px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: 0.2s ease;
-      }
-
-      #unity-fullscreen-button:hover {
-        background: #00d6a1;
-      }
-
-      /* SIDEBAR */
-      .sidebar {
-        flex: 1;
-        background: #141414;
-        padding: 1rem;
-        overflow-y: auto;
-      }
-
-      .sidebar h2 {
-        font-size: 1.2rem;
-        color: #00ffb3;
-        margin-bottom: 1rem;
-        text-align: center;
-      }
-
-      /* GAME LIST SCALING LIKE CARDS */
-      .game-list {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: center;
-        gap: 1rem;
-        padding: 0.5rem;
-      }
-
-      .game-card {
-        background: #1b1b1b;
-        border-radius: 1rem;
-        overflow: hidden;
-        cursor: pointer;
-        transition: transform 0.3s ease, box-shadow 0.3s ease;
-        flex: 1 1 clamp(150px, 40%, 250px);
-        max-width: 250px;
-        min-width: 150px;
-      }
-
-      .game-card:hover {
-        box-shadow: 0 0 10px #00ffb3;
-        transform: translateY(-3px);
-      }
-
-      .game-card img {
-        width: 100%;
-        aspect-ratio: 16 / 9;
-        object-fit: cover;
-      }
-
-      .game-card h4 {
-        padding: 0.5rem;
-        text-align: center;
-        color: #00ffb3;
-      }
-
-      /* RESPONSIVE */
-      @media (max-width: 900px) {
-        main {
-          flex-direction: column;
-        }
-
-        #unity-canvas {
-          width: 95%;
-          height: auto;
-          aspect-ratio: 16 / 10;
-        }
-
-        .sidebar {
-          order: 2;
-          width: 100%;
-        }
-
-        #searchBar {
-  position: absolute; /* overlay on top of canvas */
-  top: 1rem;
-  right: 2rem;
-  width: 40%;
-  padding: 0.7rem 1rem;
-  border-radius: 2rem;
-  border: none;
-  outline: none;
-  background: #1b1b1b;
-  color: #fff;
-  text-align: center;
-  z-index: 99999; /* above Unity canvas */
+<style>
+* { margin:0; padding:0; box-sizing:border-box; font-family:"Poppins",sans-serif; }
+body { background:#0b0b0b; color:#fff; overflow-x:hidden; }
+header { display:flex; align-items:center; justify-content:space-between; padding:1rem 2rem; background:#111; border-bottom:2px solid #00ffb3; position:relative; }
+header img.logo { height:45px; cursor:pointer; transition:0.2s ease; }
+header img.logo:hover { opacity:0.8; }
+/* SEARCH BAR ALWAYS ON TOP */
+#searchBar {
+  position:absolute;
+  top:1rem;
+  right:2rem;
+  width:40%;
+  padding:0.7rem 1rem;
+  border-radius:2rem;
+  border:none;
+  outline:none;
+  background:#1b1b1b;
+  color:#fff;
+  text-align:center;
+  z-index:99999;
 }
-      }
-    </style>
-  </head>
+#searchBar::placeholder { color:#888; }
+main { display:flex; height:calc(100vh - 80px); }
+/* UNITY */
+#unity-container { flex:3; display:flex; justify-content:center; align-items:center; position:relative; background:#0e0e0e; border-right:2px solid #111; padding:1rem; }
+#unity-canvas { width:100%; max-width:960px; aspect-ratio:16/9; border-radius:10px; background:#000; }
+#unity-loading-bar { position:absolute; top:10%; width:80%; height:10px; background:#222; border-radius:5px; overflow:hidden; }
+#unity-progress-bar-full { width:0%; height:100%; background:#00ffb3; transition:width 0.2s; }
+#unity-footer { position:absolute; bottom:15px; display:flex; align-items:center; gap:10px; color:#00ffb3; }
+#unity-fullscreen-button { background:#00ffb3; color:#000; padding:0.6rem 1rem; border-radius:30px; font-weight:600; cursor:pointer; transition:0.2s ease; }
+#unity-fullscreen-button:hover { background:#00d6a1; }
+/* SIDEBAR */
+.sidebar { flex:1; background:#141414; padding:1rem; overflow-y:auto; }
+.sidebar h2 { font-size:1.2rem; color:#00ffb3; margin-bottom:1rem; text-align:center; }
+/* GAME CARDS */
+.game-list { display:flex; flex-wrap:wrap; justify-content:center; gap:1rem; padding:0.5rem; }
+.game-card { background:#1b1b1b; border-radius:1rem; overflow:hidden; cursor:pointer; transition: transform 0.3s ease, box-shadow 0.3s ease; flex:1 1 clamp(150px,40%,250px); max-width:250px; min-width:150px; }
+.game-card:hover { box-shadow:0 0 10px #00ffb3; transform:translateY(-3px); }
+.game-card img { width:100%; aspect-ratio:16/9; object-fit:cover; }
+.game-card h4 { padding:0.5rem; text-align:center; color:#00ffb3; }
+/* RESPONSIVE */
+@media (max-width:900px) {
+  main { flex-direction:column; }
+  #unity-canvas { width:95%; height:auto; aspect-ratio:16/10; }
+  .sidebar { order:2; width:100%; }
+  #searchBar { top:1rem; right:50%; transform:translateX(50%); width:60%; }
+}
+</style>
+</head>
 
-  <body>
-    <header>
-      <img
-        src="/images/full-logo.png"
-        alt="PlayHaven Logo"
-        class="logo"
-        onclick="window.location.href='/'"
-      />
-      <input type="text" id="searchBar" placeholder="Search for a game..." />
-    </header>
+<body>
+<header>
+<img src="/images/full-logo.png" alt="PlayHaven Logo" class="logo" onclick="window.location.href='/'" />
+<input type="text" id="searchBar" placeholder="Search for a game..." />
+</header>
 
-    <main>
-      <!-- UNITY GAME -->
-      <div id="unity-container" class="unity-desktop">
-        <canvas id="unity-canvas" width="960" height="600" ></canvas>
-        <div id="unity-loading-bar">
-          <div id="unity-progress-bar-full"></div>
-        </div>
-        <div id="unity-footer">
-          <div id="unity-fullscreen-button">⛶ Fullscreen</div>
-          <div id="unity-build-title">Flappy Bird</div>
-        </div>
-      </div>
+<main>
+<div id="unity-container">
+<canvas id="unity-canvas" width="960" height="600"></canvas>
+<div id="unity-loading-bar"><div id="unity-progress-bar-full"></div></div>
+<div id="unity-footer">
+<div id="unity-fullscreen-button">⛶ Fullscreen</div>
+<div id="unity-build-title">Flappy Bird</div>
+</div>
+</div>
 
-      <!-- SIDEBAR -->
-      <aside class="sidebar">
-        <h2>Other Games</h2>
-        <div class="game-list" id="gameList"></div>
-      </aside>
-    </main>
+<aside class="sidebar">
+<h2>Other Games</h2>
+<div class="game-list" id="gameList"></div>
+</aside>
+</main>
 
-    <script>
-      const searchBar = document.getElementById("searchBar");
-      const gameList = document.getElementById("gameList");
-      const canvas = document.querySelector("#unity-canvas");
-      const loadingBar = document.querySelector("#unity-loading-bar");
-      const progressBarFull = document.querySelector("#unity-progress-bar-full");
-      const fullscreenButton = document.querySelector("#unity-fullscreen-button");
+<script>
+const searchBar = document.getElementById("searchBar");
+const gameList = document.getElementById("gameList");
 
-      document.addEventListener("click", (event) => {
-  // If click is inside the search bar, stop Unity from refocusing
-  if (event.target.id === "searchBar") {
-    event.stopPropagation();
-  }
-});
+// Load games
+const currentGame = window.location.pathname.split("/").filter(Boolean).pop() || "flappy-bird";
+fetch("/Games/games.json").then(res=>res.json()).then(games=>{
+  gameList.innerHTML="";
+  games.filter(g=>g.name!==currentGame).forEach(game=>{
+    const card=document.createElement("div");
+    card.className="game-card";
+    card.dataset.name=game.name.toLowerCase();
+    card.onclick=()=>window.location.href=`/Games/${game.name}/`;
+    card.innerHTML=`<img src="${game.thumbnail}" alt="${game.title}" onerror="this.src='/images/full-logo.png'"><h4>${game.title}</h4>`;
+    gameList.appendChild(card);
+  });
 
-// Prevent Unity focus grabbing on keypress
-document.getElementById("searchBar").addEventListener("keydown", (e) => {
-  e.stopPropagation();
-});
+  // Search input works
+  searchBar.addEventListener("input", ()=>{
+    const query=searchBar.value.toLowerCase();
+    document.querySelectorAll(".game-card").forEach(card=>{
+      const name=card.dataset.name.toLowerCase();
+      card.style.display=name.includes(query)?"block":"none";
+    });
+  });
+}).catch(err=>{console.error("Error loading games:",err); gameList.innerHTML="<p>Failed to load games!</p>";});
 
-      // Detect current game folder from URL
-      const currentGame =
-        window.location.pathname.split("/").filter(Boolean).pop() || "flappy-bird";
-
-      // === LOAD GAMES FROM JSON ===
-      fetch("/Games/games.json")
-        .then((res) => res.json())
-        .then((games) => {
-          gameList.innerHTML = "";
-          games
-            .filter((g) => g.name !== currentGame)
-            .forEach((game) => {
-              const card = document.createElement("div");
-              card.className = "game-card";
-              card.dataset.name = game.name.toLowerCase();
-              card.onclick = () => (window.location.href = `/Games/${game.name}/`);
-              card.innerHTML = `
-                <img src="${game.thumbnail}" alt="${game.title}" onerror="this.src='/images/full-logo.png'">
-                <h4>${game.title}</h4>
-              `;
-              gameList.appendChild(card);
-            });
-
-          // === SEARCH FUNCTION ===
-          searchBar.addEventListener("input", () => {
-            const query = searchBar.value.toLowerCase();
-            document.querySelectorAll(".game-card").forEach((card) => {
-              const name = card.dataset.name.toLowerCase();
-              card.style.display = name.includes(query) ? "block" : "none";
-            });
-          });
-        })
-        .catch((err) => {
-          console.error("Error loading games:", err);
-          gameList.innerHTML = "<p>Failed to load games!</p>";
-        });
-
-      
-
-
-      // === UNITY GAME LOADER ===
-      var buildUrl = "Build";
-      var loaderUrl = buildUrl + "/FlappyBird1.loader.js";
-      var config = {
-        dataUrl: buildUrl + "/FlappyBird1.data",
-        frameworkUrl: buildUrl + "/FlappyBird1.framework.js",
-        codeUrl: buildUrl + "/FlappyBird1.wasm",
-        streamingAssetsUrl: "StreamingAssets",
-        companyName: "Hami2h123 Games",
-        productName: "Flappy Bird",
-        productVersion: "1.1",
-      };
-
-      loadingBar.style.display = "block";
-      var script = document.createElement("script");
-      script.src = loaderUrl;
-      script.onload = () => {
-        createUnityInstance(canvas, config, (progress) => {
-          progressBarFull.style.width = 100 * progress + "%";
-        })
-          .then((unityInstance) => {
-            loadingBar.style.display = "none";
-            fullscreenButton.onclick = () => unityInstance.SetFullscreen(1);
-          })
-          .catch((message) => alert(message));
-      };
-      document.body.appendChild(script);
-    </script>
-  </body>
+// Unity loader
+var buildUrl="Build";
+var loaderUrl=buildUrl+"/FlappyBird1.loader.js";
+var config={dataUrl:buildUrl+"/FlappyBird1.data", frameworkUrl:buildUrl+"/FlappyBird1.framework.js", codeUrl:buildUrl+"/FlappyBird1.wasm", streamingAssetsUrl:"StreamingAssets", companyName:"Hami2h123 Games", productName:"Flappy Bird", productVersion:"1.1"};
+var canvas=document.getElementById("unity-canvas");
+var loadingBar=document.getElementById("unity-loading-bar");
+var progressBarFull=document.getElementById("unity-progress-bar-full");
+var fullscreenButton=document.getElementById("unity-fullscreen-button");
+loadingBar.style.display="block";
+var script=document.createElement("script");
+script.src=loaderUrl;
+script.onload=()=>{createUnityInstance(canvas, config, progress=>{progressBarFull.style.width=100*progress+"%";}).then(unityInstance=>{loadingBar.style.display="none"; fullscreenButton.onclick=()=>unityInstance.SetFullscreen(1);}).catch(message=>alert(message));};
+document.body.appendChild(script);
+</script>
+</body>
 </html>
