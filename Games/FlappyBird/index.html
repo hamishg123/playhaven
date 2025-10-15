@@ -206,7 +206,7 @@
     <main>
       <!-- UNITY GAME -->
       <div id="unity-container" class="unity-desktop">
-        <canvas id="unity-canvas" width="960" height="600" tabindex="-1"></canvas>
+        <canvas id="unity-canvas" width="960" height="600" tabindex="1"></canvas>
         <div id="unity-loading-bar">
           <div id="unity-progress-bar-full"></div>
         </div>
@@ -224,6 +224,7 @@
     </main>
 
     <script>
+      
       const searchBar = document.getElementById("searchBar");
       const gameList = document.getElementById("gameList");
 
@@ -312,6 +313,25 @@
           .catch((message) => alert(message));
       };
       document.body.appendChild(script);
+      // === FIX UNITY FOCUS STEALING ===
+      const canvas = document.querySelector("#unity-canvas");
+
+      // Whenever you click the search bar, force Unity to release keyboard control
+      searchBar.addEventListener("focus", () => {
+        canvas.blur(); // Release Unity's input
+      });
+
+      // Clicking anywhere else (except canvas) gives keyboard back to the browser
+      document.addEventListener("click", (e) => {
+        if (!canvas.contains(e.target)) {
+          canvas.blur();
+        }
+      });
+
+      // Optional: if you click the Unity canvas again, it regains keyboard focus
+      canvas.addEventListener("click", () => {
+        canvas.focus();
+      });
     </script>
   </body>
 </html>
