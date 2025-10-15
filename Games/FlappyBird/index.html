@@ -13,24 +13,48 @@ body { background:#0b0b0b; color:#fff; overflow-x:hidden; }
 header { display:flex; align-items:center; justify-content:space-between; padding:1rem 2rem; background:#111; border-bottom:2px solid #00ffb3; position:relative; }
 header img.logo { height:45px; cursor:pointer; transition:0.2s ease; }
 header img.logo:hover { opacity:0.8; }
-/* SEARCH BAR ALWAYS ON TOP */
-#searchBar {
-  position:absolute;
-  top:1rem;
-  right:2rem;
-  width:40%;
-  padding:0.7rem 1rem;
+
+/* SEARCH ICON BUTTON */
+#searchButton {
+  background:#1b1b1b; border:none; color:#fff; padding:0.5rem 1rem; border-radius:2rem; cursor:pointer;
+  z-index:9999;
+}
+
+/* MODAL */
+#searchModal {
+  display:none;
+  position:fixed;
+  top:0; left:0;
+  width:100vw; height:100vh;
+  background:rgba(0,0,0,0.95);
+  z-index:100000;
+  justify-content:center;
+  align-items:center;
+  flex-direction:column;
+}
+#searchModal input {
+  width:50%; max-width:500px;
+  padding:1rem 1.5rem;
   border-radius:2rem;
   border:none;
   outline:none;
+  font-size:1rem;
+  text-align:center;
   background:#1b1b1b;
   color:#fff;
-  text-align:center;
-  z-index:99999;
 }
-#searchBar::placeholder { color:#888; }
-main { display:flex; height:calc(100vh - 80px); }
+#searchModal #closeModal {
+  margin-top:1rem;
+  padding:0.5rem 1rem;
+  border:none;
+  border-radius:2rem;
+  background:#00ffb3;
+  color:#000;
+  cursor:pointer;
+}
+
 /* UNITY */
+main { display:flex; height:calc(100vh - 80px); }
 #unity-container { flex:3; display:flex; justify-content:center; align-items:center; position:relative; background:#0e0e0e; border-right:2px solid #111; padding:1rem; }
 #unity-canvas { width:100%; max-width:960px; aspect-ratio:16/9; border-radius:10px; background:#000; }
 #unity-loading-bar { position:absolute; top:10%; width:80%; height:10px; background:#222; border-radius:5px; overflow:hidden; }
@@ -38,6 +62,7 @@ main { display:flex; height:calc(100vh - 80px); }
 #unity-footer { position:absolute; bottom:15px; display:flex; align-items:center; gap:10px; color:#00ffb3; }
 #unity-fullscreen-button { background:#00ffb3; color:#000; padding:0.6rem 1rem; border-radius:30px; font-weight:600; cursor:pointer; transition:0.2s ease; }
 #unity-fullscreen-button:hover { background:#00d6a1; }
+
 /* SIDEBAR */
 .sidebar { flex:1; background:#141414; padding:1rem; overflow-y:auto; }
 .sidebar h2 { font-size:1.2rem; color:#00ffb3; margin-bottom:1rem; text-align:center; }
@@ -52,7 +77,6 @@ main { display:flex; height:calc(100vh - 80px); }
   main { flex-direction:column; }
   #unity-canvas { width:95%; height:auto; aspect-ratio:16/10; }
   .sidebar { order:2; width:100%; }
-  #searchBar { top:1rem; right:50%; transform:translateX(50%); width:60%; }
 }
 </style>
 </head>
@@ -60,8 +84,14 @@ main { display:flex; height:calc(100vh - 80px); }
 <body>
 <header>
 <img src="/images/full-logo.png" alt="PlayHaven Logo" class="logo" onclick="window.location.href='/'" />
-<input type="text" id="searchBar" placeholder="Search for a game..." />
+<button id="searchButton">Search 🔍</button>
 </header>
+
+<!-- SEARCH MODAL -->
+<div id="searchModal">
+<input type="text" id="modalSearch" placeholder="Type to search games..." />
+<button id="closeModal">Close</button>
+</div>
 
 <main>
 <div id="unity-container">
@@ -80,8 +110,25 @@ main { display:flex; height:calc(100vh - 80px); }
 </main>
 
 <script>
-const searchBar = document.getElementById("searchBar");
+const searchButton = document.getElementById("searchButton");
+const searchModal = document.getElementById("searchModal");
+const closeModal = document.getElementById("closeModal");
+const modalSearch = document.getElementById("modalSearch");
 const gameList = document.getElementById("gameList");
+
+// Open search modal
+searchButton.addEventListener("click", ()=>{
+  searchModal.style.display="flex";
+  modalSearch.focus();
+});
+
+// Close modal
+closeModal.addEventListener("click", ()=>{
+  searchModal.style.display="none";
+  modalSearch.value="";
+  // Reset all cards
+  document.querySelectorAll(".game-card").forEach(card=>card.style.display="block");
+});
 
 // Load games
 const currentGame = window.location.pathname.split("/").filter(Boolean).pop() || "flappy-bird";
@@ -96,15 +143,15 @@ fetch("/Games/games.json").then(res=>res.json()).then(games=>{
     gameList.appendChild(card);
   });
 
-  // Search input works
-  searchBar.addEventListener("input", ()=>{
-    const query=searchBar.value.toLowerCase();
+  // Search input works inside modal
+  modalSearch.addEventListener("input", ()=>{
+    const query=modalSearch.value.toLowerCase();
     document.querySelectorAll(".game-card").forEach(card=>{
       const name=card.dataset.name.toLowerCase();
       card.style.display=name.includes(query)?"block":"none";
     });
   });
-}).catch(err=>{console.error("Error loading games:",err); gameList.innerHTML="<p>Failed to load games!</p>";});
+}).catch(err=>{console.error(err); gameList.innerHTML="<p>Failed to load games!</p>";});
 
 // Unity loader
 var buildUrl="Build";
