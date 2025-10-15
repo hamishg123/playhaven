@@ -71,30 +71,29 @@
 
       /* Game grid stays same card size even with fewer cards */
       .game-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;       /* ✅ keeps cards centered on all devices */
+  align-items: stretch;
   gap: 1.5rem;
-  justify-items: center; /* centers cards if fewer per row */
-  align-items: stretch;  /* ✅ ensures all cards in a row are the same height */
   padding: 2rem;
   max-width: 1200px;
   margin: 0 auto;
 }
 
+/* Each game card */
 .game {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
   background: #1b1b1b;
   border-radius: 1rem;
   overflow: hidden;
   cursor: pointer;
   transition: transform 0.3s ease, box-shadow 0.3s ease;
-  width: 100%;
+  flex: 1 1 clamp(200px, 22vw, 280px);  /* ✅ responsive width */
   max-width: 280px;
-  height: 100%; /* ✅ makes them stretch equally */
+  min-width: 200px;
 }
 
+/* 16:9 image container */
 .thumb-wrapper {
   position: relative;
   width: 100%;
@@ -111,15 +110,6 @@
   top: 0;
   left: 0;
 }
-
-.game h3 {
-  padding: 1rem;
-  font-size: 1.1rem;
-  color: #00ffb3;
-  text-align: center;
-  flex-shrink: 0;
-}
-
 
       footer {
         background: #0a0a0a;
