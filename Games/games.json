@@ -10,9 +10,9 @@
     "thumbnail": "/images/full-logo.png"
   },
    {
-    "name": "FlappyBird",
-    "title": "Flappy Bird",
-    "thumbnail": "/images/Flappy-Bird.png"
+    "name": "shooter-game",
+    "title": "Shooter Game 2D",
+    "thumbnail": "/images/shooter-game.png"
   }
   
 ]
