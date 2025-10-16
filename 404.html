@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en-us">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>PlayHaven | Page Not Found</title>
+<link rel="icon" href="/images/square-logo-transparent.png" />
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: "Poppins", sans-serif;
+}
+body {
+  background: #0b0b0b;
+  color: #fff;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+header {
+  display: flex;
+  align-items: center;
+  padding: 1rem 2rem;
+  background: #111;
+  border-bottom: 2px solid #00ffb3;
+}
+header img.logo {
+  height: 60px;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+header img.logo:hover {
+  opacity: 0.8;
+}
+main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  padding: 2rem;
+}
+h1 {
+  font-size: 3rem;
+  color: #00ffb3;
+  margin-bottom: 1rem;
+}
+p {
+  font-size: 1.2rem;
+  color: #aaa;
+  margin-bottom: 2rem;
+}
+button {
+  background: #00ffb3;
+  color: #000;
+  border: none;
+  padding: 0.8rem 1.5rem;
+  border-radius: 2rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+button:hover {
+  background: #00d6a1;
+}
+</style>
+</head>
+
+<body>
+<header>
+  <img src="/images/full-logo.png" alt="PlayHaven Logo" class="logo" onclick="window.location.href='/'" />
+</header>
+
+<main>
+  <h1>404</h1>
+  <p>Page Not Found</p>
+  <button onclick="window.location.href='/'">Go Back Home</button>
+</main>
+</body>
+</html>
