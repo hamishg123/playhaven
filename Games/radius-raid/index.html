@@ -80,7 +80,13 @@ main { display:flex; height:calc(100vh - 80px); }
 <main>
 <div id="game-container">
   <!-- IFRAME loading a local file in the same folder -->
-  <iframe id="game-iframe" src="source.html" allowfullscreen sandbox="allow-scripts allow-forms allow-same-origin"></iframe>
+  <iframe
+  id="game-iframe"
+  src="source.html"
+  allowfullscreen
+  allow="fullscreen; gamepad; pointer-lock"
+  sandbox="allow-same-origin allow-scripts allow-pointer-lock allow-popups allow-modals allow-downloads allow-forms allow-top-navigation-by-user-activation"
+></iframe>
 
   <!-- FOOTER -->
   <div id="game-footer">
@@ -137,6 +143,27 @@ fsButton.addEventListener('click', ()=>{
     gameContainer.classList.remove('fullscreen');
   }
 });
+const gameFrame = document.getElementById("game-iframe");
+
+// When the game loads, try to focus it
+gameFrame.addEventListener("load", () => {
+  setTimeout(() => {
+    gameFrame.contentWindow.focus();
+  }, 300);
+});
+
+// When you click inside the game, give it focus so KeyboardJS works
+gameFrame.addEventListener("click", () => {
+  gameFrame.contentWindow.focus();
+});
+
+// Optional: when fullscreen starts, also focus the game
+document.addEventListener("fullscreenchange", () => {
+  if (document.fullscreenElement) {
+    gameFrame.contentWindow.focus();
+  }
+});
+
 
 </script>
 <script>
