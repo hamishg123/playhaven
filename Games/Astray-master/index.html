@@ -84,8 +84,10 @@ main { display:flex; height:calc(100vh - 80px); }
   id="game-iframe"
   src="source.html"
   allowfullscreen
-  
+  allow="fullscreen; gamepad; pointer-lock"
+  sandbox="allow-same-origin allow-scripts allow-pointer-lock allow-popups allow-modals allow-downloads allow-forms allow-top-navigation-by-user-activation"
 ></iframe>
+
 
 
 
@@ -144,11 +146,18 @@ fsButton.addEventListener('click', ()=>{
     gameContainer.classList.remove('fullscreen');
   }
 });
-const iframe = document.getElementById('game-iframe');
-iframe.addEventListener('load', () => {
-  iframe.contentWindow.focus();
-  iframe.contentWindow.addEventListener('click', () => iframe.contentWindow.focus());
+// Focus the game iframe when clicked or on load
+const gameFrame = document.getElementById("game-iframe");
+
+gameFrame.addEventListener("load", () => {
+  // Wait a moment then focus
+  setTimeout(() => gameFrame.contentWindow.focus(), 500);
 });
+
+gameFrame.addEventListener("click", () => {
+  gameFrame.contentWindow.focus();
+});
+
 
 </script>
 <script>
