@@ -144,6 +144,11 @@ fsButton.addEventListener('click', ()=>{
     gameContainer.classList.remove('fullscreen');
   }
 });
+const iframe = document.getElementById('game-iframe');
+iframe.addEventListener('load', () => {
+  iframe.contentWindow.focus();
+  iframe.contentWindow.addEventListener('click', () => iframe.contentWindow.focus());
+});
 
 </script>
 <script>
