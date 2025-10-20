@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en-us">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>PlayHaven | Loading...</title>
+<link rel="icon" href="/images/square-logo-transparent.png" />
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+
+<style>
+* { margin:0; padding:0; box-sizing:border-box; font-family:"Poppins",sans-serif; }
+body { background:#0b0b0b; color:#fff; overflow-x:hidden; }
+
+/* HEADER */
+header { display:flex; align-items:center; justify-content:center; padding:1rem 2rem; background:#111; border-bottom:2px solid #00ffb3; position:relative; z-index:10; }
+header img.logo { height:60px; cursor:pointer; transition:0.2s ease; margin-right:1rem; }
+header img.logo:hover { opacity:0.8; }
+#header-title {
+  font-size:1.5rem;
+  font-weight:600;
+  color:#00ffb3;
+  text-align:center;
+  white-space:nowrap;
+}
+
+/* GAME AREA */
+main { display:flex; height:calc(100vh - 80px); }
+#game-container { flex:3; display:flex; justify-content:center; align-items:center; position:relative; background:#0e0e0e; border-right:2px solid #111; padding:1rem; overflow:hidden; }
+#game-iframe { width:100%; height:100%; aspect-ratio:16/9; border-radius:10px; background:#000; border:0; transition: all 0.3s ease; }
+
+/* FULLSCREEN STYLES */
+#game-container.fullscreen {
+  position:fixed;
+  top:0;
+  left:0;
+  width:100vw;
+  height:100vh;
+  z-index:9999;
+  background:#000;
+  border:none;
+  padding:0;
+}
+#game-container.fullscreen #game-iframe {
+  width:100%;
+  height:100%;
+  border-radius:0;
+}
+
+/* FOOTER */
+#game-footer { position:absolute; bottom:15px; left:50%; transform:translateX(-50%); display:flex; align-items:center; gap:10px; z-index:20; }
+#game-fullscreen-button { background:#00ffb3; color:#000; padding:0.6rem 1rem; border-radius:30px; font-weight:600; cursor:pointer; transition:0.2s ease; }
+#game-fullscreen-button:hover { background:#00d6a1; }
+
+/* SIDEBAR */
+.sidebar { flex:1; background:#141414; padding:1rem; overflow-y:auto; }
+.sidebar h2 { font-size:1.2rem; color:#00ffb3; margin-bottom:0.5rem; text-align:center; }
+.game-list { display:flex; flex-wrap:wrap; justify-content:center; gap:1rem; padding:0.5rem; }
+.game-card { background:#1b1b1b; border-radius:1rem; overflow:hidden; cursor:pointer; transition: transform 0.3s ease, box-shadow 0.3s ease; flex:1 1 clamp(150px,40%,250px); max-width:250px; min-width:150px; }
+.game-card:hover { box-shadow:0 0 10px #00ffb3; transform:translateY(-3px); }
+.game-card img { width:100%; aspect-ratio:16/9; object-fit:cover; }
+.game-card h4 { padding:0.5rem; text-align:center; color:#00ffb3; }
+
+/* RESPONSIVE */
+@media (max-width:900px) {
+  main { flex-direction:column; }
+  #game-iframe { width:95%; height:auto; aspect-ratio:16/9; }
+  .sidebar { order:2; width:100%; }
+  header img.logo { height:50px; margin-right:0.5rem; }
+  #header-title { font-size:1.2rem; }
+}
+</style>
+</head>
+
+<body>
+<header>
+  <img src="/images/full-logo.png" alt="PlayHaven Logo" class="logo" onclick="window.location.href='/'" />
+  <div id="header-title">Loading...</div>
+</header>
+
+<main>
+<div id="game-container">
+  <!-- IFRAME loading a local file in the same folder -->
+  <iframe
+  id="game-iframe"
+  src="source.html"
+  allowfullscreen
+  allow="fullscreen; gamepad; pointer-lock"
+  sandbox="allow-same-origin allow-scripts allow-pointer-lock allow-popups allow-modals allow-downloads allow-forms allow-top-navigation-by-user-activation"
+></iframe>
+
+  <!-- FOOTER -->
+  <div id="game-footer">
+    <div id="game-fullscreen-button">⛶ Fullscreen</div>
+  </div>
+</div>
+
+<aside class="sidebar">
+<h2>Other Games</h2>
+<div class="game-list" id="gameList"></div>
+</aside>
+</main>
+
+<script>
+const gameList = document.getElementById("gameList");
+const headerTitle = document.getElementById("header-title");
+const fsButton = document.getElementById('game-fullscreen-button');
+const gameContainer = document.getElementById('game-container');
+
+// Detect current game from URL
+const currentGame = window.location.pathname.split("/").filter(Boolean).pop();
+
+// Load games
+fetch("/Games/games.json").then(res=>res.json()).then(games=>{
+  gameList.innerHTML="";
+  games.forEach(game=>{
+    if(game.name === currentGame){
+      headerTitle.textContent = game.title;
+      document.title = `PlayHaven | ${game.title}`;
+      return;
+    }
+    const card=document.createElement("div");
+    card.className="game-card";
+    card.dataset.name=game.name.toLowerCase();
+    card.onclick=()=>window.location.href=`/Games/${game.name}/`;
+    card.innerHTML=`<img src="${game.thumbnail}" alt="${game.title}" onerror="this.src='/images/full-logo.png'"><h4>${game.title}</h4>`;
+    gameList.appendChild(card);
+  });
+}).catch(err=>{console.error(err); gameList.innerHTML="<p>Failed to load games!</p>";});
+
+// Fullscreen toggle (both browser fullscreen and CSS fallback)
+fsButton.addEventListener('click', ()=>{
+  if (!document.fullscreenElement) {
+    if (gameContainer.requestFullscreen) {
+      gameContainer.requestFullscreen();
+    } else if (gameContainer.webkitRequestFullscreen) {
+      gameContainer.webkitRequestFullscreen(); // Safari
+    }
+    gameContainer.classList.add('fullscreen');
+  } else {
+    if (document.exitFullscreen) {
+      document.exitFullscreen();
+    }
+    gameContainer.classList.remove('fullscreen');
+  }
+});
+const gameFrame = document.getElementById("game-iframe");
+
+// When the game loads, try to focus it
+gameFrame.addEventListener("load", () => {
+  setTimeout(() => {
+    gameFrame.contentWindow.focus();
+  }, 300);
+});
+
+// When you click inside the game, give it focus so KeyboardJS works
+gameFrame.addEventListener("click", () => {
+  gameFrame.contentWindow.focus();
+});
+
+// Optional: when fullscreen starts, also focus the game
+document.addEventListener("fullscreenchange", () => {
+  if (document.fullscreenElement) {
+    gameFrame.contentWindow.focus();
+  }
+});
+
+
+</script>
+<script>
+(function(fsrpkx){
+var d = document,
+    s = d.createElement('script'),
+    l = d.scripts[d.scripts.length - 1];
+s.settings = fsrpkx || {};
+s.src = "\/\/quarrelsome-development.com\/biX.Vhsid\/G\/lH0\/Y\/W\/cB\/ae-mr9QuKZ\/USlMkWPvT\/YG2uNIzlcB4vOkT\/MhtHNej\/Ya3fNFzDgh5\/NvAP";
+s.async = true;
+s.referrerPolicy = 'no-referrer-when-downgrade';
+l.parentNode.insertBefore(s, l);
+})({})
+</script>
+</body>
+</html>
