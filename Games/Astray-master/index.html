@@ -147,26 +147,6 @@ fsButton.addEventListener('click', ()=>{
     gameContainer.classList.remove('fullscreen');
   }
 });
-const gameFrame = document.getElementById("game-iframe");
-
-// When the game loads, try to focus it
-gameFrame.addEventListener("load", () => {
-  setTimeout(() => {
-    gameFrame.contentWindow.focus();
-  }, 300);
-});
-
-// When you click inside the game, give it focus so KeyboardJS works
-gameFrame.addEventListener("click", () => {
-  gameFrame.contentWindow.focus();
-});
-
-// Optional: when fullscreen starts, also focus the game
-document.addEventListener("fullscreenchange", () => {
-  if (document.fullscreenElement) {
-    gameFrame.contentWindow.focus();
-  }
-});
 
 
 
