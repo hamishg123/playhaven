@@ -6,10 +6,64 @@
     <meta name="theme-color" content="#0e0e0e" />
     <title>PlayHaven – Play Free Online Games Instantly | No Downloads</title>
 
+    <!-- Primary Meta Tags -->
+    <meta
+      name="title"
+      content="PlayHaven – Play Free Online Games Instantly | No Downloads"
+    />
     <meta
       name="description"
-      content="PlayHaven is your ultimate destination for free online games! Play action, adventure, arcade, and casual browser games instantly with no downloads."
+      content="PlayHaven is your ultimate destination for free online browser games. Play action, arcade, strategy, and casual games instantly — no downloads or signups required."
     />
+    <meta
+      name="keywords"
+      content="free games, play online games, browser games, HTML5 games, instant games, arcade, action, puzzle, playhaven"
+    />
+    <meta name="robots" content="index, follow" />
+    <meta name="author" content="PlayHaven" />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://playhaven.site/" />
+    <meta
+      property="og:title"
+      content="PlayHaven – Play Free Online Games Instantly | No Downloads"
+    />
+    <meta
+      property="og:description"
+      content="Play free online games instantly on PlayHaven — your hub for fun, no-download browser games."
+    />
+    <meta property="og:image" content="https://playhaven.site/images/full-logo.png" />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:url" content="https://playhaven.site/" />
+    <meta
+      name="twitter:title"
+      content="PlayHaven – Play Free Online Games Instantly | No Downloads"
+    />
+    <meta
+      name="twitter:description"
+      content="Play free browser games instantly with no downloads. Action, arcade, puzzle, and more!"
+    />
+    <meta name="twitter:image" content="https://playhaven.site/images/full-logo.png" />
+
+    <!-- Structured Data (JSON-LD) for Google -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Website",
+        "name": "PlayHaven",
+        "url": "https://playhaven.site/",
+        "logo": "https://playhaven.site/images/full-logo.png",
+        "sameAs": [
+          "https://twitter.com/playhaven",
+          "https://facebook.com/playhaven",
+          "https://instagram.com/playhaven"
+        ],
+        "description": "Play free online games instantly on PlayHaven. No downloads, no waiting — just fun games in your browser."
+      }
+    </script>
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -69,47 +123,61 @@
         color: #999;
       }
 
-      /* Game grid stays same card size even with fewer cards */
+      /* Game grid */
       .game-grid {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;       /* ✅ keeps cards centered on all devices */
-  align-items: stretch;
-  gap: 1.5rem;
-  padding: 2rem;
-  max-width: 1200px;
-  margin: 0 auto;
-}
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 1.5rem;
+        padding: 2rem;
+        width: 100%;
+        max-width: 1600px;
+        margin: 0 auto;
+      }
 
-/* Each game card */
-.game {
-  background: #1b1b1b;
-  border-radius: 1rem;
-  overflow: hidden;
-  cursor: pointer;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-  flex: 1 1 clamp(200px, 22vw, 280px);  /* ✅ responsive width */
-  max-width: 280px;
-  min-width: 200px;
-}
+      .game {
+        background: #1b1b1b;
+        border-radius: 1rem;
+        overflow: hidden;
+        cursor: pointer;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        flex: 1 1 250px;
+        max-width: 300px;
+      }
 
-/* 16:9 image container */
-.thumb-wrapper {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 16 / 9;
-  overflow: hidden;
-  background: #000;
-}
+      .game:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 0 20px rgba(0, 255, 179, 0.2);
+      }
 
-.thumb-wrapper img {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  top: 0;
-  left: 0;
-}
+      .thumb-wrapper {
+        position: relative;
+        width: 100%;
+        aspect-ratio: 16 / 9;
+        overflow: hidden;
+        background: #000;
+      }
+
+      .thumb-wrapper img {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        top: 0;
+        left: 0;
+      }
+
+      h3 {
+        padding: 0.8rem;
+        font-size: 1.1rem;
+        color: #fff;
+      }
+
+      .no-results {
+        color: #888;
+        font-size: 1.2rem;
+        margin-top: 2rem;
+      }
 
       footer {
         background: #0a0a0a;
@@ -134,7 +202,7 @@
         }
         .game {
           width: 90%;
-          max-width: 300px;
+          max-width: 320px;
         }
       }
     </style>
@@ -148,12 +216,15 @@
     </header>
 
     <main>
-      <section class="game-grid" id="gameGrid">
+      <section class="game-grid" id="gameGrid" aria-label="Game Collection">
         <!-- Games load dynamically -->
       </section>
+      <p id="noResults" class="no-results" style="display:none;">
+        😕 No games found matching your search. Try another keyword!
+      </p>
     </main>
 
-
+    <footer>
       <p>© 2025 PlayHaven. All Rights Reserved.</p>
       <p>
         <a href="/about">About</a> |
@@ -165,6 +236,7 @@
     <script>
       const gameGrid = document.getElementById("gameGrid");
       const searchBar = document.getElementById("searchBar");
+      const noResults = document.getElementById("noResults");
       let allGames = [];
 
       // Load games from JSON
@@ -181,6 +253,8 @@
 
       function renderGames(games) {
         gameGrid.innerHTML = "";
+        noResults.style.display = games.length === 0 ? "block" : "none";
+
         games.forEach((game) => {
           const div = document.createElement("div");
           div.className = "game";
@@ -207,7 +281,5 @@
         renderGames(filtered);
       });
     </script>
-    
-
   </body>
 </html>
