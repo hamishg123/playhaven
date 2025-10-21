@@ -6,26 +6,57 @@
 <title>Contact | PlayHaven</title>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
-  * { margin: 0; padding: 0; box-sizing: border-box; font-family: "Poppins", sans-serif; }
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: "Poppins", sans-serif;
+  }
+
   body {
     background: #0b0b0b;
     color: #fff;
     display: flex;
     flex-direction: column;
     min-height: 100vh;
+  }
+
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #111;
+    padding: 1rem 2rem;
+    border-bottom: 2px solid #00ffb3;
+  }
+
+  header img {
+    height: 40px;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+  }
+
+  header img:hover {
+    transform: scale(1.05);
+  }
+
+  header h1 {
+    font-size: 1.5rem;
+    color: #00ffb3;
+    font-weight: 700;
+  }
+
+  main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
     text-align: center;
     padding: 2rem;
   }
 
-  h1 {
-    font-size: 2rem;
-    color: #00ffb3;
-    margin-bottom: 1rem;
-  }
-
-  p {
+  main p {
     font-size: 1.1rem;
     color: #ccc;
     max-width: 600px;
@@ -48,21 +79,34 @@
   }
 
   footer {
-    position: absolute;
-    bottom: 15px;
+    text-align: center;
+    padding: 1rem;
     font-size: 0.9rem;
     color: #666;
+    border-top: 1px solid #222;
   }
 </style>
 </head>
 <body>
-  <h1>Contact PlayHaven</h1>
-  <p>
-    Want to add your game to <strong>PlayHaven.site</strong>?  
-    We’d love to feature indie and creative projects from developers like you!
-  </p>
-  <a href="mailto:hamishgordon051@gmail.com" class="email">📧 Contact Hamish</a>
 
-  <footer>© 2025 PlayHaven.site</footer>
+  <header>
+    <a href="index.html">
+      <img src="playhaven-logo.png" alt="PlayHaven Logo">
+    </a>
+    <h1>Contact</h1>
+  </header>
+
+  <main>
+    <p>
+      Want to add your game to <strong>PlayHaven.site</strong>?  
+      We’d love to feature indie and creative projects from developers like you!
+    </p>
+    <a href="mailto:hamishgordon051@gmail.com" class="email">📧 Contact Hamish</a>
+  </main>
+
+  <footer>
+    © 2025 PlayHaven.site — All Rights Reserved
+  </footer>
+
 </body>
 </html>
