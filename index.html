@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#0e0e0e" />
     <title>PlayHaven – Play Free Online Games Instantly | No Downloads</title>
 
-    <!-- Primary Meta Tags -->
+    <!-- Primary SEO Meta Tags -->
     <meta
       name="title"
       content="PlayHaven – Play Free Online Games Instantly | No Downloads"
@@ -17,12 +17,12 @@
     />
     <meta
       name="keywords"
-      content="free games, play online games, browser games, HTML5 games, instant games, arcade, action, puzzle, playhaven"
+      content="playhaven, free games, play online games, browser games, HTML5 games, instant games, arcade, action, puzzle"
     />
     <meta name="robots" content="index, follow" />
     <meta name="author" content="PlayHaven" />
 
-    <!-- Open Graph / Facebook -->
+    <!-- Open Graph -->
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://playhaven.site/" />
     <meta
@@ -31,7 +31,7 @@
     />
     <meta
       property="og:description"
-      content="Play free online games instantly on PlayHaven — your hub for fun, no-download browser games."
+      content="Play free online games instantly on PlayHaven — no downloads, just fun browser games!"
     />
     <meta property="og:image" content="https://playhaven.site/images/full-logo.png" />
 
@@ -44,34 +44,40 @@
     />
     <meta
       name="twitter:description"
-      content="Play free browser games instantly with no downloads. Action, arcade, puzzle, and more!"
+      content="Play free browser games instantly. Action, arcade, puzzle and more!"
     />
     <meta name="twitter:image" content="https://playhaven.site/images/full-logo.png" />
 
-    <!-- Structured Data (JSON-LD) for Google -->
+    <!-- Enhanced Schema JSON-LD -->
     <script type="application/ld+json">
-      {
-        "@context": "https://schema.org",
-        "@type": "Website",
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "PlayHaven",
+      "url": "https://playhaven.site/",
+      "logo": "https://playhaven.site/images/full-logo.png",
+      "description": "Play free online games instantly on PlayHaven. No downloads, no waiting — just fun games in your browser.",
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": "https://playhaven.site/?q={search_term_string}",
+        "query-input": "required name=search_term_string"
+      },
+      "publisher": {
+        "@type": "Organization",
         "name": "PlayHaven",
         "url": "https://playhaven.site/",
-        "logo": "https://playhaven.site/images/full-logo.png",
-        "sameAs": [
-          "https://twitter.com/playhaven",
-          "https://facebook.com/playhaven",
-          "https://instagram.com/playhaven"
-        ],
-        "description": "Play free online games instantly on PlayHaven. No downloads, no waiting — just fun games in your browser."
+        "logo": "https://playhaven.site/images/square-logo-transparent.png"
       }
+    }
     </script>
 
+    <link rel="icon" href="images/square-logo-transparent.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="icon" href="images/square-logo-transparent.png" />
 
     <style>
       * {
@@ -81,16 +87,26 @@
         font-family: "Poppins", sans-serif;
       }
 
-      body {
+      html, body {
+        height: 100%;
         background: radial-gradient(circle at center, #121212, #0a0a0a);
         color: #fff;
-        text-align: center;
+        display: flex;
+        flex-direction: column;
       }
 
       header {
         padding: 2rem 1rem 1rem;
         background: #1b1b1b;
         box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+        text-align: center;
+      }
+
+      main {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
       }
 
       h1 {
@@ -132,7 +148,6 @@
         padding: 2rem;
         width: 100%;
         max-width: 1600px;
-        margin: 0 auto;
       }
 
       .game {
@@ -184,6 +199,9 @@
         padding: 2rem;
         font-size: 0.9rem;
         color: #777;
+        text-align: center;
+        border-top: 1px solid #222;
+        margin-top: auto; /* 👇 keeps footer at bottom */
       }
 
       footer a {
@@ -216,9 +234,7 @@
     </header>
 
     <main>
-      <section class="game-grid" id="gameGrid" aria-label="Game Collection">
-        <!-- Games load dynamically -->
-      </section>
+      <section class="game-grid" id="gameGrid" aria-label="Game Collection"></section>
       <p id="noResults" class="no-results" style="display:none;">
         😕 No games found matching your search. Try another keyword!
       </p>
@@ -239,7 +255,6 @@
       const noResults = document.getElementById("noResults");
       let allGames = [];
 
-      // Load games from JSON
       fetch("/Games/games.json")
         .then((res) => res.json())
         .then((games) => {
@@ -270,7 +285,6 @@
         });
       }
 
-      // Search functionality
       searchBar.addEventListener("input", () => {
         const query = searchBar.value.toLowerCase();
         const filtered = allGames.filter(
