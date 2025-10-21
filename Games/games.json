@@ -23,5 +23,10 @@
     "name": "radius-raid",
     "title": "Radius Raid",
     "thumbnail": "/images/Radius-raid.png"
+  },
+  {
+    "name": "pacman",
+    "title": "Pacman",
+    "thumbnail": "/images/pacman.png"
   }
 ]
