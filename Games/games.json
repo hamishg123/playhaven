@@ -38,5 +38,10 @@
     "name": "fireboyandwatergirlforesttemple",
     "title": "Fire boy and Water girl forest temple",
     "thumbnail": "/images/fireboyandwatergirl.png"
+  },
+  {
+    "name": "slope",
+    "title": "Slope",
+    "thumbnail": "/images/slope.png"
   }
 ]
