@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Typer — PlayHaven</title>
+  <meta name="description" content="Typer — a tower-defense-like typing game. Case sensitivity toggle, wrong characters decrease score, ESC to pause." />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#0b0b0b;
+      --card:#111;
+      --accent:#00ffb3;
+      --muted:#9aa;
+      --text:#fff;
+    }
+    html,body{height:100%;margin:0;font-family:"Poppins",sans-serif;background:radial-gradient(circle at 10% 10%, #0f0f0f, #060606);color:var(--text)}
+    .wrap{max-width:900px;margin:40px auto;padding:24px}
+    header{display:flex;align-items:center;gap:16px;margin-bottom:18px}
+    h1{font-size:28px;color:var(--accent);margin:0}
+    .card{background:linear-gradient(180deg,var(--card),#0d0d0d);border-radius:12px;padding:20px;box-shadow:0 6px 28px rgba(0,0,0,0.6);border:1px solid rgba(0,255,179,0.05)}
+    .desc{color:var(--muted);line-height:1.6;margin-bottom:18px}
+    .controls{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+    .btn {
+      display:inline-flex;
+      align-items:center;
+      gap:10px;
+      padding:10px 16px;
+      background:var(--accent);
+      color:#000;
+      font-weight:600;
+      border-radius:999px;
+      text-decoration:none;
+      transition:transform .12s ease, box-shadow .12s ease;
+      box-shadow:0 6px 18px rgba(0,255,179,0.08);
+    }
+    .btn:hover{transform:translateY(-3px)}
+    .screenshot{width:140px;height:auto;border-radius:8px;object-fit:cover;border:2px solid rgba(255,255,255,0.03)}
+    .notes{margin-top:16px;color:var(--muted);font-size:0.95rem}
+    footer{margin-top:22px;color:#7d7d7d;font-size:0.9rem;text-align:center}
+    @media (max-width:600px){
+      .wrap{margin:20px;padding:16px}
+      header{flex-direction:column;align-items:flex-start}
+      .controls{flex-direction:column;align-items:stretch}
+      .btn{justify-content:center}
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Typer</h1>
+    </header>
+
+    <div class="card" role="main">
+      <p class="desc">
+        <strong>Typer</strong> is a tower-defense-like typing game. Characters may be treated as case sensitive or case insensitive depending on the selected mode. Typing a wrong character decreases your score. Press the button below to open and play the game.
+      </p>
+
+      <div class="controls">
+        <!-- clickable image button linking to your game page -->
+        <a class="btn" href="typer.html" title="Play Typer">
+          <img class="screenshot" src="play.png" alt="Typer play button / screenshot">
+          <span>Play Typer</span>
+        </a>
+
+        <!-- short inline instructions -->
+        <div style="color:var(--muted);font-size:0.98rem;">
+          Click the button to open the game. Use <kbd>ESC</kbd> to pause.
+        </div>
+      </div>
+
+      <div class="notes">
+        <p><strong>Case sensitivity:</strong> Click the in-game toggle button to switch between case sensitive and insensitive input.</p>
+        <p><strong>Scoring:</strong> Wrong characters reduce your score — type carefully!</p>
+      </div>
+    </div>
+
+    <footer>
+      <p>PlayHaven — instant browser games</p>
+    </footer>
+  </div>
+</body>
+</html>
