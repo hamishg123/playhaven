@@ -8,67 +8,188 @@
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
 
 <style>
-* { margin:0; padding:0; box-sizing:border-box; font-family:"Poppins",sans-serif; }
-body { background:#0b0b0b; color:#fff; overflow-x:hidden; }
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: "Poppins", sans-serif;
+}
+
+html, body {
+  height: 100%;
+  overflow: hidden; /* prevent any page scroll */
+  background: #0b0b0b;
+  color: #fff;
+}
 
 /* HEADER */
-header { display:flex; align-items:center; justify-content:center; padding:1rem 2rem; background:#111; border-bottom:2px solid #00ffb3; position:relative; z-index:10; }
-header img.logo { height:60px; cursor:pointer; transition:0.2s ease; margin-right:1rem; }
-header img.logo:hover { opacity:0.8; }
+header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 80px; /* explicitly define header height */
+  background: #111;
+  border-bottom: 2px solid #00ffb3;
+  position: relative;
+  z-index: 10;
+}
+header img.logo {
+  height: 60px;
+  cursor: pointer;
+  transition: 0.2s ease;
+  margin-right: 1rem;
+}
+header img.logo:hover {
+  opacity: 0.8;
+}
 #header-title {
-  font-size:1.5rem;
-  font-weight:600;
-  color:#00ffb3;
-  text-align:center;
-  white-space:nowrap;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #00ffb3;
+  text-align: center;
+  white-space: nowrap;
 }
 
 /* GAME AREA */
-main { display:flex; height:calc(100vh - 80px); }
-#game-container { flex:3; display:flex; justify-content:center; align-items:center; position:relative; background:#0e0e0e; border-right:2px solid #111; padding:1rem; overflow:hidden; }
-#game-iframe { width:100%; height:100%; aspect-ratio:16/9; border-radius:10px; background:#000; border:0; transition: all 0.3s ease; }
+main {
+  display: flex;
+  height: calc(100vh - 80px); /* exactly fill remaining space */
+  overflow: hidden; /* stop any scroll overflow */
+}
+
+#game-container {
+  flex: 3;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  background: #0e0e0e;
+  border-right: 2px solid #111;
+  padding: 0; /* remove padding to prevent small overflow */
+  overflow: hidden;
+}
+
+#game-iframe {
+  width: 100%;
+  height: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 0; /* flush fit */
+  background: #000;
+  border: 0;
+  transition: all 0.3s ease;
+}
 
 /* FULLSCREEN STYLES */
 #game-container.fullscreen {
-  position:fixed;
-  top:0;
-  left:0;
-  width:100vw;
-  height:100vh;
-  z-index:9999;
-  background:#000;
-  border:none;
-  padding:0;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 9999;
+  background: #000;
+  border: none;
 }
 #game-container.fullscreen #game-iframe {
-  width:100%;
-  height:100%;
-  border-radius:0;
+  width: 100%;
+  height: 100%;
+  border-radius: 0;
 }
 
-/* FOOTER */
-#game-footer { position:absolute; bottom:15px; left:50%; transform:translateX(-50%); display:flex; align-items:center; gap:10px; z-index:20; }
-#game-fullscreen-button { background:#00ffb3; color:#000; padding:0.6rem 1rem; border-radius:30px; font-weight:600; cursor:pointer; transition:0.2s ease; }
-#game-fullscreen-button:hover { background:#00d6a1; }
+/* FOOTER INSIDE GAME */
+#game-footer {
+  position: absolute;
+  bottom: 15px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  z-index: 20;
+}
+#game-fullscreen-button {
+  background: #00ffb3;
+  color: #000;
+  padding: 0.6rem 1rem;
+  border-radius: 30px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+#game-fullscreen-button:hover {
+  background: #00d6a1;
+}
 
 /* SIDEBAR */
-.sidebar { flex:1; background:#141414; padding:1rem; overflow-y:auto; }
-.sidebar h2 { font-size:1.2rem; color:#00ffb3; margin-bottom:0.5rem; text-align:center; }
-.game-list { display:flex; flex-wrap:wrap; justify-content:center; gap:1rem; padding:0.5rem; }
-.game-card { background:#1b1b1b; border-radius:1rem; overflow:hidden; cursor:pointer; transition: transform 0.3s ease, box-shadow 0.3s ease; flex:1 1 clamp(150px,40%,250px); max-width:250px; min-width:150px; }
-.game-card:hover { box-shadow:0 0 10px #00ffb3; transform:translateY(-3px); }
-.game-card img { width:100%; aspect-ratio:16/9; object-fit:cover; }
-.game-card h4 { padding:0.5rem; text-align:center; color:#00ffb3; }
+.sidebar {
+  flex: 1;
+  background: #141414;
+  padding: 1rem;
+  overflow-y: auto;
+}
+.sidebar h2 {
+  font-size: 1.2rem;
+  color: #00ffb3;
+  margin-bottom: 0.5rem;
+  text-align: center;
+}
+.game-list {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1rem;
+  padding: 0.5rem;
+}
+.game-card {
+  background: #1b1b1b;
+  border-radius: 1rem;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  flex: 1 1 clamp(150px, 40%, 250px);
+  max-width: 250px;
+  min-width: 150px;
+}
+.game-card:hover {
+  box-shadow: 0 0 10px #00ffb3;
+  transform: translateY(-3px);
+}
+.game-card img {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+}
+.game-card h4 {
+  padding: 0.5rem;
+  text-align: center;
+  color: #00ffb3;
+}
 
 /* RESPONSIVE */
-@media (max-width:900px) {
-  main { flex-direction:column; }
-  #game-iframe { width:95%; height:auto; aspect-ratio:16/9; }
-  .sidebar { order:2; width:100%; }
-  header img.logo { height:50px; margin-right:0.5rem; }
-  #header-title { font-size:1.2rem; }
+@media (max-width: 900px) {
+  main {
+    flex-direction: column;
+  }
+  #game-iframe {
+    width: 100%;
+    height: 100%;
+    aspect-ratio: auto;
+  }
+  .sidebar {
+    order: 2;
+    width: 100%;
+    max-height: 40vh;
+  }
+  header img.logo {
+    height: 50px;
+    margin-right: 0.5rem;
+  }
+  #header-title {
+    font-size: 1.2rem;
+  }
 }
 </style>
+
 </head>
 
 <body>
