@@ -43,5 +43,10 @@
     "name": "slope",
     "title": "Slope",
     "thumbnail": "/images/slope.png"
+  },
+  {
+    "name": "paperio",
+    "title": "Paper IO",
+    "thumbnail": "/images/paper.png"
   }
 ]

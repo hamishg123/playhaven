@@ -1,54 +1,288 @@
-<html>
-  <head>
-    <script id="gamemonetize-sdk" type="text/javascript" src="js/sdk.js"></script>
-    <meta charset="utf-8" />
-    <meta name="theme-color" content="#2d3331" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
-    <title>Paper.io 2 | 3kh0</title>
-    <link rel="manifest" href="manifest.json" />
-    <link rel="icon" type="image/png" href="images/icon192.png" />
-    <link rel="shortcut icon" type="image/png" href="images/icon192.png" />
-    <link rel="stylesheet" href="css/fonts.css" />
-    <link rel="stylesheet" href="css/style3.css" />
-  </head>
-  <body>
-    <script type="text/javascript" src="https://3kh0.github.io/js/main.js"></script>
-    <script type="text/javascript" src="js/window.js"></script>
-    <script type="text/javascript" src="js/loader.js"></script>
-    <script type="text/javascript" src="js/app-new-gm.js?26"></script>
-    <div id="game">
-      <canvas class="fadein" id="view" width="922" height="888"></canvas>
-      <div id="ui_overlay"></div>
-      <div id="ui" class="">
-        <div id="left_side"></div>
-        <div class="uibox">
-          <div class="logo"><img src="images/logo.png" /></div>
-          <div class="tips"><div class="tip">Bite enemy tails but don't let them bite yours!</div></div>
-          <form class="play"><input type="text" id="nick" name="nick" autocomplete="off" placeholder="Your name" maxlength="12" /><button id="play" name="play" class="yellow">PLAY</button></form>
-          <div id="adbanner"></div>
-        </div>
-        <div id="right_side">
-          <div class="own_banner">
-            <a href="https://3kh0.github.io/" target="_blank">Homepage</a>
-          </div>
-        </div>
-      </div>
-      <div id="footer">
-        <ul id="lng">
-          <li class="active">EN</li>
-          <li class="">RU</li>
-          <li class="">TR</li>
-          <li class="">SP</li>
-          <li class="">FR</li>
-          <li class="">NL</li>
-          <li class="">PT</li>
-          <li class="">DE</li>
-          <li class="">IT</li>
-        </ul>
-        <div id="bottom"><a href="/" target="_blank">Homepage</a></div>
-      </div>
-      <div id="overlay"></div>
-    </div>
-    <div id="imaContainer" style="position: absolute; z-index: 10000; top: 0px; left: 0px; width: 100%; height: 100%; background-color: rgb(0, 0, 0); visibility: hidden; overflow: hidden;"><video id="imaVideo"></video></div>
-  </body>
+<!DOCTYPE html>
+<html lang="en-us">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>PlayHaven | Loading...</title>
+<link rel="icon" href="/images/square-logo-transparent.png" />
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: "Poppins", sans-serif;
+}
+
+html, body {
+  height: 100%;
+  overflow: hidden; /* prevent any page scroll */
+  background: #0b0b0b;
+  color: #fff;
+}
+
+/* HEADER */
+header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 80px; /* explicitly define header height */
+  background: #111;
+  border-bottom: 2px solid #00ffb3;
+  position: relative;
+  z-index: 10;
+}
+header img.logo {
+  height: 60px;
+  cursor: pointer;
+  transition: 0.2s ease;
+  margin-right: 1rem;
+}
+header img.logo:hover {
+  opacity: 0.8;
+}
+#header-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #00ffb3;
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* GAME AREA */
+main {
+  display: flex;
+  height: calc(100vh - 80px); /* exactly fill remaining space */
+  overflow: hidden; /* stop any scroll overflow */
+}
+
+#game-container {
+  flex: 3;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  background: #0e0e0e;
+  border-right: 2px solid #111;
+  padding: 0; /* remove padding to prevent small overflow */
+  overflow: hidden;
+}
+
+#game-iframe {
+  width: 100%;
+  height: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 0; /* flush fit */
+  background: #000;
+  border: 0;
+  transition: all 0.3s ease;
+}
+
+/* FULLSCREEN STYLES */
+#game-container.fullscreen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 9999;
+  background: #000;
+  border: none;
+}
+#game-container.fullscreen #game-iframe {
+  width: 100%;
+  height: 100%;
+  border-radius: 0;
+}
+
+/* FOOTER INSIDE GAME */
+#game-footer {
+  position: absolute;
+  bottom: 15px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  z-index: 20;
+}
+#game-fullscreen-button {
+  background: #00ffb3;
+  color: #000;
+  padding: 0.6rem 1rem;
+  border-radius: 30px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+#game-fullscreen-button:hover {
+  background: #00d6a1;
+}
+
+/* SIDEBAR */
+.sidebar {
+  flex: 1;
+  background: #141414;
+  padding: 1rem;
+  overflow-y: auto;
+}
+.sidebar h2 {
+  font-size: 1.2rem;
+  color: #00ffb3;
+  margin-bottom: 0.5rem;
+  text-align: center;
+}
+.game-list {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1rem;
+  padding: 0.5rem;
+}
+.game-card {
+  background: #1b1b1b;
+  border-radius: 1rem;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  flex: 1 1 clamp(150px, 40%, 250px);
+  max-width: 250px;
+  min-width: 150px;
+}
+.game-card:hover {
+  box-shadow: 0 0 10px #00ffb3;
+  transform: translateY(-3px);
+}
+.game-card img {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+}
+.game-card h4 {
+  padding: 0.5rem;
+  text-align: center;
+  color: #00ffb3;
+}
+
+/* RESPONSIVE */
+@media (max-width: 900px) {
+  main {
+    flex-direction: column;
+  }
+  #game-iframe {
+    width: 100%;
+    height: 100%;
+    aspect-ratio: auto;
+  }
+  .sidebar {
+    order: 2;
+    width: 100%;
+    max-height: 40vh;
+  }
+  header img.logo {
+    height: 50px;
+    margin-right: 0.5rem;
+  }
+  #header-title {
+    font-size: 1.2rem;
+  }
+}
+</style>
+
+</head>
+
+<body>
+<header>
+  <img src="/images/full-logo.png" alt="PlayHaven Logo" class="logo" onclick="window.location.href='/'" />
+  <div id="header-title">Loading...</div>
+</header>
+
+<main>
+<div id="game-container">
+  <!-- IFRAME loading a local file in the same folder -->
+  <iframe
+  id="game-iframe"
+  src="source.html"
+  allowfullscreen
+  allow="fullscreen; gamepad; pointer-lock"
+  sandbox="allow-same-origin allow-scripts allow-pointer-lock allow-popups allow-modals allow-downloads allow-forms allow-top-navigation-by-user-activation"
+></iframe>
+
+
+
+
+
+  <!-- FOOTER -->
+  <div id="game-footer">
+    <div id="game-fullscreen-button">⛶ Fullscreen</div>
+  </div>
+</div>
+
+<aside class="sidebar">
+<h2>Other Games</h2>
+<div class="game-list" id="gameList"></div>
+</aside>
+</main>
+
+<script>
+const gameList = document.getElementById("gameList");
+const headerTitle = document.getElementById("header-title");
+const fsButton = document.getElementById('game-fullscreen-button');
+const gameContainer = document.getElementById('game-container');
+
+// Detect current game from URL
+const currentGame = window.location.pathname.split("/").filter(Boolean).pop();
+
+// Load games
+fetch("/Games/games.json").then(res=>res.json()).then(games=>{
+  gameList.innerHTML="";
+  games.forEach(game=>{
+    if(game.name === currentGame){
+      headerTitle.textContent = game.title;
+      document.title = `PlayHaven | ${game.title}`;
+      return;
+    }
+    const card=document.createElement("div");
+    card.className="game-card";
+    card.dataset.name=game.name.toLowerCase();
+    card.onclick=()=>window.location.href=`/Games/${game.name}/`;
+    card.innerHTML=`<img src="${game.thumbnail}" alt="${game.title}" onerror="this.src='/images/full-logo.png'"><h4>${game.title}</h4>`;
+    gameList.appendChild(card);
+  });
+}).catch(err=>{console.error(err); gameList.innerHTML="<p>Failed to load games!</p>";});
+
+// Fullscreen toggle (both browser fullscreen and CSS fallback)
+fsButton.addEventListener('click', ()=>{
+  if (!document.fullscreenElement) {
+    if (gameContainer.requestFullscreen) {
+      gameContainer.requestFullscreen();
+    } else if (gameContainer.webkitRequestFullscreen) {
+      gameContainer.webkitRequestFullscreen(); // Safari
+    }
+    gameContainer.classList.add('fullscreen');
+  } else {
+    if (document.exitFullscreen) {
+      document.exitFullscreen();
+    }
+    gameContainer.classList.remove('fullscreen');
+  }
+});
+
+
+
+</script>
+<script>
+(function(fsrpkx){
+var d = document,
+    s = d.createElement('script'),
+    l = d.scripts[d.scripts.length - 1];
+s.settings = fsrpkx || {};
+s.src = "\/\/quarrelsome-development.com\/biX.Vhsid\/G\/lH0\/Y\/W\/cB\/ae-mr9QuKZ\/USlMkWPvT\/YG2uNIzlcB4vOkT\/MhtHNej\/Ya3fNFzDgh5\/NvAP";
+s.async = true;
+s.referrerPolicy = 'no-referrer-when-downgrade';
+l.parentNode.insertBefore(s, l);
+})({})
+</script>
+</body>
 </html>
