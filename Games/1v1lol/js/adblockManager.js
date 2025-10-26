@@ -10,10 +10,9 @@ async function checkAdBlock() {
     }
     testAd.remove();
     if (adBlockEnabled) {
-      gameInstance.SendMessage("PersistantObjects", "SendAdblockData", "false");
+      gameInstance.SendMessage("PersistantObjects", "SendAdblockData", "true");
     } else {
       gameInstance.SendMessage("PersistantObjects", "SendAdblockData", "false");
     }
   }, 100);
 }
-// this script has been changed to say that adblock is always off even if it is on
