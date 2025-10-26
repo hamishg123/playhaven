@@ -1,10 +1,19 @@
-body {
-  padding: 0;
+html, body {
   margin: 0;
+  padding: 0;
+  height: 100%;
+  width: 100%;
   overflow: hidden;
   background-color: black;
 }
 
 canvas {
+  display: block;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100vw;    /* Full viewport width */
+  height: 100vh;   /* Full viewport height */
   background-color: black;
+  image-rendering: pixelated; /* keeps pixel art crisp */
 }
