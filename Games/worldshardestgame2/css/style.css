@@ -8,12 +8,7 @@ html, body {
 }
 
 canvas {
-  display: block;
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100vw;    /* Full viewport width */
-  height: 100vh;   /* Full viewport height */
+ /* Full viewport height */
   background-color: black;
-  image-rendering: pixelated; /* keeps pixel art crisp */
+  
 }
