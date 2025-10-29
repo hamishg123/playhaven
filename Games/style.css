@@ -171,7 +171,7 @@ main {
   }
 
   #game-iframe {
-    aspect-ratio: auto;
+    aspect-ratio: 16:9;
   }
 
   .sidebar {
