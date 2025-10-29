@@ -63,5 +63,10 @@
     "name": "btd4",
     "title": "Baloon Tower Defence 4",
     "thumbnail": "/images/btd4.jpg"
+  },
+  {
+    "name": "worldshardestgame2",
+    "title": "Worlds Hardest Game 2",
+    "thumbnail": "/images/hardgame2.jpg"
   }
 ]
