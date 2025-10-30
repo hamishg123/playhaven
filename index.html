@@ -293,7 +293,7 @@
 
     const playCounts = loadPlayCounts();
 
-    // Find the game with the most plays
+    // Find the most-played game
     let topGame = null;
     let maxPlays = 0;
     for (const [name, count] of Object.entries(playCounts)) {
@@ -309,13 +309,12 @@
       div.dataset.name = game.name.toLowerCase();
 
       div.onclick = () => {
+        // Increase play count and save
         const counts = loadPlayCounts();
         counts[game.name] = (counts[game.name] || 0) + 1;
         savePlayCounts(counts);
 
-        const sorted = sortGamesByPlays(allGames, counts);
-        renderGames(sorted);
-
+        // Redirect (no re-render)
         window.location.href = `/Games/${game.name}/`;
       };
 
@@ -358,6 +357,7 @@
     renderGames(sortGamesByPlays(filtered, playCounts));
   });
 </script>
+
 
   </body>
 </html>
