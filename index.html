@@ -250,50 +250,114 @@
     </footer>
 
     <script>
-      const gameGrid = document.getElementById("gameGrid");
-      const searchBar = document.getElementById("searchBar");
-      const noResults = document.getElementById("noResults");
-      let allGames = [];
+  const gameGrid = document.getElementById("gameGrid");
+  const searchBar = document.getElementById("searchBar");
+  const noResults = document.getElementById("noResults");
+  let allGames = [];
 
-      fetch("/Games/games.json")
-        .then((res) => res.json())
-        .then((games) => {
-          allGames = games;
-          renderGames(games);
-        })
-        .catch((err) => {
-          console.error("Failed to load games:", err);
-          gameGrid.innerHTML = "<p>Failed to load games!</p>";
-        });
+  // Load play counts from localStorage
+  function loadPlayCounts() {
+    return JSON.parse(localStorage.getItem("playCounts")) || {};
+  }
 
-      function renderGames(games) {
-        gameGrid.innerHTML = "";
-        noResults.style.display = games.length === 0 ? "block" : "none";
+  // Save play counts to localStorage
+  function savePlayCounts(playCounts) {
+    localStorage.setItem("playCounts", JSON.stringify(playCounts));
+  }
 
-        games.forEach((game) => {
-          const div = document.createElement("div");
-          div.className = "game";
-          div.dataset.name = game.name.toLowerCase();
-          div.onclick = () => (window.location.href = `/Games/${game.name}/`);
-          div.innerHTML = `
-            <div class="thumb-wrapper">
-              <img src="${game.thumbnail}" alt="${game.title}" onerror="this.src='images/full-logo.png'">
-            </div>
-            <h3>${game.title}</h3>
-          `;
-          gameGrid.appendChild(div);
-        });
+  // Sort games by play count (desc)
+  function sortGamesByPlays(games, playCounts) {
+    return [...games].sort((a, b) => {
+      const aCount = playCounts[a.name] || 0;
+      const bCount = playCounts[b.name] || 0;
+      return bCount - aCount;
+    });
+  }
+
+  // Fetch and render
+  fetch("/Games/games.json")
+    .then((res) => res.json())
+    .then((games) => {
+      const playCounts = loadPlayCounts();
+      allGames = sortGamesByPlays(games, playCounts);
+      renderGames(allGames);
+    })
+    .catch((err) => {
+      console.error("Failed to load games:", err);
+      gameGrid.innerHTML = "<p>Failed to load games!</p>";
+    });
+
+  function renderGames(games) {
+    gameGrid.innerHTML = "";
+    noResults.style.display = games.length === 0 ? "block" : "none";
+
+    const playCounts = loadPlayCounts();
+
+    // Find the game with the most plays
+    let topGame = null;
+    let maxPlays = 0;
+    for (const [name, count] of Object.entries(playCounts)) {
+      if (count > maxPlays) {
+        maxPlays = count;
+        topGame = name;
       }
+    }
 
-      searchBar.addEventListener("input", () => {
-        const query = searchBar.value.toLowerCase();
-        const filtered = allGames.filter(
-          (game) =>
-            game.name.toLowerCase().includes(query) ||
-            game.title.toLowerCase().includes(query)
-        );
-        renderGames(filtered);
-      });
-    </script>
+    games.forEach((game) => {
+      const div = document.createElement("div");
+      div.className = "game";
+      div.dataset.name = game.name.toLowerCase();
+
+      div.onclick = () => {
+        const counts = loadPlayCounts();
+        counts[game.name] = (counts[game.name] || 0) + 1;
+        savePlayCounts(counts);
+
+        const sorted = sortGamesByPlays(allGames, counts);
+        renderGames(sorted);
+
+        window.location.href = `/Games/${game.name}/`;
+      };
+
+      div.innerHTML = `
+        <div class="thumb-wrapper">
+          <img src="${game.thumbnail}" alt="${game.title}" onerror="this.src='images/full-logo.png'">
+          ${
+            game.name === topGame
+              ? `<span style="
+                  position: absolute;
+                  top: 8px;
+                  left: 8px;
+                  background: rgba(255, 69, 0, 0.9);
+                  color: #fff;
+                  font-size: 0.9rem;
+                  font-weight: 600;
+                  padding: 4px 8px;
+                  border-radius: 6px;
+                ">🔥 Most Played</span>`
+              : ""
+          }
+        </div>
+        <h3>${game.title}</h3>
+      `;
+
+      gameGrid.appendChild(div);
+    });
+  }
+
+  // Search bar filter
+  searchBar.addEventListener("input", () => {
+    const query = searchBar.value.toLowerCase();
+    const filtered = allGames.filter(
+      (game) =>
+        game.name.toLowerCase().includes(query) ||
+        game.title.toLowerCase().includes(query)
+    );
+
+    const playCounts = loadPlayCounts();
+    renderGames(sortGamesByPlays(filtered, playCounts));
+  });
+</script>
+
   </body>
 </html>
