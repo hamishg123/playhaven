@@ -1,4 +1,3 @@
-
 const gameList = document.getElementById("gameList");
 const headerTitle = document.getElementById("header-title");
 const fsButton = document.getElementById('game-fullscreen-button');
@@ -24,7 +23,7 @@ function sortGamesByPlays(games, playCounts) {
   });
 }
 
-// When this page opens, count this as a "play"
+// ---------- Increment Play Count on Page Load ----------
 (function incrementPlayCount() {
   const counts = loadPlayCounts();
   if (currentGame) {
@@ -33,15 +32,19 @@ function sortGamesByPlays(games, playCounts) {
   }
 })();
 
-// Load games and render
+// ---------- Load and Render Games ----------
 fetch("/Games/games.json")
   .then(res => res.json())
   .then(games => {
     const playCounts = loadPlayCounts();
     const sortedGames = sortGamesByPlays(games, playCounts);
-    const topGame = Object.entries(playCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || null;
+
+    // Determine most-played game
+    const topGame = Object.entries(playCounts)
+      .sort((a, b) => b[1] - a[1])[0]?.[0] || null;
 
     gameList.innerHTML = "";
+
     sortedGames.forEach(game => {
       if (game.name === currentGame) {
         headerTitle.textContent = game.title;
@@ -99,4 +102,3 @@ fsButton.addEventListener('click', () => {
     gameContainer.classList.remove('fullscreen');
   }
 });
-
