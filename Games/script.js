@@ -41,9 +41,7 @@ fetch("/Games/games.json")
     const playCounts = loadPlayCounts();
     const sortedGames = sortGamesByPlays(games, playCounts);
 
-    // Find the highest play count
     const maxPlays = Math.max(0, ...Object.values(playCounts));
-    // Find the first game in sorted list with that max count
     const topGame = sortedGames.find(g => (playCounts[g.name] || 0) === maxPlays)?.name || null;
 
     gameList.innerHTML = "";
@@ -90,7 +88,7 @@ fetch("/Games/games.json")
   });
 
 // ---------- Fullscreen Toggle ----------
-fsButton.addEventListener('click', () => {
+function toggleFullscreen() {
   if (!document.fullscreenElement) {
     if (gameContainer.requestFullscreen) {
       gameContainer.requestFullscreen();
@@ -101,15 +99,19 @@ fsButton.addEventListener('click', () => {
   } else {
     if (document.exitFullscreen) {
       document.exitFullscreen();
+    } else if (document.webkitExitFullscreen) {
+      document.webkitExitFullscreen();
     }
     gameContainer.classList.remove('fullscreen');
   }
-});
+}
 
-// ---------- Exit Fullscreen on ESC ----------
+fsButton.addEventListener('click', toggleFullscreen);
+
+// ---------- ESC should behave the same as clicking fullscreen ----------
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && document.fullscreenElement) {
-    document.exitFullscreen();
-    gameContainer.classList.remove('fullscreen');
+    // make ESC act exactly like pressing fullscreen button again
+    toggleFullscreen();
   }
 });
