@@ -1,4 +1,4 @@
-<script>
+
 const gameList = document.getElementById("gameList");
 const headerTitle = document.getElementById("header-title");
 const fsButton = document.getElementById('game-fullscreen-button');
@@ -99,4 +99,4 @@ fsButton.addEventListener('click', () => {
     gameContainer.classList.remove('fullscreen');
   }
 });
-</script>
+
