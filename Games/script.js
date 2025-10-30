@@ -105,3 +105,11 @@ fsButton.addEventListener('click', () => {
     gameContainer.classList.remove('fullscreen');
   }
 });
+
+// ---------- Exit Fullscreen on ESC ----------
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && document.fullscreenElement) {
+    document.exitFullscreen();
+    gameContainer.classList.remove('fullscreen');
+  }
+});
