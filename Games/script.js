@@ -16,9 +16,11 @@ function savePlayCounts(playCounts) {
 }
 
 function sortGamesByPlays(games, playCounts) {
+  // Stable sort: if play counts equal, keep original order
   return [...games].sort((a, b) => {
     const aCount = playCounts[a.name] || 0;
     const bCount = playCounts[b.name] || 0;
+    if (bCount === aCount) return 0; // keep original order
     return bCount - aCount;
   });
 }
@@ -39,9 +41,10 @@ fetch("/Games/games.json")
     const playCounts = loadPlayCounts();
     const sortedGames = sortGamesByPlays(games, playCounts);
 
-    // Determine most-played game
-    const topGame = Object.entries(playCounts)
-      .sort((a, b) => b[1] - a[1])[0]?.[0] || null;
+    // Find the highest play count
+    const maxPlays = Math.max(0, ...Object.values(playCounts));
+    // Find the first game in sorted list with that max count
+    const topGame = sortedGames.find(g => (playCounts[g.name] || 0) === maxPlays)?.name || null;
 
     gameList.innerHTML = "";
 
@@ -61,7 +64,7 @@ fetch("/Games/games.json")
         <div style="position:relative;">
           <img src="${game.thumbnail}" alt="${game.title}" onerror="this.src='/images/full-logo.png'">
           ${
-            game.name === topGame
+            game.name === topGame && maxPlays > 0
               ? `<span style="
                   position: absolute;
                   top: 8px;
