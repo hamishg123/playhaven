@@ -73,6 +73,11 @@
     "name": "rooftopsnipers",
     "title": "Roof Top Snipers",
     "thumbnail": "/images/fooftopsnipers.png"
+  },
+  {
+    "name": "vex3",
+    "title": "Vex 3",
+    "thumbnail": "/images/vex3.png"
   }
   
 ]
