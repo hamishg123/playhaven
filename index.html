@@ -24,7 +24,7 @@
 
     <!-- Open Graph -->
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://playhaven.site/" />
+    <meta property="og:url" content="https://playhaven.fun/" />
     <meta
       property="og:title"
       content="PlayHaven – Play Free Online Games Instantly | No Downloads"
@@ -33,11 +33,11 @@
       property="og:description"
       content="Play free online games instantly on PlayHaven — no downloads, just fun browser games!"
     />
-    <meta property="og:image" content="https://playhaven.site/images/full-logo.png" />
+    <meta property="og:image" content="https://playhaven.fun/images/full-logo.png" />
 
     <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:url" content="https://playhaven.site/" />
+    <meta name="twitter:url" content="https://playhaven.fun/" />
     <meta
       name="twitter:title"
       content="PlayHaven – Play Free Online Games Instantly | No Downloads"
@@ -46,7 +46,7 @@
       name="twitter:description"
       content="Play free browser games instantly. Action, arcade, puzzle and more!"
     />
-    <meta name="twitter:image" content="https://playhaven.site/images/full-logo.png" />
+    <meta name="twitter:image" content="https://playhaven.fun/images/full-logo.png" />
 
     <!-- Enhanced Schema JSON-LD -->
     <script type="application/ld+json">
@@ -54,19 +54,19 @@
       "@context": "https://schema.org",
       "@type": "WebSite",
       "name": "PlayHaven",
-      "url": "https://playhaven.site/",
-      "logo": "https://playhaven.site/images/full-logo.png",
+      "url": "https://playhaven.fun/",
+      "logo": "https://playhaven.fun/images/full-logo.png",
       "description": "Play free online games instantly on PlayHaven. No downloads, no waiting — just fun games in your browser.",
       "potentialAction": {
         "@type": "SearchAction",
-        "target": "https://playhaven.site/?q={search_term_string}",
+        "target": "https://playhaven.fun/?q={search_term_string}",
         "query-input": "required name=search_term_string"
       },
       "publisher": {
         "@type": "Organization",
         "name": "PlayHaven",
-        "url": "https://playhaven.site/",
-        "logo": "https://playhaven.site/images/square-logo-transparent.png"
+        "url": "https://playhaven.fun/",
+        "logo": "https://playhaven.fun/images/square-logo-transparent.png"
       }
     }
     </script>
@@ -139,7 +139,6 @@
         color: #999;
       }
 
-      /* Game grid */
       .game-grid {
         display: flex;
         flex-wrap: wrap;
@@ -201,7 +200,7 @@
         color: #777;
         text-align: center;
         border-top: 1px solid #222;
-        margin-top: auto; /* 👇 keeps footer at bottom */
+        margin-top: auto;
       }
 
       footer a {
@@ -255,17 +254,14 @@
   const noResults = document.getElementById("noResults");
   let allGames = [];
 
-  // Load play counts from localStorage
   function loadPlayCounts() {
     return JSON.parse(localStorage.getItem("playCounts")) || {};
   }
 
-  // Save play counts to localStorage
   function savePlayCounts(playCounts) {
     localStorage.setItem("playCounts", JSON.stringify(playCounts));
   }
 
-  // Sort games by play count (desc)
   function sortGamesByPlays(games, playCounts) {
     return [...games].sort((a, b) => {
       const aCount = playCounts[a.name] || 0;
@@ -274,7 +270,6 @@
     });
   }
 
-  // Fetch and render
   fetch("/Games/games.json")
     .then((res) => res.json())
     .then((games) => {
@@ -293,7 +288,6 @@
 
     const playCounts = loadPlayCounts();
 
-    // Find the most-played game
     let topGame = null;
     let maxPlays = 0;
     for (const [name, count] of Object.entries(playCounts)) {
@@ -309,12 +303,9 @@
       div.dataset.name = game.name.toLowerCase();
 
       div.onclick = () => {
-        // Increase play count and save
         const counts = loadPlayCounts();
         counts[game.name] = (counts[game.name] || 0) + 1;
         savePlayCounts(counts);
-
-        // Redirect (no re-render)
         window.location.href = `/Games/${game.name}/`;
       };
 
@@ -344,7 +335,6 @@
     });
   }
 
-  // Search bar filter
   searchBar.addEventListener("input", () => {
     const query = searchBar.value.toLowerCase();
     const filtered = allGames.filter(
@@ -357,7 +347,6 @@
     renderGames(sortGamesByPlays(filtered, playCounts));
   });
 </script>
-
 
   </body>
 </html>
