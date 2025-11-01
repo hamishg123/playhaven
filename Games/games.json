@@ -78,6 +78,16 @@
     "name": "vex3",
     "title": "Vex 3",
     "thumbnail": "/images/vex3.png"
+  },
+   {
+    "name": "stack",
+    "title": "Stack",
+    "thumbnail": "/images/stack.png"
+  },
+  {
+    "name": "stackball ",
+    "title": "Stack Ball",
+    "thumbnail": "/images/stackball.png"
   }
   
 ]
