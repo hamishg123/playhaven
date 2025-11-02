@@ -69,5 +69,30 @@
       };
       document.body.appendChild(script);
     </script>
+    <script>
+(() => {
+  // Block all GameDistribution API requests automatically
+  const blocked = ["html5.api.gamedistribution.com", "gamedistribution.com/sdk"];
+  const origFetch = window.fetch;
+  window.fetch = (...args) => {
+    if (args[0] && blocked.some(x => args[0].includes(x))) {
+      console.log("Blocked:", args[0]);
+      return Promise.resolve(new Response("", { status: 204 }));
+    }
+    return origFetch(...args);
+  };
+
+  const origXHROpen = XMLHttpRequest.prototype.open;
+  XMLHttpRequest.prototype.open = function(method, url, ...rest) {
+    if (blocked.some(x => url.includes(x))) {
+      console.log("Blocked XHR:", url);
+      this.send = () => {}; // disable
+    } else {
+      origXHROpen.call(this, method, url, ...rest);
+    }
+  };
+})();
+</script>
+
   </body>
 </html>
