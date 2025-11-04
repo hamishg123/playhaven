@@ -72,38 +72,9 @@
 	
 	<div id="openfl-content" style="cursor: default;"><canvas width="800" height="600" style="transform: translateZ(0px); width: 1202px; height: 902px; margin-left: 336px; margin-top: 0px;"></canvas></div>
 	
-	<script>
-function loadScript(url) {
-  return new Promise(function(resolve, reject) {
-    if (document.querySelector('script[src="'+url+'"]')) return resolve(); // already present
-    const s = document.createElement('script');
-    s.src = url;
-    s.onload = () => resolve();
-    s.onerror = () => reject(new Error('Failed to load '+url));
-    document.head.appendChild(s);
-  });
-}
-
-// change path if Run3.js lives in a subfolder (e.g. "js/Run3.js" or "Build/Run3.js")
-loadScript('Run3.js')
-  .then(() => {
-    // wait until lime exists and has embed
-    const start = Date.now();
-    (function waitForLime() {
-      if (typeof lime !== 'undefined' && typeof lime.embed === 'function') {
-        lime.embed("Run3", "openfl-content", 800, 600, { parameters: {} });
-        return;
-      }
-      if (Date.now() - start > 5000) {
-        console.error('lime.embed did not appear within 5s after loading Run3.js');
-        return;
-      }
-      setTimeout(waitForLime, 100);
-    })();
-  })
-  .catch(err => console.error(err));
-</script>
-
+	<script type="text/javascript">
+		lime.embed ("Run3", "openfl-content", 800, 600, { parameters: {} });
+	</script>
 	
 <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'999612fdcd72774f',t:'MTc2MjI3OTg4OS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><iframe height="1" width="1" style="position: absolute; top: 0px; left: 0px; border: none; visibility: hidden;"></iframe>
 
