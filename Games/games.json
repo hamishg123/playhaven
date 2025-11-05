@@ -20,6 +20,11 @@
     "thumbnail": "/images/Astray-maze.png"
   },
   {
+    "name": "timeshooter2",
+    "title": "Time Shooter 2",
+    "thumbnail": "/images/timeshooter2.png"
+  },
+  {
     "name": "radius-raid",
     "title": "Radius Raid",
     "thumbnail": "/images/Radius-raid.png"
@@ -87,7 +92,7 @@
   {
     "name": "stackball",
     "title": "Stack Ball",
-    "thumbnail": "/images/stackball.png"
+    "thumbnail": "/images/stackball.jpg"
   },
   {
     "name": "tombofthemask",
