@@ -25,6 +25,11 @@
     "thumbnail": "/images/timeshooter2.png"
   },
   {
+    "name": "timeshooter3",
+    "title": "Time Shooter 3",
+    "thumbnail": "/images/timeshooter3.png"
+  },
+  {
     "name": "radius-raid",
     "title": "Radius Raid",
     "thumbnail": "/images/Radius-raid.png"
