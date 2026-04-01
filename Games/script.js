@@ -56,11 +56,11 @@ fetch("/playhaven/Games/games.json")
       const card = document.createElement("div");
       card.className = "game-card";
       card.dataset.name = game.name.toLowerCase();
-      card.onclick = () => window.location.href = `/Games/${game.name}/`;
+      card.onclick = () => window.location.href = `playhaven/Games/${game.name}/`;
 
       card.innerHTML = `
         <div style="position:relative;">
-          <img src="${game.thumbnail}" alt="${game.title}" onerror="this.src='/images/full-logo.png'">
+          <img src="${game.thumbnail}" alt="${game.title}" onerror="this.src='/playhaven/images/full-logo.png'">
           ${
             game.name === topGame && maxPlays > 0
               ? `<span style="
