@@ -238,7 +238,7 @@
 
   <body>
     <header>
-      <a href="https://hamishg123.github.io/stakedicesimulator/">project i have been working on :)</a>
+      <a href="https://hamishg123.github.io/chat/">chat project i have been working on :)</a>
       <h1>Welcome to PlayHaven</h1>
       <p>Play free online games instantly – no downloads, no waiting, just fun!</p>
       <input type="text" id="searchBar" placeholder="Search for a game ..." />
@@ -285,7 +285,7 @@
   }
 
   // Load and render on page open or refresh
-  fetch("/Games/games.json")
+  fetch("/playhaven/Games/games.json")
     .then((res) => res.json())
     .then((games) => {
       const playCounts = loadPlayCounts();
@@ -322,12 +322,12 @@
         const counts = loadPlayCounts();
         counts[game.name] = (counts[game.name] || 0) + 1;
         savePlayCounts(counts);
-        window.location.href = `/Games/${game.name}/`;
+        window.location.href = `/playhaven/Games/${game.name}/`;
       };
 
       div.innerHTML = `
         <div class="thumb-wrapper">
-          <img src="${game.thumbnail}" alt="${game.title}" onerror="this.src='images/full-logo.png'">
+          <img src="${game.thumbnail}" alt="${game.title}" onerror="this.src='/playhaven/images/full-logo.png'">
           ${
             game.name === topGame && maxPlays > 0
               ? `<span style="
