@@ -35,7 +35,7 @@ function sortGamesByPlays(games, playCounts) {
 })();
 
 // ---------- Load and Render Games ----------
-fetch("/Games/games.json")
+fetch("/playhaven/Games/games.json")
   .then(res => res.json())
   .then(games => {
     const playCounts = loadPlayCounts();
