@@ -60,7 +60,7 @@ fetch("/playhaven/Games/games.json")
 
       card.innerHTML = `
         <div style="position:relative;">
-          <img src="${game.thumbnail}" alt="${game.title}" onerror="this.src='/playhaven/images/full-logo.png'">
+          <img src="/playhaven${game.thumbnail}" alt="${game.title}" onerror="this.src='/playhaven/images/full-logo.png'">
           ${
             game.name === topGame && maxPlays > 0
               ? `<span style="
