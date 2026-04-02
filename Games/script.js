@@ -56,7 +56,7 @@ fetch("/playhaven/Games/games.json")
       const card = document.createElement("div");
       card.className = "game-card";
       card.dataset.name = game.name.toLowerCase();
-      card.onclick = () => window.location.href = `/playhaven/Games/${game.name}/`;
+      card.onclick = () => window.location.href = `https://hamishg123.github.io/playhaven/Games/${game.name}/`;
 
       card.innerHTML = `
         <div style="position:relative;">
