@@ -1,5 +1,4 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.162.0/build/three.module.js';
-import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.162.0/examples/jsm/controls/OrbitControls.js';
 import { TransformControls } from 'https://cdn.jsdelivr.net/npm/three@0.162.0/examples/jsm/controls/TransformControls.js';
 
 const $=id=>document.getElementById(id); const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -91,15 +90,17 @@ function updatePlayer(dt){pstate.invuln=Math.max(0,pstate.invuln-dt);pstate.coyo
  for(const g of goals){if(Math.hypot(player.position.x-g.x,player.position.z-g.z)<2.6&&Math.abs(player.position.y-g.y)<2.8){victory()}}
  body.rotation.x=clamp(-pstate.vel.y*.02,-.18,.18);body.position.y=.72+(pstate.grounded?Math.sin(state.time*10)*Math.min(.04,Math.hypot(pstate.vel.x,pstate.vel.z)*.003):0);trail.intensity=1.1+(sprint?1.3:0);
 }
-function updateWorld(dt){for(const c of collectibles){if(c.got)continue;c.group.rotation.y+=dt*1.8;c.group.position.y=c.baseY+Math.sin(state.time*2.4+c.phase)*.18}for(const e of enemies){if(e.dead)continue;const t=state.time*.8+e.phase;e.group.position.x=e.originX+Math.sin(t)*e.path;e.group.rotation.y+=dt}for(const d of doors){if(d.open){d.mesh.position.y+=(d.baseY+6-d.mesh.position.y)*Math.min(1,dt*3);if(d.mesh.position.y>d.baseY+5.5)d.mesh.visible=false}}for(const g of goals){g.group.rotation.z+=dt*.25;g.group.rotation.y+=dt*.35}particles.rotation.y+=dt*.01}
+function updateWorld(dt){if(state.mode==='studio')return;for(const c of collectibles){if(c.got)continue;c.group.rotation.y+=dt*1.8;c.group.position.y=c.baseY+Math.sin(state.time*2.4+c.phase)*.18}for(const e of enemies){if(e.dead)continue;const t=state.time*.8+e.phase;e.group.position.x=e.originX+Math.sin(t)*e.path;e.group.rotation.y+=dt}for(const d of doors){if(d.open){d.mesh.position.y+=(d.baseY+6-d.mesh.position.y)*Math.min(1,dt*3);if(d.mesh.position.y>d.baseY+5.5)d.mesh.visible=false}}for(const g of goals){g.group.rotation.z+=dt*.25;g.group.rotation.y+=dt*.35}particles.rotation.y+=dt*.01}
 function updateCamera(dt){if(state.mode==='menu'){cameraRig.yaw+=dt*.08;const focus=new THREE.Vector3(0,3,-16);const off=new THREE.Vector3(Math.sin(cameraRig.yaw)*11,5.2,Math.cos(cameraRig.yaw)*11);camera.position.lerp(focus.clone().add(off),1-Math.exp(-2*dt));camera.lookAt(focus);return}if(state.mode==='studio')return;cameraRig.yaw-=mouseDX*.0025;cameraRig.pitch=clamp(cameraRig.pitch-mouseDY*.0017,-.05,.58);mouseDX=mouseDY=0;const off=new THREE.Vector3(Math.sin(cameraRig.yaw)*cameraRig.distance,Math.sin(cameraRig.pitch)*cameraRig.distance*.7+cameraRig.height,Math.cos(cameraRig.yaw)*cameraRig.distance);camera.position.lerp(player.position.clone().add(off),1-Math.exp(-7*dt));camera.lookAt(player.position.clone().add(new THREE.Vector3(0,1.15,0)))}
 function updateHud(){ui.shards.textContent=state.shards;ui.keys.textContent=`${state.keys} / ${collectibles.length}`;ui.score.textContent=state.score;ui.best.textContent=state.best;ui.healthBar.style.width=`${state.health}%`;ui.healthText.textContent=`${Math.round(state.health)}%`;ui.checkpoint.textContent=state.checkpoint;if(state.score>state.best){state.best=state.score;localStorage.setItem('skybound_best',state.best);ui.best.textContent=state.best;ui.bestMenu.textContent=state.best}}
 function gameOver(t,txt){setMode('gameover');ui.goTitle.textContent=t;ui.goText.textContent=txt;ui.goScore.textContent=state.score;ui.goShards.textContent=state.shards}
 function victory(){if(state.mode!=='playing')return;state.score+=500;updateHud();setMode('victory');ui.vScore.textContent=state.score;ui.vShards.textContent=state.shards;ui.vText.textContent=`${level.name} complete.`}
 
 // DEV STUDIO — Roblox-style viewport workflow
-let editor={selected:null,selectedMesh:null,tool:'select',snap:true,snapSize:1};
-let studioOrbit=null,studioTransform=null,studioGrid=null;
+let editor={selected:null,selectedMesh:null,tool:'move',snap:true,snapSize:1};
+let studioTransform=null,studioGrid=null,studioSelectionBox=null;
+const studioCam={yaw:0.62,pitch:0.42,pos:new THREE.Vector3(0,14,22),speed:18,rotating:false,button:null,lastX:0,lastY:0};
+const studioKeys=new Set();
 const studioRay=new THREE.Raycaster(),studioMouse=new THREE.Vector2();
 function studioStatus(t){ui.studioStatus.textContent=t}
 function escapeHtml(v){return String(v).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
@@ -116,16 +117,71 @@ function buildEditorIndex(){
 }
 function refreshExplorer(){
   if(!ui.explorer)return;ui.explorer.innerHTML='';
-  level.objects.forEach((o,i)=>{const row=document.createElement('button');row.className='explorer-item'+(editor.selected===o?' selected':'');row.innerHTML=`<span class="explorer-icon">${o.type==='platform'?'▰':o.type==='wall'?'▤':o.type==='key'?'◆':o.type==='checkpoint'?'◇':o.type==='enemy'?'●':o.type==='hazard'?'▲':o.type==='door'?'▥':'✦'}</span><span class="explorer-name">${escapeHtml(o.label||o.type)}</span><span class="explorer-type">${o.type}</span>`;row.onclick=()=>selectObject(o,true);ui.explorer.appendChild(row)})
+  level.objects.forEach(o=>{const row=document.createElement('button');row.className='explorer-item'+(editor.selected===o?' selected':'');row.innerHTML=`<span class="explorer-icon">${o.type==='platform'?'▰':o.type==='wall'?'▤':o.type==='key'?'◆':o.type==='checkpoint'?'◇':o.type==='enemy'?'●':o.type==='hazard'?'▲':o.type==='door'?'▥':'✦'}</span><span class="explorer-name">${escapeHtml(o.label||o.type)}</span><span class="explorer-type">${o.type}</span>`;row.onclick=()=>selectObject(o,true);ui.explorer.appendChild(row)})
 }
 function studioSelectableRoots(){return [...platforms.map(p=>p.mesh),...doors.map(d=>d.mesh),...collectibles.map(c=>c.group),...checkpoints.map(c=>c.group),...enemies.map(e=>e.group),...hazards.map(h=>h.mesh),...goals.map(g=>g.group)]}
 function objectAt(clientX,clientY){const r=ui.game.getBoundingClientRect();studioMouse.x=((clientX-r.left)/r.width)*2-1;studioMouse.y=-((clientY-r.top)/r.height)*2+1;studioRay.setFromCamera(studioMouse,camera);const hits=studioRay.intersectObjects(studioSelectableRoots(),true);if(!hits.length)return null;let n=hits[0].object;while(n&&n.parent&&!n.userData.levelObject)n=n.parent;return n?.userData?.levelObject||null}
 function getRootForObject(obj){for(const p of platforms)if(p.mesh.userData.levelObject===obj)return p.mesh;for(const d of doors)if(d.mesh.userData.levelObject===obj)return d.mesh;for(const c of collectibles)if(c.group.userData.levelObject===obj)return c.group;for(const c of checkpoints)if(c.group.userData.levelObject===obj)return c.group;for(const e of enemies)if(e.group.userData.levelObject===obj)return e.group;for(const h of hazards)if(h.mesh.userData.levelObject===obj)return h.mesh;for(const g of goals)if(g.group.userData.levelObject===obj)return g.group;return null}
 function syncSelected(obj){editor.selected=obj||null;if(!obj){ui.selNone.classList.remove('hidden');ui.selPanel.classList.add('hidden');refreshExplorer();return}ui.selNone.classList.add('hidden');ui.selPanel.classList.remove('hidden');ui.selType.value=obj.type;ui.selX.value=obj.x;ui.selY.value=obj.y;ui.selZ.value=obj.z;ui.selW.value=obj.w??4;ui.selH.value=obj.h??1;ui.selD.value=obj.d??4;ui.selLabel.value=obj.label||'';refreshExplorer()}
-function selectObject(obj,focus=false){editor.selected=obj||null;editor.selectedMesh=null;syncSelected(obj);if(studioTransform){studioTransform.detach();studioTransform.visible=false}if(obj){const root=getRootForObject(obj);editor.selectedMesh=root;if(root&&studioTransform&&editor.tool!=='select'){studioTransform.attach(root);studioTransform.visible=true}if(focus&&studioOrbit&&root){studioOrbit.target.copy(root.position);studioOrbit.update()}}}
-function setEditorTool(tool){editor.tool=tool;ui.toolSelect?.classList.toggle('active',tool==='select');ui.toolMove?.classList.toggle('active',tool==='move');ui.toolScale?.classList.toggle('active',tool==='scale');if(studioTransform){studioTransform.detach();studioTransform.visible=false;if(editor.selectedMesh&&tool!=='select'){studioTransform.setMode(tool==='scale'?'scale':'translate');studioTransform.attach(editor.selectedMesh);studioTransform.visible=true}}studioStatus(tool==='select'?'SELECT TOOL • Click an object to select it':tool==='move'?'MOVE TOOL • Drag the colored arrows to move':'SCALE TOOL • Drag the boxes to resize')}
-function setupStudioCamera(){if(studioOrbit)studioOrbit.dispose();studioOrbit=new OrbitControls(camera,ui.game);studioOrbit.enableDamping=true;studioOrbit.dampingFactor=.08;studioOrbit.screenSpacePanning=true;studioOrbit.minDistance=5;studioOrbit.maxDistance=110;studioOrbit.maxPolarAngle=Math.PI*.49;studioOrbit.target.set(0,2,-18);camera.position.set(0,24,32);studioOrbit.update();if(!studioTransform){studioTransform=new TransformControls(camera,ui.game);studioTransform.setSpace('world');studioTransform.setTranslationSnap(editor.snapSize);studioTransform.setScaleSnap(editor.snapSize/2);studioTransform.addEventListener('dragging-changed',e=>{if(studioOrbit)studioOrbit.enabled=!e.value});studioTransform.addEventListener('objectChange',()=>{if(editor.selected&&editor.selectedMesh){const o=editor.selected,m=editor.selectedMesh;o.x=snap(m.position.x);o.y=snap(m.position.y);o.z=snap(m.position.z);if(editor.tool==='scale'&&(o.type==='platform'||o.type==='wall'||o.type==='door'||o.type==='hazard'||o.type==='goal')){o.w=Math.max(.25,snap(o.w*m.scale.x));o.h=Math.max(.25,snap(o.h*m.scale.y));o.d=Math.max(.25,snap(o.d*m.scale.z));m.scale.set(1,1,1)}m.position.set(o.x,o.y,o.z);syncSelected(o)}});scene.add(studioTransform)}if(!studioGrid){studioGrid=new THREE.GridHelper(120,120,0x3e6477,0x183245);studioGrid.position.y=0;scene.add(studioGrid)}setEditorTool(editor.tool)}
-function teardownStudioHelpers(){if(studioOrbit){studioOrbit.dispose();studioOrbit=null}if(studioTransform){studioTransform.detach();studioTransform.visible=false}if(studioGrid){scene.remove(studioGrid);studioGrid=null}}
+function updateStudioSelectionBox(){
+  if(studioSelectionBox&&studioSelectionBox.parent)scene.remove(studioSelectionBox);
+  studioSelectionBox=null;
+  if(!editor.selectedMesh)return;
+  studioSelectionBox=new THREE.BoxHelper(editor.selectedMesh,0x63ddff);
+  studioSelectionBox.material.transparent=true;studioSelectionBox.material.opacity=.95;studioSelectionBox.material.depthTest=false;studioSelectionBox.material.depthWrite=false;studioSelectionBox.renderOrder=999;
+  scene.add(studioSelectionBox);
+}
+function selectObject(obj,focus=false){editor.selected=obj||null;editor.selectedMesh=null;if(studioTransform){studioTransform.detach();studioTransform.visible=false}if(obj){const root=getRootForObject(obj);editor.selectedMesh=root;if(root&&studioTransform&&editor.tool==='move'){studioTransform.attach(root);studioTransform.visible=true}}syncSelected(obj);updateStudioSelectionBox();if(focus&&editor.selectedMesh){focusSelectedCamera()}}
+function setEditorTool(tool){editor.tool=tool;ui.toolSelect?.classList.toggle('active',tool==='select');ui.toolMove?.classList.toggle('active',tool==='move');ui.toolScale?.classList.toggle('active',tool==='scale');if(studioTransform){studioTransform.detach();studioTransform.visible=false;if(editor.selectedMesh){studioTransform.setMode(tool==='scale'?'scale':'translate');studioTransform.attach(editor.selectedMesh);studioTransform.visible=tool!=='select'}}studioStatus(tool==='select'?'SELECT • Click objects to select them':tool==='move'?'MOVE • Drag red / green / blue arrows':'SCALE • Drag the colored boxes')}
+function updateStudioCamera(){
+  const target=new THREE.Vector3(
+    Math.sin(studioCam.yaw)*Math.cos(studioCam.pitch),
+    Math.sin(studioCam.pitch),
+    Math.cos(studioCam.yaw)*Math.cos(studioCam.pitch)
+  );
+  // Camera looks from the stored position toward a point in front.
+  const look=studioCam.pos.clone().add(target.multiplyScalar(30));
+  camera.position.copy(studioCam.pos);camera.lookAt(look);
+}
+function focusSelectedCamera(){if(!editor.selectedMesh)return;const p=editor.selectedMesh.getWorldPosition(new THREE.Vector3());studioCam.pos.copy(p).add(new THREE.Vector3(8,6,10));studioCam.yaw=Math.atan2(studioCam.pos.x-p.x,studioCam.pos.z-p.z);studioCam.pitch=.25;updateStudioCamera()}
+function resetStudioCamera(){studioCam.pos.set(0,14,24);studioCam.yaw=0;studioCam.pitch=.38;updateStudioCamera()}
+function setupStudioCamera(){
+  resetStudioCamera();
+  if(!studioTransform){
+    studioTransform=new TransformControls(camera,ui.game);
+    studioTransform.setSpace('world');
+    studioTransform.setMode('translate');
+    studioTransform.setTranslationSnap(editor.snap?editor.snapSize:null);
+    studioTransform.setScaleSnap(editor.snap?editor.snapSize/2:null);
+    studioTransform.setSize(1.15);
+    studioTransform.addEventListener('objectChange',()=>{
+      if(!editor.selected||!editor.selectedMesh)return;
+      const o=editor.selected,m=editor.selectedMesh;
+      o.x=snap(m.position.x);o.y=snap(m.position.y);o.z=snap(m.position.z);
+      if(editor.tool==='scale'&&(o.type==='platform'||o.type==='wall'||o.type==='door'||o.type==='hazard'||o.type==='goal')){
+        o.w=Math.max(.25,snap(o.w*m.scale.x));o.h=Math.max(.25,snap(o.h*m.scale.y));o.d=Math.max(.25,snap(o.d*m.scale.z));m.scale.set(1,1,1)
+      }
+      m.position.set(o.x,o.y,o.z);syncSelected(o);updateStudioSelectionBox();
+    });
+    scene.add(studioTransform);
+  }
+  if(!studioGrid){studioGrid=new THREE.GridHelper(160,160,0x3e6477,0x183245);studioGrid.position.y=0;studioGrid.material.transparent=true;studioGrid.material.opacity=.55;scene.add(studioGrid)}
+  setEditorTool(editor.tool);
+}
+function teardownStudioHelpers(){
+  if(studioTransform){studioTransform.detach();studioTransform.visible=false}
+  if(studioGrid){scene.remove(studioGrid);studioGrid=null}
+  if(studioSelectionBox){scene.remove(studioSelectionBox);studioSelectionBox=null}
+}
+function studioFly(dt){
+  if(state.mode!=='studio')return;
+  const forward=new THREE.Vector3(Math.sin(studioCam.yaw)*Math.cos(studioCam.pitch),0,Math.cos(studioCam.yaw)*Math.cos(studioCam.pitch));
+  const right=new THREE.Vector3(Math.cos(studioCam.yaw),0,-Math.sin(studioCam.yaw));
+  let f=0,r=0,u=0;if(studioKeys.has('KeyW'))f+=1;if(studioKeys.has('KeyS'))f-=1;if(studioKeys.has('KeyD'))r+=1;if(studioKeys.has('KeyA'))r-=1;if(studioKeys.has('KeyE'))u+=1;if(studioKeys.has('KeyQ'))u-=1;
+  const len=Math.hypot(f,r);if(len>0){f/=len;r/=len}
+  const speed=studioCam.speed*(studioKeys.has('ShiftLeft')||studioKeys.has('ShiftRight')?3:1);
+  studioCam.pos.addScaledVector(forward,f*speed*dt);studioCam.pos.addScaledVector(right,r*speed*dt);studioCam.pos.y+=u*speed*dt;updateStudioCamera();
+}
 function addObject(type,x=0,z=-6){let y=0;if(type==='platform'||type==='wall')y=.5;else if(type==='key')y=2.3;else if(type==='checkpoint')y=.5;else if(type==='enemy')y=1;else if(type==='hazard')y=0;else if(type==='door')y=2.5;else if(type==='goal')y=2.5;const defaults={platform:{w:6,h:1,d:6},wall:{w:6,h:4,d:.8},key:{w:.25,h:.75,d:.25},checkpoint:{w:1.35,h:.25,d:1.35},enemy:{w:1,h:1,d:1},hazard:{w:2,h:.18,d:2},door:{w:6,h:5,d:.8},goal:{w:4,h:4,d:1}};const s=defaults[type]||defaults.platform;const o={type,x:snap(x),y:snap(y),z:snap(z),w:s.w,h:s.h,d:s.d,label:type.toUpperCase()+'-'+(level.objects.length+1)};level.objects.push(o);buildLevel(level);selectObject(o,true);studioStatus(`${type.toUpperCase()} added • use MOVE (2) to position it`)}
 function selectedChanged(){if(!editor.selected)return;const idx=level.objects.indexOf(editor.selected);if(idx<0)return;const o=editor.selected;o.x=snap(Number(ui.selX.value)||0);o.y=snap(Number(ui.selY.value)||0);o.z=snap(Number(ui.selZ.value)||0);o.w=Math.max(.1,Number(ui.selW.value)||1);o.h=Math.max(.1,Number(ui.selH.value)||1);o.d=Math.max(.1,Number(ui.selD.value)||1);o.label=ui.selLabel.value;buildLevel(level);selectObject(level.objects[idx],true)}
 function duplicateSelected(){if(!editor.selected)return;const i=level.objects.indexOf(editor.selected);if(i<0)return;const c={...editor.selected,x:snap(editor.selected.x+editor.snapSize),z:snap(editor.selected.z+editor.snapSize),label:(editor.selected.label||editor.selected.type)+' COPY'};level.objects.splice(i+1,0,c);buildLevel(level);selectObject(c,true);studioStatus('Duplicated object • drag the gizmo to position it')}
@@ -133,20 +189,37 @@ function exportData(){level.name=ui.levelName.value.trim()||'Untitled Level';ui.
 function downloadData(){exportData();const blob=new Blob([ui.jsonBox.value],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(level.name.replace(/[^a-z0-9]+/gi,'_')||'skybound_level')+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),500)}
 function loadData(){try{const data=JSON.parse(ui.jsonBox.value);level=normalizeLevel(data);ui.levelName.value=level.name;buildLevel(level);selectObject(null);studioStatus(`Loaded ${level.name} • ${level.objects.length} objects`)}catch(e){studioStatus('Invalid JSON: '+e.message)}}
 function newLevel(){level={name:'New Skybound Level',spawn:{x:0,y:1.1,z:8},objects:[{type:'platform',x:0,y:0,z:0,w:18,h:1,d:18,label:'START'}]};ui.levelName.value=level.name;buildLevel(level);selectObject(null);studioStatus('New level created')}
-function setSpawnHere(){const o=editor.selected;if(o){level.spawn={x:snap(o.x),y:1.1,z:snap(o.z+Math.max(2,(o.d||4)/2+2))}}else if(studioOrbit){level.spawn={x:snap(studioOrbit.target.x),y:1.1,z:snap(studioOrbit.target.z+3)}}studioStatus(`Spawn set to ${level.spawn.x}, ${level.spawn.y}, ${level.spawn.z}`)}
-function enterStudio(){document.exitPointerLock?.();state.mode='studio';ui.menu.classList.add('hidden');ui.hud.classList.add('hidden');ui.pause.classList.add('hidden');ui.gameOver.classList.add('hidden');ui.victory.classList.add('hidden');ui.studio.classList.remove('hidden');ui.studio.style.display='flex';buildLevel(level);ui.levelName.value=level.name;setupStudioCamera();buildEditorIndex();selectObject(null);studioStatus('Roblox-style editor ready • 1 Select • 2 Move • 3 Scale • Ctrl+D Duplicate')}
+function setSpawnHere(){const o=editor.selected;if(o){level.spawn={x:snap(o.x),y:1.1,z:snap(o.z+Math.max(2,(o.d||4)/2+2))}}else{level.spawn={x:snap(camera.position.x),y:Math.max(1.1,snap(camera.position.y)),z:snap(camera.position.z)}}studioStatus(`Spawn set to ${level.spawn.x}, ${level.spawn.y}, ${level.spawn.z}`)}
+function enterStudio(){document.exitPointerLock?.();state.mode='studio';ui.menu.classList.add('hidden');ui.hud.classList.add('hidden');ui.pause.classList.add('hidden');ui.gameOver.classList.add('hidden');ui.victory.classList.add('hidden');ui.studio.classList.remove('hidden');ui.studio.style.display='flex';buildLevel(level);ui.levelName.value=level.name;setupStudioCamera();buildEditorIndex();selectObject(null);setEditorTool('move');studioStatus('STUDIO CAMERA • Hold mouse button to orbit • W/A/S/D move • Q/E up/down • Drag arrows to move parts')}
 function exitStudio(){document.exitPointerLock?.();teardownStudioHelpers();setMode('menu');ui.studio.style.display='none'}
 
 ui.play.onclick=()=>startGame();ui.dev.onclick=e=>{e.preventDefault();enterStudio()};ui.howBtn.onclick=()=>ui.how.classList.toggle('hidden');ui.closeHow.onclick=()=>ui.how.classList.add('hidden');ui.resume.onclick=()=>setMode('playing');ui.restartPause.onclick=restartGame;ui.homePause.onclick=goHome;ui.retry.onclick=restartGame;ui.homeGameOver.onclick=goHome;ui.victoryRetry.onclick=restartGame;ui.victoryHome.onclick=goHome;
 ui.studioBack.onclick=exitStudio;ui.studioPlay.onclick=startGame;ui.newLevel.onclick=newLevel;ui.exportJson.onclick=exportData;ui.downloadJson.onclick=downloadData;ui.loadJson.onclick=loadData;ui.deleteSelected.onclick=()=>{if(!editor.selected)return;const i=level.objects.indexOf(editor.selected);if(i>=0){level.objects.splice(i,1);buildLevel(level);selectObject(null);studioStatus('Object deleted')}};ui.levelName.onchange=()=>{level.name=ui.levelName.value};
 for(const k of ['selX','selY','selZ','selW','selH','selD','selLabel'])ui[k].onchange=selectedChanged;
 for(const b of document.querySelectorAll('[data-add]'))b.onclick=()=>{const t=studioOrbit?.target||new THREE.Vector3(0,0,-6);addObject(b.dataset.add,t.x,t.z)};
-ui.studioResetCam.onclick=setupStudioCamera;ui.studioTestSpawn.onclick=setSpawnHere;ui.toolSelect.onclick=()=>setEditorTool('select');ui.toolMove.onclick=()=>setEditorTool('move');ui.toolScale.onclick=()=>setEditorTool('scale');ui.duplicateSelected.onclick=duplicateSelected;ui.focusSelected.onclick=()=>{if(editor.selectedMesh&&studioOrbit){studioOrbit.target.copy(editor.selectedMesh.position);studioOrbit.update()}};ui.snapToggle.onchange=()=>{editor.snap=ui.snapToggle.checked;if(studioTransform){studioTransform.setTranslationSnap(editor.snap?editor.snapSize:null);studioTransform.setScaleSnap(editor.snap?editor.snapSize/2:null)}studioStatus(editor.snap?`Snap ON • ${editor.snapSize} stud grid`:'Snap OFF')};ui.snapSize.onchange=()=>{editor.snapSize=Math.max(.25,Number(ui.snapSize.value)||1);ui.snapSize.value=editor.snapSize;if(studioTransform){studioTransform.setTranslationSnap(editor.snap?editor.snapSize:null);studioTransform.setScaleSnap(editor.snap?editor.snapSize/2:null)}};
-ui.game.addEventListener('pointerdown',e=>{if(state.mode!=='studio'||e.button!==0)return;const hit=objectAt(e.clientX,e.clientY);if(hit){selectObject(hit,true)}else if(editor.tool==='select'){const r=ui.game.getBoundingClientRect();studioMouse.x=((e.clientX-r.left)/r.width)*2-1;studioMouse.y=-((e.clientY-r.top)/r.height)*2+1;studioRay.setFromCamera(studioMouse,camera);const p=new THREE.Vector3();const plane=new THREE.Plane(new THREE.Vector3(0,1,0),0);if(studioRay.ray.intersectPlane(plane,p))addObject('platform',p.x,p.z)}});
-window.addEventListener('keydown',e=>{if(state.mode!=='studio')return;if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='d'){e.preventDefault();duplicateSelected()}else if((e.key==='Delete'||e.key==='Backspace')&&!['INPUT','TEXTAREA'].includes(document.activeElement?.tagName)){if(editor.selected)ui.deleteSelected.click()}else if(e.key==='1')setEditorTool('select');else if(e.key==='2')setEditorTool('move');else if(e.key==='3')setEditorTool('scale');else if(e.key.toLowerCase()==='f')ui.focusSelected.click();else if(e.key.toLowerCase()==='r'&&editor.selected)selectObject(editor.selected,true)});
+ui.studioResetCam.onclick=resetStudioCamera;ui.studioTestSpawn.onclick=setSpawnHere;ui.toolSelect.onclick=()=>setEditorTool('select');ui.toolMove.onclick=()=>setEditorTool('move');ui.toolScale.onclick=()=>setEditorTool('scale');ui.duplicateSelected.onclick=duplicateSelected;ui.focusSelected.onclick=()=>focusSelectedCamera();ui.snapToggle.onchange=()=>{editor.snap=ui.snapToggle.checked;if(studioTransform){studioTransform.setTranslationSnap(editor.snap?editor.snapSize:null);studioTransform.setScaleSnap(editor.snap?editor.snapSize/2:null)}studioStatus(editor.snap?`Snap ON • ${editor.snapSize} stud grid`:'Snap OFF')};ui.snapSize.onchange=()=>{editor.snapSize=Math.max(.25,Number(ui.snapSize.value)||1);ui.snapSize.value=editor.snapSize;if(studioTransform){studioTransform.setTranslationSnap(editor.snap?editor.snapSize:null);studioTransform.setScaleSnap(editor.snap?editor.snapSize/2:null)}};
+ui.game.addEventListener('contextmenu',e=>{if(state.mode==='studio')e.preventDefault()});
+ui.game.addEventListener('pointerdown',e=>{
+  if(state.mode!=='studio')return;
+  if(e.button===2 || e.button===0){
+    const hit=objectAt(e.clientX,e.clientY);
+    if(e.button===0&&hit){selectObject(hit,true);return;}
+    studioCam.rotating=true;studioCam.button=e.button;studioCam.lastX=e.clientX;studioCam.lastY=e.clientY;ui.game.setPointerCapture?.(e.pointerId);ui.game.style.cursor='grabbing';
+  }
+});
+ui.game.addEventListener('pointermove',e=>{
+  if(state.mode!=='studio'||!studioCam.rotating)return;
+  const dx=e.clientX-studioCam.lastX,dy=e.clientY-studioCam.lastY;studioCam.lastX=e.clientX;studioCam.lastY=e.clientY;
+  studioCam.yaw-=dx*.0045;studioCam.pitch=clamp(studioCam.pitch-dy*.003,-1.35,1.35);updateStudioCamera();
+});
+ui.game.addEventListener('pointerup',e=>{if(studioCam.rotating&&e.button===studioCam.button){studioCam.rotating=false;ui.game.style.cursor='default';ui.game.releasePointerCapture?.(e.pointerId)}});
+ui.game.addEventListener('wheel',e=>{if(state.mode!=='studio')return;e.preventDefault();const forward=new THREE.Vector3(Math.sin(studioCam.yaw)*Math.cos(studioCam.pitch),Math.sin(studioCam.pitch),Math.cos(studioCam.yaw)*Math.cos(studioCam.pitch));studioCam.pos.addScaledVector(forward,-e.deltaY*.035);updateStudioCamera()},{passive:false});
+window.addEventListener('keydown',e=>{if(state.mode!=='studio')return;studioKeys.add(e.code);if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='d'){e.preventDefault();duplicateSelected()}else if((e.key==='Delete'||e.key==='Backspace')&&!['INPUT','TEXTAREA'].includes(document.activeElement?.tagName)){if(editor.selected)ui.deleteSelected.click()}else if(e.key==='1')setEditorTool('select');else if(e.key==='2')setEditorTool('move');else if(e.key==='3')setEditorTool('scale');else if(e.key.toLowerCase()==='f')ui.focusSelected.click()});
+window.addEventListener('keyup',e=>studioKeys.delete(e.code));
 
-function resize(){const w=innerWidth,h=innerHeight;camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setPixelRatio(Math.min(devicePixelRatio,1.15));renderer.setSize(w,h)}addEventListener('resize',resize);
+
+function resize(){const w=innerWidth,h=innerHeight;camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setPixelRatio(Math.min(devicePixelRatio,1.15));renderer.setSize(w,h);if(state.mode==='studio')updateStudioCamera()}addEventListener('resize',resize);
 
 buildLevel(level);
-let last=performance.now();function animate(now){const dt=Math.min(.033,(now-last)/1000||.016);last=now;state.time+=dt;if(state.mode==='playing')state.runTime+=dt;updateWorld(dt);updateEffects(dt);if(state.mode==='playing')updatePlayer(dt);if(state.mode==='studio'){if(studioOrbit)studioOrbit.update();}else updateCamera(dt);renderer.render(scene,camera);requestAnimationFrame(animate)}
+let last=performance.now();function animate(now){const dt=Math.min(.033,(now-last)/1000||.016);last=now;state.time+=dt;if(state.mode==='playing')state.runTime+=dt;updateWorld(dt);updateEffects(dt);if(state.mode==='playing')updatePlayer(dt);if(state.mode==='studio'){studioFly(dt);if(studioSelectionBox)studioSelectionBox.update();}else updateCamera(dt);renderer.render(scene,camera);requestAnimationFrame(animate)}
 (async()=>{for(let i=0;i<=100;i+=20){await new Promise(r=>setTimeout(r,40));ui.loadingBar.style.width=i+'%';ui.loadingText.textContent=['BUILDING THE SKY...','LOADING LEVEL DATA...','CHARGING KEYS...','OPENING DEV STUDIO...','READY'][i/20]}await new Promise(r=>setTimeout(r,220));ui.loading.classList.add('done');setMode('menu');requestAnimationFrame(animate)})();
