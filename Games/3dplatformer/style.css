@@ -65,3 +65,8 @@ h2{font-size:clamp(58px,8vw,96px)}
 .loading-screen{position:absolute;inset:0;z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#06101e;color:#91aabb;transition:opacity .55s ease}.loading-screen.done{opacity:0;pointer-events:none}.loading-mark{font-family:'Barlow Condensed';font-weight:800;font-size:90px;color:#e7fbff;text-shadow:0 0 40px rgba(106,226,255,.25)}.loading-line{width:220px;height:2px;background:rgba(255,255,255,.1);overflow:hidden;margin:20px 0 12px}.loading-line i{display:block;width:0;height:100%;background:#70e8ff;transition:width .35s ease}.loading-screen>div:last-child{font-size:9px;letter-spacing:.24em}
 
 @media (max-width:700px){#menu{padding:12vh 6vw 5vh}.hud-top{left:14px;right:14px;top:14px}.hud-bottom{left:14px;right:14px;bottom:14px}.stats-row{gap:4px}.stat{min-width:0}.stat:nth-child(3){display:none}.brand-chip{display:none}.health-wrap{width:58vw}.checkpoint{font-size:8px}.menu-card{margin-top:40px}}
+
+.stat b{max-width:140px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hud-top .stats-row{flex-wrap:wrap;justify-content:flex-end;max-width:min(72vw,760px)}
+@media (max-width:900px){.hud-top .stats-row{max-width:78vw}.stat{min-width:82px}.stat:nth-child(5){display:none}}
+@media (max-width:700px){.hud-top .stats-row{max-width:90vw}.stat:nth-child(4){display:none}}
