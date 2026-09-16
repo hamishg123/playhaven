@@ -1,17 +1,57 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Skybound</title>
-<link rel="stylesheet" href="style.css">
-<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.162.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.162.0/examples/jsm/"}}</script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Skybound — 3D Platformer Studio</title>
+<style>
+:root{--bg:#09111c;--panel:#0f1b2b;--panel2:#152338;--line:#263b57;--text:#eaf3ff;--muted:#9db1ca;--accent:#58d7ff;--good:#73ff9b;--bad:#ff6f7d}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#050b12;color:var(--text);font:14px/1.35 Inter,system-ui,Segoe UI,Arial,sans-serif}
+button,input,textarea,select{font:inherit}button{cursor:pointer}
+#app{width:100%;height:100%;position:relative}
+.screen{position:absolute;inset:0;display:none}.screen.active{display:block}
+#menu{display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 20%,#1c4262 0,#0b1826 38%,#050a11 78%)}
+.menu-card{width:min(720px,92vw);padding:42px;border:1px solid #34516f;border-radius:24px;background:linear-gradient(180deg,rgba(15,29,46,.9),rgba(8,16,27,.94));box-shadow:0 25px 80px rgba(0,0,0,.5);text-align:center}
+.logo{font-size:clamp(42px,8vw,82px);font-weight:900;letter-spacing:.08em;margin:0;background:linear-gradient(90deg,#fff,#62d9ff,#a0ffda);-webkit-background-clip:text;color:transparent}.tag{margin:6px 0 28px;color:var(--muted);font-size:16px}
+.menu-buttons{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}.menu-buttons button,.toolbar button,.side button{background:#14263b;border:1px solid #2d4967;color:var(--text);padding:11px 15px;border-radius:10px;font-weight:700}.menu-buttons button.primary{background:linear-gradient(180deg,#39c7f5,#1985ca);border-color:#65dcff;color:#03111c}.menu-help{margin-top:24px;color:var(--muted);font-size:13px}
+#game,#studio{background:#000}.canvas-wrap{position:absolute;inset:0}canvas{display:block;width:100%;height:100%}
+.hud{position:absolute;inset:0;pointer-events:none}.topbar{position:absolute;left:16px;right:16px;top:14px;display:flex;justify-content:space-between;align-items:flex-start;gap:12px}.pill{pointer-events:auto;background:rgba(8,16,27,.72);border:1px solid rgba(112,162,205,.38);backdrop-filter:blur(8px);padding:10px 12px;border-radius:12px}.stats{display:flex;gap:8px;flex-wrap:wrap}.objective{min-width:220px}.bar{height:8px;background:#0c1420;border-radius:99px;overflow:hidden;margin-top:6px}.bar>i{display:block;height:100%;background:linear-gradient(90deg,#45d9ff,#8affc7);width:100%}
+.center-msg{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);text-align:center;display:none}.center-msg.show{display:block}.big{font-size:46px;font-weight:900}.small{color:var(--muted)}
+#gameMenu{position:absolute;right:16px;bottom:16px;pointer-events:auto}.game-tip{position:absolute;left:16px;bottom:16px;max-width:430px}
+#studio{display:flex}.studio-main{position:absolute;inset:0 320px 0 0}.side{position:absolute;right:0;top:0;bottom:0;width:320px;background:rgba(8,17,28,.96);border-left:1px solid #20344c;display:flex;flex-direction:column}.toolbar{height:58px;padding:10px;display:flex;gap:8px;align-items:center;border-bottom:1px solid #20344c}.tool.active{background:#234766;border-color:#5bd8ff}.toolbar .spacer{flex:1}.section{padding:12px;border-bottom:1px solid #20344c}.section h3{font-size:12px;text-transform:uppercase;letter-spacing:.1em;color:#9eb6d0;margin:0 0 8px}.palette{display:grid;grid-template-columns:1fr 1fr;gap:8px}.palette button{background:#101e2f}.explorer{flex:1;overflow:auto}.item{display:flex;align-items:center;gap:7px;padding:8px 12px;border-bottom:1px solid rgba(43,67,94,.45);color:#dbe9f7}.item:hover{background:#102338}.item.selected{background:#18314a;outline:1px solid #49d8ff inset}.item small{color:#89a0ba;margin-left:auto}.props{border-top:1px solid #20344c;max-height:310px;overflow:auto}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}.field label{display:block;color:#8ea7c1;font-size:11px;margin-bottom:4px}.field input,.field select,.json textarea{width:100%;background:#091421;border:1px solid #28405b;color:#eaf3ff;padding:8px;border-radius:7px}.json textarea{height:130px;resize:vertical}.row{display:flex;gap:8px}.row>*{flex:1}
+.toast{position:absolute;left:50%;bottom:28px;transform:translateX(-50%);background:#081523;border:1px solid #3a5b7b;padding:10px 15px;border-radius:10px;display:none;z-index:20}.toast.show{display:block}
+.overlay{position:absolute;inset:0;background:rgba(2,8,14,.75);display:none;align-items:center;justify-content:center;z-index:10}.overlay.show{display:flex}.overlay-card{width:min(460px,90vw);background:#0d1a2a;border:1px solid #314b68;border-radius:18px;padding:28px;text-align:center}.overlay-card h2{margin-top:0}
+@media(max-width:900px){.side{width:290px}.studio-main{inset:0 290px 0 0}.topbar{font-size:12px}.menu-card{padding:28px}.big{font-size:34px}}
+</style>
 </head>
 <body>
-<canvas id="game"></canvas>
-<div id="menu" class="screen"><div class="panel"><div class="small">3D PLATFORMER</div><h1>SKYBOUND</h1><p>Explore, collect keys, open gates and reach the summit.</p><button id="play">PLAY</button><button id="studio">DEV STUDIO</button><button id="how">HOW TO PLAY</button></div></div>
-<div id="howPanel" class="modal hidden"><div class="panel"><h2>CONTROLS</h2><p><b>W A S D</b> move • <b>Space</b> jump • <b>Shift</b> dash • <b>Mouse</b> look • <b>Esc</b> pause</p><button id="closeHow">CLOSE</button></div></div>
-<div id="hud" class="hud hidden"><div>KEYS <b id="keys">0</b>/<span id="keysTotal">4</span></div><div>SHARDS <b id="shards">0</b></div><div>STAGE <b id="stage">1</b></div><div class="bar"><i id="hp"></i></div></div>
-<div id="toast"></div>
-<div id="studioUI" class="studio hidden"><div class="toolbar"><button data-tool="select" class="tool active">SELECT <kbd>1</kbd></button><button data-tool="move" class="tool">MOVE <kbd>2</kbd></button><button data-tool="scale" class="tool">SCALE <kbd>3</kbd></button><button id="newLevel">NEW</button><button id="playLevel">PLAY</button><button id="menuBtn">MENU</button></div><aside class="explorer"><h3>EXPLORER</h3><div id="objects"></div><div class="add"><h3>ADD</h3><button data-add="platform">PLATFORM</button><button data-add="wall">WALL</button><button data-add="key">KEY</button><button data-add="checkpoint">CHECKPOINT</button><button data-add="hazard">HAZARD</button><button data-add="enemy">ENEMY</button><button data-add="door">DOOR</button><button data-add="goal">GOAL</button></div></aside><div class="inspector"><h3>PROPERTIES</h3><div id="inspectorBody">Select an object.</div><button id="deleteObj">DELETE</button><button id="duplicateObj">DUPLICATE</button><button id="copyJSON">COPY JSON</button><button id="downloadJSON">DOWNLOAD JSON</button><textarea id="jsonBox" placeholder="Paste JSON here"></textarea><button id="loadJSON">LOAD JSON</button></div><div class="studioHelp">Editor: click to select • hold left mouse on empty space to orbit • right mouse also orbits • WASD move • Q/E down/up • Shift fast • 1/2/3 tools • Ctrl+D duplicate • Delete remove • F focus</div></div>
-<script type="module" src="game.js"></script>
-</body></html>
+<div id="app">
+<section id="menu" class="screen active">
+  <div class="menu-card">
+    <h1 class="logo">SKYBOUND</h1><div class="tag">A 3D platformer with its own level-building studio.</div>
+    <div class="menu-buttons"><button id="playBtn" class="primary">PLAY</button><button id="studioBtn">DEV STUDIO</button></div>
+    <div class="menu-help">Game: WASD move · Space jump · Shift dash · Mouse look · Esc pause<br>Studio: hold mouse to orbit · WASD move camera · Q/E down/up · 1 select · 2 move · 3 scale</div>
+  </div>
+</section>
+<section id="game" class="screen"><div id="gameCanvas" class="canvas-wrap"></div>
+  <div class="hud"><div class="topbar"><div class="stats"><div class="pill">SHARDS <b id="shards">0</b></div><div class="pill">KEY <b id="keyState">LOCKED</b></div><div class="pill">CHECKPOINT <b id="cpState">START</b></div></div><div class="pill objective"><b id="stageName">GREEN RUN</b><div id="objectiveText">Find the key and reach the door.</div><div class="bar"><i id="progress"></i></div></div></div><div id="gameTip" class="pill game-tip">WASD move · Space jump · Shift dash · Mouse look · Esc pause</div></div>
+  <div id="gamePause" class="overlay"><div class="overlay-card"><h2>Paused</h2><p class="small">Press Esc to resume.</p><div class="menu-buttons"><button id="resumeBtn" class="primary">RESUME</button><button id="restartBtn">RESTART</button><button id="backMenuBtn">MENU</button></div></div></div>
+  <div id="gameEnd" class="overlay"><div class="overlay-card"><h2 id="endTitle">Victory</h2><p id="endText" class="small"></p><div class="menu-buttons"><button id="againBtn" class="primary">PLAY AGAIN</button><button id="endMenuBtn">MENU</button></div></div></div>
+</section>
+<section id="studio" class="screen"><div id="studioCanvas" class="studio-main"></div>
+  <div class="side">
+    <div class="toolbar"><button class="tool active" data-tool="select">1 Select</button><button class="tool" data-tool="move">2 Move</button><button class="tool" data-tool="scale">3 Scale</button><span class="spacer"></span><button id="studioMenu">MENU</button></div>
+    <div class="section"><h3>Parts</h3><div class="palette"><button data-add="platform">+ Platform</button><button data-add="wall">+ Wall</button><button data-add="key">+ Key</button><button data-add="checkpoint">+ Checkpoint</button><button data-add="hazard">+ Hazard</button><button data-add="enemy">+ Enemy</button><button data-add="door">+ Door</button><button data-add="goal">+ Goal</button></div></div>
+    <div class="section"><h3>Snapping</h3><div class="row"><button id="snapMinus">−</button><input id="snapValue" type="number" min="0.1" step="0.1" value="1"><button id="snapPlus">+</button></div></div>
+    <div class="section explorer"><h3>Explorer</h3><div id="explorer"></div></div>
+    <div class="section props"><h3>Properties</h3><div id="noSelection" class="small">Select a part.</div><div id="propertyPanel" style="display:none"></div></div>
+    <div class="section"><div class="row"><button id="duplicateBtn">Duplicate</button><button id="deleteBtn">Delete</button></div><div class="row" style="margin-top:8px"><button id="playEditedBtn" class="primary">PLAY LEVEL</button><button id="newLevelBtn">NEW</button></div></div>
+    <div class="section json"><h3>Level JSON</h3><textarea id="jsonBox" spellcheck="false"></textarea><div class="row" style="margin-top:8px"><button id="copyJsonBtn">COPY</button><button id="loadJsonBtn">LOAD</button><button id="downloadJsonBtn">DOWNLOAD</button></div></div>
+  </div>
+  <div id="studioToast" class="toast"></div>
+</section>
+</div>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.162.0/build/three.module.js"}}</script>
+<script type="module" src="./game.js"></script>
+</body>
+</html>
