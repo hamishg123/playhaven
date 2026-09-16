@@ -114,6 +114,11 @@
     "title": "Hughs Bouncy Bench",
     "thumbnail": "/images/hughsbouncybench.png"
   }
+  {
+    "name": "3dplatformer",
+    "title": "platformer",
+    "thumbnail": "/images/hughsbouncybench.png"
+  }
 
   
 ]
