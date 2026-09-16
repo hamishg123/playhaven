@@ -165,7 +165,7 @@ function buildStage(stage,z0,baseY){
   if(stage===3){addMovingPlatform(0,baseY+6.3,152,5.5,4.0,.9,0,2.5,1.1,1.2,stage)}
   if(stage===4){addMovingPlatform(0,baseY+6.8,202,5.5,4.0,.9,2.4,0,1.0,2.3,stage)}
   // Key + checkpoint sit directly on the stage's final landing, not floating above it.
-  const keyTop=layouts[stage][4][1]; const keyZ=layouts[stage][4][2]; addKey(0,keyTop+.72,keyZ,stage); addCheckpoint(-2.5,keyTop,keyZ,`STAGE ${stage}`,stage);
+  const keyTop=layouts[stage][4][1]; const keyZ=layouts[stage][4][2]; addKey(0,keyTop+.49,keyZ,stage); addCheckpoint(-2.5,keyTop,keyZ,`STAGE ${stage}`,stage);
   if(stage<4){ addDoor(0,keyTop,keyZ+5.2,stage,`GATE ${stage+1}`); }
   // Combat/traversal beats stay on the single route.
   addEnemy(layouts[stage][1][0],layouts[stage][1][1],layouts[stage][1][2],2.4);
@@ -176,7 +176,7 @@ function buildStage(stage,z0,baseY){
   if(stage===3){addBoost(0,layouts[stage][2][1],layouts[stage][2][2],0,1);addSpring(0,layouts[stage][3][1],layouts[stage][3][2],1.0)}
   if(stage===4){addBoost(0,layouts[stage][2][1],layouts[stage][2][2],0,1);addSpring(0,layouts[stage][3][1],layouts[stage][3][2],1.05)}
   // Three shards per stage, centered near the actual path.
-  [1,2,3].forEach((idx)=>{const q=layouts[stage][idx];addShard(q[0]+(idx===2?.8:-.65),q[1]+.72,q[2]);});
+  [1,2,3].forEach((idx)=>{const q=layouts[stage][idx];addShard(q[0]+(idx===2?.8:-.65),q[1]+.29,q[2]);});
   // Stage dressing.
   const zStart=z0,zEnd=stage===4?210:layouts[stage][4][2]+12;
   for(let z=zStart;z<zEnd;z+=13){
@@ -190,7 +190,7 @@ function buildStage(stage,z0,baseY){
 addPlatform(0,0,0,18,14,1,MAT.stoneDark,1);
 addPlatform(0,0,8,12,7,1,MAT.grass,1);
 addCheckpoint(-2.5,0,4,'START',1);
-addShard(0,.72,8);
+addShard(0,.29,8);
 for(let i=0;i<10;i++) addCrystalCluster((Math.random()-.5)*16,.1,(Math.random()*2-1)*5,0x57e6d0,3);
 
 buildStage(1,5,0.8);
@@ -216,9 +216,9 @@ const visor=new THREE.Mesh(geo.box(.55,.19,.08),new THREE.MeshStandardMaterial({
 for(const sx of [-.25,.25]) addBox(player,MAT.dark,[sx,.22,.03],[.28,.44,.4]);
 const trail=new THREE.PointLight(0x59dcff,2.1,5);trail.position.set(0,.9,-.55);player.add(trail);
 
-const pstate={vel:new THREE.Vector3(),grounded:false,coyote:0,jumpBuffer:0,spawn:new THREE.Vector3(0,2,4),radius:.46,halfHeight:1.5,dash:0,dashCooldown:0,facing:0,invuln:0,jumps:0,maxJumps:2,fallDamageCooldown:0};
+const pstate={vel:new THREE.Vector3(),grounded:false,coyote:0,jumpBuffer:0,spawn:new THREE.Vector3(0,0.02,4),radius:.42,height:2.05,dash:0,dashCooldown:0,facing:0,invuln:0,jumps:0,maxJumps:2,fallDamageCooldown:0};
 const keysDown={}; addEventListener('keydown',e=>{keysDown[e.code]=true;if(['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code))e.preventDefault();if(e.code==='Escape')togglePause();if(e.code==='KeyR'&&state.mode!=='menu')restartGame()}); addEventListener('keyup',e=>keysDown[e.code]=false);
-let mouseDX=0,mouseDY=0,pointerLocked=false; addEventListener('mousemove',e=>{if(pointerLocked){mouseDX+=e.movementX;mouseDY+=e.movementY}});$('game').addEventListener('click',()=>{if(state.mode==='playing'&&!pointerLocked)$('game').requestPointerLock?.()});document.addEventListener('pointerlockchange',()=>pointerLocked=document.pointerLockElement===$('game'));
+let mouseDX=0,mouseDY=0,pointerLocked=false; let FRAME_DT=0.016; addEventListener('mousemove',e=>{if(pointerLocked){mouseDX+=e.movementX;mouseDY+=e.movementY}});$('game').addEventListener('click',()=>{if(state.mode==='playing'&&!pointerLocked)$('game').requestPointerLock?.()});document.addEventListener('pointerlockchange',()=>pointerLocked=document.pointerLockElement===$('game'));
 
 // Yaw 0 means the character looks toward +Z. W is explicitly +Z, S is -Z.
 const cameraRig={yaw:0,pitch:.18,distance:7.8,height:3.8};
@@ -229,44 +229,54 @@ function consumeJump(){keysDown.Space=false}
 function toast(msg,d=1300){ui.toast.textContent=msg;ui.toast.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>ui.toast.classList.remove('show'),d)}
 function hitFlash(){ui.flash.style.opacity='.35';setTimeout(()=>ui.flash.style.opacity='0',110)}
 function setMode(m){state.mode=m;ui.menu.classList.toggle('hidden',m!=='menu');ui.hud.classList.toggle('hidden',m==='menu');ui.pause.classList.toggle('hidden',m!=='paused');ui.gameOver.classList.toggle('hidden',m!=='gameover');ui.victory.classList.toggle('hidden',m!=='victory')}
-function startGame(){state.score=0;state.shards=0;state.health=100;state.checkpoint='START';state.stage=1;state.keyFound=false;state.runTime=0;state.combo=0;state.comboTimer=0;checkpoints.forEach(c=>c.active=false);keys.forEach(k=>{k.found=false;k.group.visible=true});collectibles.forEach(c=>{c.got=false;c.group.visible=true});enemies.forEach(e=>{e.dead=false;e.group.visible=true;e.group.position.set(e.originX,e.top+.62,e.z)});doors.forEach(d=>{d.open=false;d.progress=0;d.collidable=true;d.group.visible=true});checkpoints[0].active=true;pstate.spawn.set(0,2,4);resetPlayer();setMode('playing');toast('FIND THE KEY • OPEN THE GATE • KEEP MOVING FORWARD',2200);updateHud()}
+function startGame(){state.score=0;state.shards=0;state.health=100;state.checkpoint='START';state.stage=1;state.keyFound=false;state.runTime=0;state.combo=0;state.comboTimer=0;checkpoints.forEach(c=>c.active=false);keys.forEach(k=>{k.found=false;k.group.visible=true});collectibles.forEach(c=>{c.got=false;c.group.visible=true});enemies.forEach(e=>{e.dead=false;e.group.visible=true;e.group.position.set(e.originX,e.top+.62,e.z)});doors.forEach(d=>{d.open=false;d.progress=0;d.collidable=true;d.group.visible=true});checkpoints[0].active=true;pstate.spawn.set(0,0.02,4);resetPlayer();setMode('playing');toast('FIND THE KEY • OPEN THE GATE • KEEP MOVING FORWARD',2200);updateHud()}
 function restartGame(){startGame()}
 function goHome(){setMode('menu');resetPlayer();document.exitPointerLock?.()}
 function togglePause(){if(state.mode==='playing')setMode('paused');else if(state.mode==='paused')setMode('playing')}
 
 function isInsideBox(x,z,boxX,boxZ,w,d,r=0){return x>boxX-w/2-r&&x<boxX+w/2+r&&z>boxZ-d/2-r&&z<boxZ+d/2+r}
-function verticalTopAt(x,z,y){let best=null,bestY=-Infinity;for(const p of platforms){if(x>=p.x-p.w/2&&x<=p.x+p.w/2&&z>=p.z-p.d/2&&z<=p.z+p.d/2&&p.y<=y+.45&&p.y>bestY){best=p;bestY=p.y}}return best}
-function resolveHorizontal(oldPos,newPos){
-  let x=newPos.x,z=newPos.z;
-  for(const p of platforms){
-    // Moving platforms count as solid walls too, but only while we are beside them.
-    const top=p.y, bottom=p.y-p.h;
-    if(newPos.y+pstate.halfHeight<=bottom+.08||newPos.y-pstate.halfHeight>=top-.08) continue;
-    const left=p.x-p.w/2,right=p.x+p.w/2,front=p.z-p.d/2,back=p.z+p.d/2;
-    if(x>left-pstate.radius&&x<right+pstate.radius&&z>front-pstate.radius&&z<back+pstate.radius){
-      const fromLeft=oldPos.x<left,fromRight=oldPos.x>right,fromFront=oldPos.z<front,fromBack=oldPos.z>back;
-      const penX=Math.min(Math.abs(x-(left-pstate.radius)),Math.abs((right+pstate.radius)-x));
-      const penZ=Math.min(Math.abs(z-(front-pstate.radius)),Math.abs((back+pstate.radius)-z));
-      if((fromLeft||fromRight)&&!(fromFront||fromBack)){x=fromLeft?left-pstate.radius:right+pstate.radius;pstate.vel.x=0;}
-      else if((fromFront||fromBack)&&!(fromLeft||fromRight)){z=fromFront?front-pstate.radius:back+pstate.radius;pstate.vel.z=0;}
-      else if(penX<penZ){x=Math.abs(x-left)<Math.abs(right-x)?left-pstate.radius:right+pstate.radius;pstate.vel.x=0;}
-      else{z=Math.abs(z-front)<Math.abs(back-z)?front-pstate.radius:back+pstate.radius;pstate.vel.z=0;}
-    }
-  }
+function solidBoxes(){
+  const solids=[];
+  for(const p of platforms) solids.push({x:p.x,z:p.z,w:p.w,d:p.d,bottom:p.y-p.h,top:p.y,kind:'platform'});
   for(const d of doors){
-    if(d.open||!d.collidable)continue; const dx=d.group.position.x,dz=d.group.position.z,w=d.w,dpt=d.t; const bottom=d.top, top=d.top+d.h;
-    if(newPos.y+pstate.halfHeight<bottom+.05||newPos.y-pstate.halfHeight>top)continue;
-    const left=dx-w/2,right=dx+w/2,front=dz-dpt/2,back=dz+dpt/2;
-    if(x>left-pstate.radius&&x<right+pstate.radius&&z>front-pstate.radius&&z<back+pstate.radius){
-      if(oldPos.z<front)z=front-pstate.radius; else if(oldPos.z>back)z=back+pstate.radius; else if(Math.abs(x-left)<Math.abs(right-x))x=left-pstate.radius;else x=right+pstate.radius;
-      if(Math.abs(oldPos.z-z)>Math.abs(oldPos.x-x))pstate.vel.z=0;else pstate.vel.x=0;
-    }
+    if(!d.open&&d.collidable) solids.push({x:d.group.position.x,z:d.group.position.z,w:d.w,d:d.t,bottom:d.top,top:d.top+d.h,kind:'door'});
   }
-  return {x,z};
+  return solids;
+}
+function verticalTopAt(x,z,feetY,vy){
+  let best=null,bestY=-Infinity;
+  const prevFeet=feetY-vy*FRAME_DT;
+  const nextFeet=feetY+vy*FRAME_DT;
+  if(vy>0)return null;
+  for(const p of platforms){
+    const inside=x>=p.x-p.w/2+pstate.radius*0.15&&x<=p.x+p.w/2-pstate.radius*0.15&&z>=p.z-p.d/2+pstate.radius*0.15&&z<=p.z+p.d/2-pstate.radius*0.15;
+    if(!inside)continue;
+    if(prevFeet>=p.y-0.08&&nextFeet<=p.y+0.08&&p.y>bestY){best=p;bestY=p.y;}
+  }
+  return best;
+}
+function blockedAt(x,z,feetY){
+  const bodyBottom=feetY+0.04, bodyTop=feetY+pstate.height-0.04;
+  for(const b of solidBoxes()){
+    if(bodyTop<=b.bottom+0.02||bodyBottom>=b.top-0.02)continue;
+    const left=b.x-b.w/2-pstate.radius,right=b.x+b.w/2+pstate.radius;
+    const front=b.z-b.d/2-pstate.radius,back=b.z+b.d/2+pstate.radius;
+    if(x>left&&x<right&&z>front&&z<back)return true;
+  }
+  return false;
+}
+function moveWithCollisions(dt){
+  const start=player.position.clone();
+  let nx=start.x+pstate.vel.x*dt;
+  if(blockedAt(nx,start.z,start.y))pstate.vel.x=0;
+  else player.position.x=nx;
+  let nz=player.position.z+pstate.vel.z*dt;
+  if(blockedAt(player.position.x,nz,player.position.y))pstate.vel.z=0;
+  else player.position.z=nz;
 }
 function damage(amount,msg){if(pstate.invuln>0||state.mode!=='playing')return;state.health-=amount;pstate.invuln=1.0;hitFlash();toast(msg);updateHud();if(state.health<=0){state.health=0;gameOver('RUN TERMINATED','The route is blocked. Restart from the beginning.')}}
 function respawn(){resetPlayer();toast(`RESPAWN • ${state.checkpoint}`,1100)}
-function activateCheckpoint(c){if(c.active)return;c.active=true;state.checkpoint=c.label;pstate.spawn.set(c.x+2.5,c.top+1.52,c.z);state.health=100;state.score+=100;toast(`${c.label} • CHECKPOINT REACHED`,1500);updateHud()}
+function activateCheckpoint(c){if(c.active)return;c.active=true;state.checkpoint=c.label;pstate.spawn.set(c.x+2.15,c.top+0.02,c.z);state.health=100;state.score+=100;toast(`${c.label} • CHECKPOINT REACHED`,1500);updateHud()}
 function collectShard(c){if(c.got)return;c.got=true;c.group.visible=false;state.shards++;state.combo=Math.min(8,state.combo+1);state.comboTimer=2.5;state.score+=100*state.combo;spawnBurst(c.group.position,0xffd76b);toast(`SHARD +${100*state.combo} • COMBO x${state.combo}`,800);updateHud()}
 function collectKey(k){if(k.found)return;k.found=true;k.group.visible=false;state.keyFound=true;state.score+=250;spawnBurst(k.group.position,0x67eaff);toast(`KEY ACQUIRED • GATE ${k.stage<4?k.stage+1:'SUMMIT'} UNLOCKED`,1700);updateHud()}
 function openDoor(d){if(d.open||state.stage!==d.stage||!state.keyFound)return;d.open=true;d.collidable=false;state.keyFound=false;state.stage++;state.score+=350;toast(`GATE ${d.stage+1} OPEN • STAGE ${state.stage}`,1800);updateHud()}
@@ -278,26 +288,35 @@ function updatePlayer(dt){
   pstate.invuln=Math.max(0,pstate.invuln-dt);pstate.dashCooldown=Math.max(0,pstate.dashCooldown-dt);pstate.coyote=Math.max(0,pstate.coyote-dt);state.comboTimer=Math.max(0,state.comboTimer-dt);if(state.comboTimer<=0)state.combo=0;
   const input=inputVector();
   if(jumpPressed())pstate.jumpBuffer=.15;
-  const forward=new THREE.Vector3(0,0,1);const right=new THREE.Vector3(1,0,0);forward.applyAxisAngle(new THREE.Vector3(0,1,0),cameraRig.yaw);right.applyAxisAngle(new THREE.Vector3(0,1,0),cameraRig.yaw);
-  const dir=new THREE.Vector3().addScaledVector(right,input.x).addScaledVector(forward,input.z);if(dir.lengthSq()>0)dir.normalize();
-  const sprint=keysDown.ShiftLeft||keysDown.ShiftRight;const targetSpeed=sprint?10.6:8.3;const accel=pstate.grounded?33:19;const response=1-Math.exp(-accel*dt);
-  pstate.vel.x=lerp(pstate.vel.x,dir.x*targetSpeed,response);pstate.vel.z=lerp(pstate.vel.z,dir.z*targetSpeed,response);
+  const yaw=cameraRig.yaw;
+  const forward=new THREE.Vector3(Math.sin(yaw),0,Math.cos(yaw));
+  const right=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw));
+  const dir=new THREE.Vector3().addScaledVector(right,input.x).addScaledVector(forward,input.z);
+  if(dir.lengthSq()>0)dir.normalize();
+  const sprint=keysDown.ShiftLeft||keysDown.ShiftRight;
+  const targetSpeed=sprint?11.5:8.6;
+  const accel=pstate.grounded?36:22;
+  const response=1-Math.exp(-accel*dt);
+  pstate.vel.x=lerp(pstate.vel.x,dir.x*targetSpeed,response);
+  pstate.vel.z=lerp(pstate.vel.z,dir.z*targetSpeed,response);
   if(input.active){pstate.facing=Math.atan2(dir.x,dir.z);player.rotation.y=lerp(player.rotation.y,pstate.facing,1-Math.exp(-16*dt));}
   if((keysDown.ShiftLeft||keysDown.ShiftRight)&&input.active&&pstate.dashCooldown<=0){const power=pstate.grounded?18.5:16.5;pstate.vel.x=dir.x*power;pstate.vel.z=dir.z*power;pstate.dash=.2;pstate.dashCooldown=pstate.grounded?.8:1.05;keysDown.ShiftLeft=false;keysDown.ShiftRight=false;spawnBurst(player.position.clone().add(new THREE.Vector3(0,.7,0)),0x69eaff);toast(pstate.grounded?'DASH':'AIR DASH',500)}
   if(pstate.jumpBuffer>0&&(pstate.grounded||pstate.coyote>0||pstate.jumps<pstate.maxJumps)){const first=pstate.grounded||pstate.coyote>0;pstate.vel.y=first?12.6:11.5;pstate.grounded=false;pstate.coyote=0;pstate.jumps=first?1:pstate.jumps+1;pstate.jumpBuffer=0;consumeJump();spawnBurst(player.position.clone(),first?0x75e9ff:0xffd36c)}
   pstate.vel.y-=29*dt;
-  const old=player.position.clone();player.position.addScaledVector(pstate.vel,dt);
-  const resolved=resolveHorizontal(old,player.position);player.position.x=resolved.x;player.position.z=resolved.z;
-  const g=verticalTopAt(player.position.x,player.position.z,player.position.y);
-  if(g&&pstate.vel.y<=0&&player.position.y<=g.y+pstate.halfHeight){player.position.y=g.y+pstate.halfHeight;pstate.vel.y=g.kind==='moving'?0:0;if(!pstate.grounded)spawnBurst(player.position.clone().add(new THREE.Vector3(0,-1.45,0)),0x8ae9ff);pstate.grounded=true;pstate.jumps=0;pstate.coyote=.12;}
+  FRAME_DT=dt;
+  moveWithCollisions(dt);
+  const prevFeet=player.position.y;
+  player.position.y+=pstate.vel.y*dt;
+  const g=verticalTopAt(player.position.x,player.position.z,player.position.y,pstate.vel.y);
+  if(g&&pstate.vel.y<=0){player.position.y=g.y;pstate.vel.y=0;if(!pstate.grounded)spawnBurst(player.position.clone(),0x8ae9ff);pstate.grounded=true;pstate.jumps=0;pstate.coyote=.12;}
   else{if(pstate.grounded)pstate.coyote=.12;pstate.grounded=false;}
   for(const m of movers){if(g===m&&pstate.grounded){player.position.x+=m.dx*dt;player.position.z+=m.dz*dt;}}
-  for(const s of springs){if(s.cool>0){s.cool-=dt;continue}if(isInsideBox(player.position.x,player.position.z,s.x,s.z,1.25*s.scale,1.25*s.scale,.1)&&Math.abs(player.position.y-(s.top+pstate.halfHeight))<1.3){pstate.vel.y=17.2;pstate.grounded=false;pstate.jumps=1;s.cool=.35;spawnBurst(player.position,0xffd56e);toast('SUPER JUMP!',650)}}
-  for(const b of boosts){if(b.cool>0){b.cool-=dt;continue}if(isInsideBox(player.position.x,player.position.z,b.x,b.z,1.8,2.3,.12)&&Math.abs(player.position.y-(b.top+pstate.halfHeight))<1.2){pstate.vel.x=b.dirX*17.5;pstate.vel.z=b.dirZ*17.5;b.cool=.4;spawnBurst(player.position,0x72ecff);toast('BOOST!',500)}}
+  for(const s of springs){if(s.cool>0){s.cool-=dt;continue}if(isInsideBox(player.position.x,player.position.z,s.x,s.z,1.25*s.scale,1.25*s.scale,.1)&&Math.abs(player.position.y-s.top)<1.0){pstate.vel.y=17.2;pstate.grounded=false;pstate.jumps=1;s.cool=.35;spawnBurst(player.position,0xffd56e);toast('SUPER JUMP!',650)}}
+  for(const b of boosts){if(b.cool>0){b.cool-=dt;continue}if(isInsideBox(player.position.x,player.position.z,b.x,b.z,1.8,2.3,.12)&&Math.abs(player.position.y-b.top)<1.0){pstate.vel.x=b.dirX*17.5;pstate.vel.z=b.dirZ*17.5;b.cool=.4;spawnBurst(player.position,0x72ecff);toast('BOOST!',500)}}
   if(player.position.y<-18&&state.mode==='playing'){if(pstate.fallDamageCooldown<=0){pstate.fallDamageCooldown=1.5;damage(30,'FALL • CHECKPOINT DAMAGE');if(state.mode==='playing')respawn();}}
   pstate.fallDamageCooldown=Math.max(0,pstate.fallDamageCooldown-dt);
-  for(const h of hazards){if(h.cool>0){h.cool-=dt;continue}if(isInsideBox(player.position.x,player.position.z,h.x,h.z,h.w,h.d,.02)&&Math.abs(player.position.y-(h.top+pstate.halfHeight))<1.0){h.cool=.55;damage(25,'SPIKES!');if(state.mode==='playing')respawn()}}
-  for(const e of enemies){if(e.dead)continue;const dx=player.position.x-e.group.position.x,dz=player.position.z-e.group.position.z,dist=Math.hypot(dx,dz),dy=player.position.y-e.group.position.y;if(dist<1.15&&Math.abs(dy)<1.45){if(pstate.vel.y<0&&player.position.y>e.group.position.y+.42){killEnemy(e);pstate.vel.y=11.2}else damage(22,'SENTINEL HIT')}}
+  for(const h of hazards){if(h.cool>0){h.cool-=dt;continue}if(isInsideBox(player.position.x,player.position.z,h.x,h.z,h.w,h.d,.02)&&Math.abs(player.position.y-h.top)<1.0){h.cool=.55;damage(25,'SPIKES!');if(state.mode==='playing')respawn()}}
+  for(const e of enemies){if(e.dead)continue;const dx=player.position.x-e.group.position.x,dz=player.position.z-e.group.position.z,dist=Math.hypot(dx,dz),dy=player.position.y-e.group.position.y;if(dist<1.15&&Math.abs(dy)<1.65){if(pstate.vel.y<0&&player.position.y>e.group.position.y-.05){killEnemy(e);pstate.vel.y=11.2}else damage(22,'SENTINEL HIT')}}
   for(const c of collectibles){if(!c.got&&player.position.distanceTo(c.group.position)<1.25)collectShard(c)}
   for(const k of keys){if(!k.found&&player.position.distanceTo(k.group.position)<1.35)collectKey(k)}
   for(const c of checkpoints){if(Math.hypot(player.position.x-c.x,player.position.z-c.z)<2.2&&player.position.y>c.top-.7)activateCheckpoint(c)}
@@ -321,7 +340,7 @@ function updateWorld(dt){
 function updateCamera(dt){
   if(state.mode==='menu'){cameraRig.yaw+=dt*.08;cameraRig.pitch=.2;cameraRig.distance=11;cameraRig.height=4.8;const focus=new THREE.Vector3(0,7,112);const target=focus.clone().add(new THREE.Vector3(-Math.sin(cameraRig.yaw)*cameraRig.distance,4,-Math.cos(cameraRig.yaw)*cameraRig.distance));camera.position.lerp(target,1-Math.exp(-2*dt));camera.lookAt(focus);return}
   cameraRig.yaw-=mouseDX*.0026;cameraRig.pitch=clamp(cameraRig.pitch-mouseDY*.0017,-.15,.6);mouseDX=0;mouseDY=0;
-  const back=new THREE.Vector3(0,0,-cameraRig.distance).applyAxisAngle(new THREE.Vector3(0,1,0),cameraRig.yaw);const desired=player.position.clone().add(back).add(new THREE.Vector3(0,cameraRig.height+Math.sin(cameraRig.pitch)*cameraRig.distance*.45,0));camera.position.lerp(desired,1-Math.exp(-8*dt));camera.lookAt(player.position.clone().add(new THREE.Vector3(0,1.05,1.4)));
+  const back=new THREE.Vector3(0,0,-cameraRig.distance).applyAxisAngle(new THREE.Vector3(0,1,0),cameraRig.yaw);const desired=player.position.clone().add(back).add(new THREE.Vector3(0,cameraRig.height+Math.sin(cameraRig.pitch)*cameraRig.distance*.45,0));camera.position.lerp(desired,1-Math.exp(-8*dt));const lookAhead=new THREE.Vector3(Math.sin(cameraRig.yaw)*1.6,1.05,Math.cos(cameraRig.yaw)*1.6);camera.lookAt(player.position.clone().add(lookAhead));
 }
 function updateHud(){
   const stageName=stageStyle(clamp(state.stage,1,4)).name;
