@@ -15,7 +15,7 @@ const ui={
   goScore:$('gameOverScore'),goShards:$('gameOverShards'),goTitle:$('gameOverTitle'),goText:$('gameOverText'),vScore:$('victoryScore'),vShards:$('victoryShards'),flash:$('flash')
 };
 
-const state={mode:'menu',score:0,shards:0,health:100,best:Number(localStorage.getItem('skybound_best')||0),checkpoint:'START',time:0,runTime:0,started:false};
+const state={mode:'menu',score:0,shards:0,health:100,best:Number(localStorage.getItem('skybound_best')||0),checkpoint:'START',time:0,runTime:0,started:false,combo:0,comboTimer:0};
 ui.best.textContent=state.best;ui.bestMenu.textContent=state.best;
 
 const scene=new THREE.Scene();
@@ -61,17 +61,33 @@ const MAT={
 
 const geo={box:(x,y,z)=>new THREE.BoxGeometry(x,y,z),sphere:(r)=>new THREE.SphereGeometry(r,24,16),cyl:(r,h)=>new THREE.CylinderGeometry(r,r,h,20),torus:(a,b)=>new THREE.TorusGeometry(a,b,12,32)};
 
-const platforms=[];const hazards=[];const collectibles=[];const checkpoints=[];const enemies=[];let portal=null;
+const platforms=[];const hazards=[];const collectibles=[];const checkpoints=[];const enemies=[];const movers=[];const springs=[];const boosts=[];let portal=null;
 function addBox(parent,mat,pos,size,opts={}){const m=new THREE.Mesh(geo.box(...size),mat);m.position.set(...pos);m.castShadow=opts.castShadow??true;m.receiveShadow=opts.receiveShadow??true;parent.add(m);return m;}
 function addPlatform(x,y,z,w,d,h=1,mat=MAT.grass){
   const mesh=addBox(world,mat,[x,y,z],[w,h,d]);
-  const top=y+h/2;platforms.push({x,z,y:top,w,d,h: h, mesh,kind:'solid'});
+  const top=y+h/2;platforms.push({x,z,y:top,w,d,h: h, mesh,kind:'solid',baseX:x,baseZ:z,baseY:top});
   // moss lip
   if(mat===MAT.grass||mat===MAT.grass2){
     const lip=addBox(world,MAT.grass2,[x,top+.035,z],[w*.99,.07,d*.99],{castShadow:false});
     lip.material.color.copy(mat.color).offsetHSL(.04,.02,.06);
   }
   return mesh;
+}
+function addMovingPlatform(x,y,z,w,d,h=0.9,ampX=0,ampZ=0,speed=1.2,phase=0){
+  const mesh=addBox(world,MAT.ice,[x,y,z],[w,h,d]);
+  const top=y+h/2;const platform={x,z,y:top,w,d,h,mesh,kind:'moving',baseX:x,baseZ:z,baseY:top,ampX,ampZ,speed,phase,dx:0,dz:0};
+  platforms.push(platform);movers.push(platform);return mesh;
+}
+function addSpring(x,y,z,scale=1){
+  const g=new THREE.Group();g.position.set(x,y,z);
+  const pad=addBox(g,MAT.playerAccent,[0,.14,0],[1.2*scale,.28,1.2*scale]);
+  const ring=new THREE.Mesh(geo.torus(.48*scale,.05,new THREE.TorusGeometry?12:12,32),new THREE.MeshBasicMaterial({color:0xffef9a,transparent:true,opacity:.8}));
+  ring.rotation.x=Math.PI/2;ring.position.y=.31;g.add(ring);dynamic.add(g);springs.push({group:g,x,z,y,scale});
+}
+function addBoostPad(x,y,z,dirX,dirZ){
+  const g=new THREE.Group();g.position.set(x,y+.12,z);const pad=addBox(g,MAT.portal,[0,0,0],[1.5,.14,2.4],{castShadow:false});
+  for(let i=-1;i<=1;i++){const stripe=addBox(g,MAT.playerAccent,[i*.38,.08,-.25],[.12,.04,1.8],{castShadow:false});stripe.rotation.y=Math.atan2(dirX,dirZ);}
+  dynamic.add(g);boosts.push({group:g,x,z,y:y+.2,dirX,dirZ});
 }
 function addRockCluster(cx,cy,cz,scale=1,count=6){for(let i=0;i<count;i++){const s=(.7+Math.random()*1.5)*scale;const m=addBox(world,MAT.rock,[cx+(Math.random()-.5)*3*scale,cy+s*.3,cz+(Math.random()-.5)*3*scale],[s*1.8,s,s*1.3]);m.rotation.set(Math.random()*.3,Math.random()*Math.PI,Math.random()*.25);}}
 function addShard(x,y,z){
@@ -124,6 +140,13 @@ function buildWorld(){
   const stones=[[-3,4,-11,4,4],[-6,6,-16,4,4],[-10,8,-20,4,4],[-14,11,-24,5,4],[-10,15,-31,5,5],[0,18,-29,4,4],[11,21,-30,5,5]];
   stones.forEach(s=>addPlatform(s[0],s[1],s[2],s[3],s[4],.9,MAT.rock));
 
+  // High-speed movement toys
+  addMovingPlatform(3,4.5,-8,4.5,3.5,.9,0,3.2,1.25,.2);
+  addMovingPlatform(14,10,-27,4.5,3.5,.9,3.5,0,1.05,1.7);
+  addMovingPlatform(-12,21,-36,4.2,3.8,.9,0,3.0,1.3,.8);
+  addSpring(-3,3.0,-8,1.0);addSpring(16,5.0,-16,1.0);addSpring(41,9.0,-18,1.0);addSpring(11,22.0,-31,1.0);
+  addBoostPad(1,0.5,8,0,-1);addBoostPad(36,8.5,-18,1,-.2);addBoostPad(-23,35.5,-39,-.8,-.2);
+
   // Decorative rocks
   for(let i=0;i<30;i++){
     const x=(Math.random()-.5)*100,z=(Math.random()-.5)*70;
@@ -156,22 +179,22 @@ const visor=new THREE.Mesh(geo.box(.54,.2,.08),new THREE.MeshStandardMaterial({c
 for(const sx of [-.25,.25]){const boot=addBox(player,MAT.dark,[sx,.36,.02],[.27,.48,.4]);boot.castShadow=true}
 const trail=new THREE.PointLight(0x58ddff,1.8,5);trail.position.set(0,1.1,-.7);player.add(trail);
 
-const pstate={vel:new THREE.Vector3(),grounded:false,coyote:0,jumpBuffer:0,spawn:new THREE.Vector3(0,2.1,7),radius:.42,dash:0,dashCooldown:0,facing:0,invuln:0,airTime:0};
+const pstate={vel:new THREE.Vector3(),grounded:false,coyote:0,jumpBuffer:0,spawn:new THREE.Vector3(0,2.1,7),radius:.42,dash:0,dashCooldown:0,facing:0,invuln:0,airTime:0,jumps:0,maxJumps:2};
 const keys={};
 addEventListener('keydown',e=>{keys[e.code]=true;if(['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code))e.preventDefault();if(e.code==='Escape'){togglePause()}if(e.code==='KeyR'&&state.mode!=='menu')restartGame()});
 addEventListener('keyup',e=>keys[e.code]=false);
 let mouseDX=0,mouseDY=0;let pointerLocked=false;addEventListener('mousemove',e=>{if(pointerLocked){mouseDX+=e.movementX;mouseDY+=e.movementY}});$('game').addEventListener('click',()=>{if(state.mode==='playing'&&!pointerLocked)$('game').requestPointerLock?.()});document.addEventListener('pointerlockchange',()=>{pointerLocked=document.pointerLockElement===$('game')});
 
 const cameraRig={yaw:0.2,pitch:.26,distance:9,height:4.7};
-function resetPlayer(){player.position.copy(pstate.spawn);pstate.vel.set(0,0,0);pstate.airTime=0;pstate.invuln=1.1;cameraRig.yaw=.2;}
+function resetPlayer(){player.position.copy(pstate.spawn);pstate.vel.set(0,0,0);pstate.airTime=0;pstate.invuln=1.1;pstate.jumps=0;pstate.dash=0;pstate.dashCooldown=0;cameraRig.yaw=.2;}
 
-function getMoveInput(){let x=0,z=0;if(keys.KeyA||keys.ArrowLeft)x-=1;if(keys.KeyD||keys.ArrowRight)x+=1;if(keys.KeyW||keys.ArrowUp)z-=1;if(keys.KeyS||keys.ArrowDown)z+=1;const len=Math.hypot(x,z);if(len>0){x/=len;z/=len}return {x,z,active:len>0}}
+function getMoveInput(){let x=0,z=0;if(keys.KeyA||keys.ArrowLeft)x-=1;if(keys.KeyD||keys.ArrowRight)x+=1;if(keys.KeyW||keys.ArrowUp)z+=1;if(keys.KeyS||keys.ArrowDown)z-=1;const len=Math.hypot(x,z);if(len>0){x/=len;z/=len}return {x,z,active:len>0}}
 function jumpPressed(){return keys.Space||keys.Numpad0}
 function consumeJump(){if(keys.Space)keys.Space=false;if(keys.Numpad0)keys.Numpad0=false}
 function toast(msg,duration=1500){ui.toast.textContent=msg;ui.toast.classList.add('show');clearTimeout(toast._t);toast._t=setTimeout(()=>ui.toast.classList.remove('show'),duration)}
 function hitFlash(){ui.flash.style.opacity='.35';setTimeout(()=>ui.flash.style.opacity='0',120)}
 function setStateMode(m){state.mode=m;ui.menu.classList.toggle('hidden',m!=='menu');ui.hud.classList.toggle('hidden',m==='menu');ui.pause.classList.toggle('hidden',m!=='paused');ui.gameOver.classList.toggle('hidden',m!=='gameover');ui.victory.classList.toggle('hidden',m!=='victory')}
-function startGame(){state.score=0;state.shards=0;state.health=100;state.checkpoint='START';state.runTime=0;state.started=true;checkpoints.forEach(c=>c.active=false);pstate.spawn.set(0,2.1,7);resetPlayer();collectibles.forEach(c=>c.got=false);enemies.forEach(e=>{e.dead=false;e.group.visible=true;e.group.position.set(e.originX,e.group.position.y,e.originZ)});setStateMode('playing');toast('RUN STARTED • REACH THE SUMMIT',1800);updateHud()}
+function startGame(){state.score=0;state.shards=0;state.health=100;state.checkpoint='START';state.runTime=0;state.started=true;state.combo=0;state.comboTimer=0;checkpoints.forEach(c=>c.active=false);pstate.spawn.set(0,2.1,7);resetPlayer();collectibles.forEach(c=>{c.got=false;c.group.visible=true});enemies.forEach(e=>{e.dead=false;e.group.visible=true;e.group.position.set(e.originX,e.originZ*0+e.group.position.y,e.originZ)});setStateMode('playing');toast('RUN STARTED • DOUBLE JUMP • DASH • REACH THE SUMMIT',2200);updateHud()}
 function restartGame(){if(state.mode==='menu'){startGame();return}startGame()}
 function goHome(){setStateMode('menu');resetPlayer();$('game').style.cursor='default'}
 function togglePause(){if(state.mode==='playing')setStateMode('paused');else if(state.mode==='paused')setStateMode('playing')}
@@ -180,47 +203,62 @@ function groundBelow(x,z,y){let best=null,bestY=-Infinity;for(const p of platfor
 function checkHazards(){for(const h of hazards){if(Math.abs(player.position.x-h.x)<h.w*.56&&Math.abs(player.position.z-h.z)<h.d*.56&&Math.abs(player.position.y-h.y)<1.0)damagePlayer(25,'HAZARD')} }
 function damagePlayer(amount,reason){if(pstate.invuln>0||state.mode!=='playing')return;state.health-=amount;pstate.invuln=1.0;hitFlash();toast(reason||'DAMAGE TAKEN');updateHud();if(state.health<=0){state.health=0;gameOver('RUN TERMINATED','The sky wins this time.')}}
 function respawnAtCheckpoint(){resetPlayer();toast('RESPAWNING AT CHECKPOINT',1200)}
-function activateCheckpoint(c){if(c.active)return;c.active=true;state.checkpoint=c.label;pstate.spawn.set(c.x,c.y+.4,c.z+2.4);state.score+=150;toast(`CHECKPOINT • ${c.label}`,1600);updateHud()}
-function collectShard(c){if(c.got)return;c.got=true;c.group.visible=false;state.shards++;state.score+=100;state.health=clamp(state.health+7,0,100);spawnBurst(c.group.position,0xffd768);toast(`SHARD +100 • ${state.shards}/18`,900);updateHud()}
-function killEnemy(e){if(e.dead)return;e.dead=true;e.group.visible=false;state.score+=250;state.health=clamp(state.health+4,0,100);spawnBurst(e.group.position,0xff6b79);toast('SENTINEL DOWN +250',1000);updateHud()}
+function activateCheckpoint(c){if(c.active)return;c.active=true;state.checkpoint=c.label;pstate.spawn.set(c.x,c.y+.4,c.z+2.4);state.health=100;state.score+=150;toast(`CHECKPOINT • ${c.label} • VITALS RESTORED`,1600);updateHud()}
+function collectShard(c){if(c.got)return;c.got=true;c.group.visible=false;state.shards++;state.combo=Math.min(8,state.combo+1);state.comboTimer=2.6;const pts=100*state.combo;state.score+=pts;state.health=clamp(state.health+7,0,100);spawnBurst(c.group.position,0xffd768);toast(`SHARD +${pts} • COMBO x${state.combo}`,900);updateHud()}
+function killEnemy(e){if(e.dead)return;e.dead=true;e.group.visible=false;state.combo=Math.min(8,state.combo+2);state.comboTimer=3.2;const pts=250*state.combo;state.score+=pts;state.health=clamp(state.health+4,0,100);spawnBurst(e.group.position,0xff6b79);toast(`SENTINEL DOWN +${pts} • COMBO x${state.combo}`,1100);updateHud()}
 function spawnBurst(pos,color){const count=22;const g=new THREE.Group();for(let i=0;i<count;i++){const m=new THREE.Mesh(new THREE.SphereGeometry(.045,6,6),new THREE.MeshBasicMaterial({color,transparent:true,opacity:.95}));m.position.copy(pos);m.userData.v=new THREE.Vector3((Math.random()-.5)*4,Math.random()*4,(Math.random()-.5)*4);m.userData.life=.7+Math.random()*.35;g.add(m)}effects.add(g);g.userData.age=0;g.userData.max=1.1}
 function updateEffects(dt){for(let i=effects.children.length-1;i>=0;i--){const g=effects.children[i];g.userData.age+=dt;for(const m of g.children){m.position.addScaledVector(m.userData.v,dt);m.userData.v.y-=6*dt;m.scale.multiplyScalar(Math.max(0,1-dt*.9));m.material.opacity=clamp(m.userData.life-g.userData.age,0,1)}if(g.userData.age>g.userData.max)effects.remove(g)}}
 
 function updatePlayer(dt){
   pstate.invuln=Math.max(0,pstate.invuln-dt);pstate.dashCooldown=Math.max(0,pstate.dashCooldown-dt);pstate.jumpBuffer=Math.max(0,pstate.jumpBuffer-dt);pstate.coyote=Math.max(0,pstate.coyote-dt);
+  state.comboTimer=Math.max(0,state.comboTimer-dt);if(state.comboTimer<=0)state.combo=0;
   const input=getMoveInput();
   if(jumpPressed())pstate.jumpBuffer=.14;
   const forward=new THREE.Vector3(-Math.sin(cameraRig.yaw),0,-Math.cos(cameraRig.yaw));
   const right=new THREE.Vector3(Math.cos(cameraRig.yaw),0,-Math.sin(cameraRig.yaw));
   const dir=new THREE.Vector3();dir.addScaledVector(right,input.x).addScaledVector(forward,input.z);if(dir.lengthSq()>0)dir.normalize();
-  const targetSpeed=keys.ShiftLeft||keys.ShiftRight?10:6.7;const accel=pstate.grounded?26:14;
+  const sprint=(keys.ShiftLeft||keys.ShiftRight);const targetSpeed=sprint?10.5:7.8;const accel=pstate.grounded?31:18;
   const target=new THREE.Vector3(dir.x*targetSpeed,pstate.vel.y,dir.z*targetSpeed);
   pstate.vel.x=lerp(pstate.vel.x,target.x,1-Math.exp(-accel*dt));pstate.vel.z=lerp(pstate.vel.z,target.z,1-Math.exp(-accel*dt));
-  if(input.active){pstate.facing=Math.atan2(dir.x,dir.z);player.rotation.y=lerp(player.rotation.y,pstate.facing,1-Math.exp(-12*dt))}
-  if((keys.ShiftLeft||keys.ShiftRight)&&input.active&&pstate.dashCooldown<=0&&pstate.grounded){pstate.vel.x=dir.x*14;pstate.vel.z=dir.z*14;pstate.dashCooldown=1.0;pstate.dash=.15;}
+  if(input.active){pstate.facing=Math.atan2(dir.x,dir.z);player.rotation.y=lerp(player.rotation.y,pstate.facing,1-Math.exp(-15*dt))}
+
+  // Dash: ground or air, with a slightly stronger burst when moving.
+  if((keys.ShiftLeft||keys.ShiftRight)&&input.active&&pstate.dashCooldown<=0){
+    const dashPower=pstate.grounded?17:15.5;pstate.vel.x=dir.x*dashPower;pstate.vel.z=dir.z*dashPower;pstate.dashCooldown=pstate.grounded?0.85:1.15;pstate.dash=.18;
+    spawnBurst(player.position.clone().add(new THREE.Vector3(0,.9,0)),0x69eaff);toast(pstate.grounded?'DASH!':'AIR DASH!',650);keys.ShiftLeft=false;keys.ShiftRight=false;
+  }
   pstate.dash=Math.max(0,pstate.dash-dt);
-  if(pstate.jumpBuffer>0&&(pstate.grounded||pstate.coyote>0)){pstate.vel.y=11.8;pstate.grounded=false;pstate.coyote=0;pstate.jumpBuffer=0;consumeJump();spawnBurst(player.position.clone().add(new THREE.Vector3(0,.1,0)),0x78eaff)}
+
+  // Double jump + coyote-time jump buffer.
+  if(pstate.jumpBuffer>0 && (pstate.grounded||pstate.coyote>0||pstate.jumps<pstate.maxJumps)){
+    const first=pstate.grounded||pstate.coyote>0;pstate.vel.y=first?12.4:11.4;pstate.grounded=false;pstate.coyote=0;pstate.jumps=first?1:pstate.jumps+1;pstate.jumpBuffer=0;consumeJump();spawnBurst(player.position.clone().add(new THREE.Vector3(0,.1,0)),first?0x78eaff:0xffd46b);toast(first?'JUMP!':'DOUBLE JUMP!',550);
+  }
   pstate.vel.y-=28*dt;
-  const oldY=player.position.y;player.position.addScaledVector(pstate.vel,dt);
+  player.position.addScaledVector(pstate.vel,dt);
   const g=groundBelow(player.position.x,player.position.z,player.position.y);
-  if(g&&pstate.vel.y<=0&&player.position.y<=g.y+.55){player.position.y=g.y+.56;pstate.vel.y=0;if(!pstate.grounded){spawnBurst(player.position.clone().add(new THREE.Vector3(0,.05,0)),0x7bdfff)}pstate.grounded=true;pstate.coyote=.12;pstate.airTime=0}else{if(pstate.grounded)pstate.coyote=.12;pstate.grounded=false;pstate.airTime+=dt}
-  // Fall reset
-  if(player.position.y<-12){damagePlayer(100,'YOU FELL');if(state.mode==='playing'){respawnAtCheckpoint()}}
+  if(g&&pstate.vel.y<=0&&player.position.y<=g.y+.58){
+    player.position.y=g.y+.59;pstate.vel.y=Math.max(0,g.kind==='moving'?(g.dy||0):0);if(!pstate.grounded){spawnBurst(player.position.clone().add(new THREE.Vector3(0,.05,0)),0x7bdfff)}pstate.grounded=true;pstate.coyote=.12;pstate.airTime=0;pstate.jumps=0;
+  }else{if(pstate.grounded)pstate.coyote=.12;pstate.grounded=false;pstate.airTime+=dt}
+
+  // Springs and boost pads turn traversal into a rhythm.
+  for(const s of springs){const dx=player.position.x-s.x,dz=player.position.z-s.z;if(dx*dx+dz*dz<1.3*s.scale*s.scale&&Math.abs(player.position.y-(s.y+.5))<1.4){pstate.vel.y=16.5;pstate.grounded=false;pstate.jumps=1;spawnBurst(player.position,0xffd46b);toast('SUPER JUMP!',700)}}
+  for(const b of boosts){const dx=player.position.x-b.x,dz=player.position.z-b.z;if(dx*dx+dz*dz<2.2&&Math.abs(player.position.y-b.y)<1.5){pstate.vel.x=b.dirX*16.5;pstate.vel.z=b.dirZ*16.5;spawnBurst(player.position,0x72ecff);toast('BOOST!',500)}}
+
+  if(player.position.y<-12&&state.mode==='playing'){state.health-=35;hitFlash();if(state.health<=0){state.health=0;gameOver('RUN TERMINATED','Too many falls. Use the checkpoints!')}else{respawnAtCheckpoint();toast(`FALLEN • -35 VITALS • ${Math.round(state.health)}% REMAINING`,1400);updateHud()}}
   checkHazards();
-  // enemy collision / stomp
-  for(const e of enemies){if(e.dead)continue;const dx=player.position.x-e.group.position.x,dz=player.position.z-e.group.position.z,dy=player.position.y-e.group.position.y;const dist=Math.hypot(dx,dz);if(dist<1.05&&Math.abs(dy)<1.4){if(pstate.vel.y<0&&player.position.y>e.group.position.y+.5){killEnemy(e);pstate.vel.y=9.2}else damagePlayer(22,'SENTINEL HIT')}}
-  // collectibles
+  for(const e of enemies){if(e.dead)continue;const dx=player.position.x-e.group.position.x,dz=player.position.z-e.group.position.z,dy=player.position.y-e.group.position.y;const dist=Math.hypot(dx,dz);if(dist<1.05&&Math.abs(dy)<1.4){if(pstate.vel.y<0&&player.position.y>e.group.position.y+.5){killEnemy(e);pstate.vel.y=10.5}else damagePlayer(22,'SENTINEL HIT')}}
   for(const c of collectibles){if(c.got)continue;const dx=player.position.x-c.group.position.x,dz=player.position.z-c.group.position.z,dy=player.position.y-c.group.position.y;if(dx*dx+dy*dy+dz*dz<1.8)collectShard(c)}
-  // checkpoints
   for(const c of checkpoints){const dx=player.position.x-c.x,dz=player.position.z-c.z;if(Math.hypot(dx,dz)<2.2&&player.position.y>c.y-1)activateCheckpoint(c)}
-  // Portal victory
   if(portal){const dx=player.position.x-portal.x,dz=player.position.z-portal.z,dy=player.position.y-portal.y;if(Math.hypot(dx,dz)<2.8&&Math.abs(dy)<2.8)victory()}
-  body.rotation.x=lerp(body.rotation.x,clamp(-pstate.vel.y*.025,-.22,.22),1-Math.exp(-10*dt));
-  const bob=pstate.grounded?Math.sin(state.time*12)*Math.min(.05,Math.hypot(pstate.vel.x,pstate.vel.z)*.004):0;body.position.y=lerp(body.position.y,.95+bob,1-Math.exp(-18*dt));head.position.y=1.85+bob*.35;
-  trail.intensity=lerp(trail.intensity,pstate.dash>0?6:1.8,1-Math.exp(-20*dt));
+  body.rotation.x=lerp(body.rotation.x,clamp(-pstate.vel.y*.025,-.3,.3),1-Math.exp(-12*dt));
+  const speed=Math.hypot(pstate.vel.x,pstate.vel.z);const bob=pstate.grounded?Math.sin(state.time*14)*Math.min(.07,speed*.006):0;body.position.y=lerp(body.position.y,.95+bob,1-Math.exp(-20*dt));head.position.y=1.85+bob*.35;
+  body.rotation.z=lerp(body.rotation.z,clamp(-pstate.vel.x*.018,-.18,.18),1-Math.exp(-10*dt));trail.intensity=lerp(trail.intensity,pstate.dash>0?8:1.8,1-Math.exp(-22*dt));
 }
 
 function updateWorld(dt){
+  for(const m of movers){const oldX=m.x,oldZ=m.z;const t=state.time*m.speed+m.phase;m.x=m.baseX+Math.sin(t)*m.ampX;m.z=m.baseZ+Math.sin(t*.9)*m.ampZ;m.dx=(m.x-oldX)/Math.max(dt,.0001);m.dz=(m.z-oldZ)/Math.max(dt,.0001);m.y=m.baseY;m.mesh.position.set(m.x,m.y-(m.h/2),m.z)}
+  for(const s of springs){s.group.rotation.y+=dt*2.5;s.group.children[1].scale.setScalar(1+Math.sin(state.time*5+s.x)*.12)}
+  for(const b of boosts){b.group.rotation.y=Math.atan2(b.dirX,b.dirZ);b.group.position.y=b.y+.05+Math.sin(state.time*5+b.x)*.03}
   for(const c of collectibles){if(c.got)continue;c.group.rotation.y+=dt*2.1;c.group.position.y=c.baseY+Math.sin(state.time*2.5+c.phase)*.24}
   for(const c of checkpoints){c.group.rotation.y=Math.sin(state.time*1.2+c.x*.02)*.06;const orb=c.group.children.find(x=>x.geometry&&x.geometry.type==='SphereGeometry');if(orb){orb.scale.setScalar(1+Math.sin(state.time*3+c.z)*.1)}}
   for(const e of enemies){if(e.dead)continue;const t=state.time*.9+e.phase;e.group.position.x=e.originX+Math.sin(t)*e.path;e.group.rotation.y+=dt*1.7;e.group.position.y+=Math.sin(state.time*4+e.phase)*.002;e.group.children[2].rotation.z+=dt*2}
@@ -238,7 +276,7 @@ function updateCamera(dt){
   const look=player.position.clone().add(new THREE.Vector3(0,1.2,0));camera.lookAt(look);
 }
 
-function updateHud(){ui.shards.textContent=`${state.shards} / 18`;ui.score.textContent=state.score;ui.best.textContent=state.best;ui.healthBar.style.width=`${clamp(state.health,0,100)}%`;ui.healthText.textContent=`${Math.round(state.health)}%`;ui.checkpoint.textContent=state.checkpoint;if(state.score>state.best){state.best=state.score;localStorage.setItem('skybound_best',state.best);ui.best.textContent=state.best;ui.bestMenu.textContent=state.best}}
+function updateHud(){ui.shards.textContent=`${state.shards} / ${collectibles.length}`;ui.score.textContent=state.score;ui.best.textContent=state.best;ui.healthBar.style.width=`${clamp(state.health,0,100)}%`;ui.healthText.textContent=`${Math.round(state.health)}%`;ui.checkpoint.textContent=state.checkpoint;if(state.score>state.best){state.best=state.score;localStorage.setItem('skybound_best',state.best);ui.best.textContent=state.best;ui.bestMenu.textContent=state.best}}
 function gameOver(title='RUN TERMINATED',text='The sky wins this time.'){setStateMode('gameover');ui.goTitle.textContent=title;ui.goText.textContent=text;ui.goScore.textContent=state.score;ui.goShards.textContent=state.shards}
 function victory(){if(state.mode!=='playing')return;state.score+=500+(state.shards*25);if(state.score>state.best){state.best=state.score;localStorage.setItem('skybound_best',state.best)}updateHud();setStateMode('victory');ui.vScore.textContent=state.score;ui.vShards.textContent=state.shards;spawnBurst(portal.group.position,0x72ecff)}
 
