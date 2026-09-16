@@ -1,57 +1,52 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Skybound — 3D Platformer Studio</title>
-<style>
-:root{--bg:#09111c;--panel:#0f1b2b;--panel2:#152338;--line:#263b57;--text:#eaf3ff;--muted:#9db1ca;--accent:#58d7ff;--good:#73ff9b;--bad:#ff6f7d}
-*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#050b12;color:var(--text);font:14px/1.35 Inter,system-ui,Segoe UI,Arial,sans-serif}
-button,input,textarea,select{font:inherit}button{cursor:pointer}
-#app{width:100%;height:100%;position:relative}
-.screen{position:absolute;inset:0;display:none}.screen.active{display:block}
-#menu{display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 20%,#1c4262 0,#0b1826 38%,#050a11 78%)}
-.menu-card{width:min(720px,92vw);padding:42px;border:1px solid #34516f;border-radius:24px;background:linear-gradient(180deg,rgba(15,29,46,.9),rgba(8,16,27,.94));box-shadow:0 25px 80px rgba(0,0,0,.5);text-align:center}
-.logo{font-size:clamp(42px,8vw,82px);font-weight:900;letter-spacing:.08em;margin:0;background:linear-gradient(90deg,#fff,#62d9ff,#a0ffda);-webkit-background-clip:text;color:transparent}.tag{margin:6px 0 28px;color:var(--muted);font-size:16px}
-.menu-buttons{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}.menu-buttons button,.toolbar button,.side button{background:#14263b;border:1px solid #2d4967;color:var(--text);padding:11px 15px;border-radius:10px;font-weight:700}.menu-buttons button.primary{background:linear-gradient(180deg,#39c7f5,#1985ca);border-color:#65dcff;color:#03111c}.menu-help{margin-top:24px;color:var(--muted);font-size:13px}
-#game,#studio{background:#000}.canvas-wrap{position:absolute;inset:0}canvas{display:block;width:100%;height:100%}
-.hud{position:absolute;inset:0;pointer-events:none}.topbar{position:absolute;left:16px;right:16px;top:14px;display:flex;justify-content:space-between;align-items:flex-start;gap:12px}.pill{pointer-events:auto;background:rgba(8,16,27,.72);border:1px solid rgba(112,162,205,.38);backdrop-filter:blur(8px);padding:10px 12px;border-radius:12px}.stats{display:flex;gap:8px;flex-wrap:wrap}.objective{min-width:220px}.bar{height:8px;background:#0c1420;border-radius:99px;overflow:hidden;margin-top:6px}.bar>i{display:block;height:100%;background:linear-gradient(90deg,#45d9ff,#8affc7);width:100%}
-.center-msg{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);text-align:center;display:none}.center-msg.show{display:block}.big{font-size:46px;font-weight:900}.small{color:var(--muted)}
-#gameMenu{position:absolute;right:16px;bottom:16px;pointer-events:auto}.game-tip{position:absolute;left:16px;bottom:16px;max-width:430px}
-#studio{display:flex}.studio-main{position:absolute;inset:0 320px 0 0}.side{position:absolute;right:0;top:0;bottom:0;width:320px;background:rgba(8,17,28,.96);border-left:1px solid #20344c;display:flex;flex-direction:column}.toolbar{height:58px;padding:10px;display:flex;gap:8px;align-items:center;border-bottom:1px solid #20344c}.tool.active{background:#234766;border-color:#5bd8ff}.toolbar .spacer{flex:1}.section{padding:12px;border-bottom:1px solid #20344c}.section h3{font-size:12px;text-transform:uppercase;letter-spacing:.1em;color:#9eb6d0;margin:0 0 8px}.palette{display:grid;grid-template-columns:1fr 1fr;gap:8px}.palette button{background:#101e2f}.explorer{flex:1;overflow:auto}.item{display:flex;align-items:center;gap:7px;padding:8px 12px;border-bottom:1px solid rgba(43,67,94,.45);color:#dbe9f7}.item:hover{background:#102338}.item.selected{background:#18314a;outline:1px solid #49d8ff inset}.item small{color:#89a0ba;margin-left:auto}.props{border-top:1px solid #20344c;max-height:310px;overflow:auto}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}.field label{display:block;color:#8ea7c1;font-size:11px;margin-bottom:4px}.field input,.field select,.json textarea{width:100%;background:#091421;border:1px solid #28405b;color:#eaf3ff;padding:8px;border-radius:7px}.json textarea{height:130px;resize:vertical}.row{display:flex;gap:8px}.row>*{flex:1}
-.toast{position:absolute;left:50%;bottom:28px;transform:translateX(-50%);background:#081523;border:1px solid #3a5b7b;padding:10px 15px;border-radius:10px;display:none;z-index:20}.toast.show{display:block}
-.overlay{position:absolute;inset:0;background:rgba(2,8,14,.75);display:none;align-items:center;justify-content:center;z-index:10}.overlay.show{display:flex}.overlay-card{width:min(460px,90vw);background:#0d1a2a;border:1px solid #314b68;border-radius:18px;padding:28px;text-align:center}.overlay-card h2{margin-top:0}
-@media(max-width:900px){.side{width:290px}.studio-main{inset:0 290px 0 0}.topbar{font-size:12px}.menu-card{padding:28px}.big{font-size:34px}}
-</style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Skybound — 3D Platformer + Dev Studio</title>
+  <link rel="stylesheet" href="style.css" />
+  <script type="importmap">
+    {"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.162.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.162.0/examples/jsm/"}}
+  </script>
 </head>
 <body>
 <div id="app">
-<section id="menu" class="screen active">
-  <div class="menu-card">
-    <h1 class="logo">SKYBOUND</h1><div class="tag">A 3D platformer with its own level-building studio.</div>
-    <div class="menu-buttons"><button id="playBtn" class="primary">PLAY</button><button id="studioBtn">DEV STUDIO</button></div>
-    <div class="menu-help">Game: WASD move · Space jump · Shift dash · Mouse look · Esc pause<br>Studio: hold mouse to orbit · WASD move camera · Q/E down/up · 1 select · 2 move · 3 scale</div>
+  <canvas id="game"></canvas>
+  <div id="vignette"></div><div id="flash"></div>
+
+  <div id="menu" class="screen">
+    <div class="menu-glow"></div>
+    <div class="logo-wrap"><div class="eyebrow">3D PLATFORMER + LEVEL EDITOR</div><h1>SKYBOUND</h1><p class="tagline">Build it. Play it. Share it.</p></div>
+    <div class="menu-card">
+      <button id="playBtn" class="primary-btn">PLAY</button>
+      <button id="devBtn" class="secondary-btn">DEV STUDIO</button>
+      <button id="howBtn" class="ghost-btn">HOW TO PLAY</button>
+      <div class="menu-stats"><span>BEST SCORE <b id="bestScoreMenu">0</b></span><span>BUILD <b>08</b></span></div>
+    </div>
+    <div id="howPanel" class="how-panel hidden"><div class="panel-head"><span>CONTROLS</span><button id="closeHow">×</button></div><div class="control-grid"><div><strong>W / A / S / D</strong><small>Move</small></div><div><strong>SPACE</strong><small>Jump</small></div><div><strong>SHIFT</strong><small>Dash</small></div><div><strong>MOUSE</strong><small>Turn camera</small></div><div><strong>ESC</strong><small>Pause</small></div><div><strong>R</strong><small>Restart</small></div></div><p>W is forward, S is backward, A is left and D is right. Collect keys, activate checkpoints and unlock doors.</p></div>
+    <div class="footer-note">Runs fully in your browser • Custom levels are plain JSON</div>
   </div>
-</section>
-<section id="game" class="screen"><div id="gameCanvas" class="canvas-wrap"></div>
-  <div class="hud"><div class="topbar"><div class="stats"><div class="pill">SHARDS <b id="shards">0</b></div><div class="pill">KEY <b id="keyState">LOCKED</b></div><div class="pill">CHECKPOINT <b id="cpState">START</b></div></div><div class="pill objective"><b id="stageName">GREEN RUN</b><div id="objectiveText">Find the key and reach the door.</div><div class="bar"><i id="progress"></i></div></div></div><div id="gameTip" class="pill game-tip">WASD move · Space jump · Shift dash · Mouse look · Esc pause</div></div>
-  <div id="gamePause" class="overlay"><div class="overlay-card"><h2>Paused</h2><p class="small">Press Esc to resume.</p><div class="menu-buttons"><button id="resumeBtn" class="primary">RESUME</button><button id="restartBtn">RESTART</button><button id="backMenuBtn">MENU</button></div></div></div>
-  <div id="gameEnd" class="overlay"><div class="overlay-card"><h2 id="endTitle">Victory</h2><p id="endText" class="small"></p><div class="menu-buttons"><button id="againBtn" class="primary">PLAY AGAIN</button><button id="endMenuBtn">MENU</button></div></div></div>
-</section>
-<section id="studio" class="screen"><div id="studioCanvas" class="studio-main"></div>
-  <div class="side">
-    <div class="toolbar"><button class="tool active" data-tool="select">1 Select</button><button class="tool" data-tool="move">2 Move</button><button class="tool" data-tool="scale">3 Scale</button><span class="spacer"></span><button id="studioMenu">MENU</button></div>
-    <div class="section"><h3>Parts</h3><div class="palette"><button data-add="platform">+ Platform</button><button data-add="wall">+ Wall</button><button data-add="key">+ Key</button><button data-add="checkpoint">+ Checkpoint</button><button data-add="hazard">+ Hazard</button><button data-add="enemy">+ Enemy</button><button data-add="door">+ Door</button><button data-add="goal">+ Goal</button></div></div>
-    <div class="section"><h3>Snapping</h3><div class="row"><button id="snapMinus">−</button><input id="snapValue" type="number" min="0.1" step="0.1" value="1"><button id="snapPlus">+</button></div></div>
-    <div class="section explorer"><h3>Explorer</h3><div id="explorer"></div></div>
-    <div class="section props"><h3>Properties</h3><div id="noSelection" class="small">Select a part.</div><div id="propertyPanel" style="display:none"></div></div>
-    <div class="section"><div class="row"><button id="duplicateBtn">Duplicate</button><button id="deleteBtn">Delete</button></div><div class="row" style="margin-top:8px"><button id="playEditedBtn" class="primary">PLAY LEVEL</button><button id="newLevelBtn">NEW</button></div></div>
-    <div class="section json"><h3>Level JSON</h3><textarea id="jsonBox" spellcheck="false"></textarea><div class="row" style="margin-top:8px"><button id="copyJsonBtn">COPY</button><button id="loadJsonBtn">LOAD</button><button id="downloadJsonBtn">DOWNLOAD</button></div></div>
+
+  <div id="hud" class="hidden"><div class="hud-top"><div class="brand-chip">SKYBOUND <span>08</span></div><div class="stats-row"><div class="stat"><span>SHARDS</span><b id="shardsHud">0</b></div><div class="stat"><span>KEYS</span><b id="keysHud">0 / 0</b></div><div class="stat"><span>SCORE</span><b id="scoreHud">0</b></div><div class="stat"><span>BEST</span><b id="bestHud">0</b></div></div></div><div class="hud-bottom"><div class="health-wrap"><div class="health-label"><span>VITALS</span><b id="healthText">100%</b></div><div class="health-bar"><i id="healthBar"></i></div></div><div class="checkpoint">CHECKPOINT <b id="checkpointHud">START</b></div></div><div id="messageToast" class="toast"></div><div id="reticle" class="reticle"><span></span></div></div>
+
+  <div id="pauseScreen" class="screen overlay hidden"><div class="pause-card"><div class="eyebrow">RUN PAUSED</div><h2>TAKE A BREATH</h2><p>Keep exploring when you're ready.</p><button id="resumeBtn" class="primary-btn">RESUME</button><button id="restartPauseBtn" class="secondary-btn">RESTART RUN</button><button id="homePauseBtn" class="ghost-btn">MAIN MENU</button></div></div>
+  <div id="gameOverScreen" class="screen overlay hidden"><div class="pause-card"><div class="eyebrow">RUN TERMINATED</div><h2 id="gameOverTitle">FALLEN</h2><p id="gameOverText">The sky can wait.</p><div class="results"><div><span>SCORE</span><b id="gameOverScore">0</b></div><div><span>SHARDS</span><b id="gameOverShards">0</b></div></div><button id="retryBtn" class="primary-btn">TRY AGAIN</button><button id="homeGameOverBtn" class="ghost-btn">MAIN MENU</button></div></div>
+  <div id="victoryScreen" class="screen overlay hidden"><div class="pause-card victory-card"><div class="eyebrow">STAGE COMPLETE</div><h2>YOU MADE IT</h2><p id="victoryText">The level is yours.</p><div class="results"><div><span>SCORE</span><b id="victoryScore">0</b></div><div><span>SHARDS</span><b id="victoryShards">0</b></div></div><button id="victoryRetryBtn" class="primary-btn">PLAY AGAIN</button><button id="victoryHomeBtn" class="ghost-btn">MAIN MENU</button></div></div>
+
+  <div id="studio" class="studio hidden">
+    <aside class="studio-sidebar">
+      <div class="studio-brand"><span>SKYBOUND</span><b>DEV STUDIO</b></div>
+      <div class="studio-row"><button id="studioPlay" class="primary-btn">▶ PLAY</button><button id="studioBack" class="ghost-btn">MENU</button></div>
+      <div class="studio-group"><label>LEVEL NAME<input id="levelName" value="My Skybound Level"></label></div>
+      <div class="studio-group"><div class="group-title">TOOLS</div><div class="tool-row"><button id="toolSelect" class="tool-btn active">SELECT <kbd>1</kbd></button><button id="toolMove" class="tool-btn">MOVE <kbd>2</kbd></button><button id="toolScale" class="tool-btn">SCALE <kbd>3</kbd></button></div><div class="snap-row"><label><input id="snapToggle" type="checkbox" checked> GRID SNAP</label><label>SIZE <input id="snapSize" type="number" min="0.25" step="0.25" value="1"></label></div></div><div class="studio-group"><div class="group-title">ADD OBJECT</div><div class="palette"><button data-add="platform">PLATFORM</button><button data-add="wall">WALL</button><button data-add="key">KEY</button><button data-add="checkpoint">CHECKPOINT</button><button data-add="enemy">ENEMY</button><button data-add="hazard">HAZARD</button><button data-add="door">DOOR</button><button data-add="goal">GOAL</button></div></div>
+      <div class="studio-group"><div class="group-title">EXPLORER</div><div id="explorer" class="explorer"></div></div><div class="studio-group"><div class="group-title">SELECTED</div><div id="selectedNone" class="muted">Click an object in the editor.</div><div id="selectedPanel" class="hidden"><label>TYPE<input id="selType" disabled></label><div class="three-cols"><label>X<input id="selX" type="number" step="0.5"></label><label>Y<input id="selY" type="number" step="0.5"></label><label>Z<input id="selZ" type="number" step="0.5"></label></div><div class="three-cols"><label>W<input id="selW" type="number" step="0.5"></label><label>H<input id="selH" type="number" step="0.5"></label><label>D<input id="selD" type="number" step="0.5"></label></div><label>LABEL / ID<input id="selLabel"></label><div class="studio-row"><button id="duplicateSelected" class="secondary-btn">DUPLICATE</button><button id="focusSelected" class="secondary-btn">FOCUS</button></div><button id="deleteSelected" class="danger-btn">DELETE OBJECT</button></div></div>
+      <div class="studio-group"><div class="group-title">LEVEL FILE</div><button id="newLevel" class="secondary-btn">NEW LEVEL</button><button id="exportJson" class="secondary-btn">COPY JSON</button><button id="downloadJson" class="secondary-btn">DOWNLOAD JSON</button><textarea id="jsonBox" spellcheck="false" placeholder="Paste level JSON here, then LOAD JSON"></textarea><button id="loadJson" class="primary-btn">LOAD JSON</button><div id="studioStatus" class="muted"></div></div>
+    </aside>
+    <div class="studio-main"><div class="studio-toolbar"><span id="studioHelp"><b>ROBLOX-STYLE CONTROLS</b> &nbsp; Select: click object · Move: drag arrows · Scale: drag boxes · Orbit: right mouse · Pan: middle mouse · Zoom: wheel</span><div><button id="studioResetCam">RESET VIEW</button><button id="studioTestSpawn">SET SPAWN</button></div></div><div id="studioHint">1 SELECT &nbsp; 2 MOVE &nbsp; 3 SCALE &nbsp; • &nbsp; CTRL+D DUPLICATE &nbsp; • &nbsp; DELETE REMOVE</div></div>
   </div>
-  <div id="studioToast" class="toast"></div>
-</section>
+
+  <div id="loading" class="loading-screen"><div class="loading-mark">S</div><div class="loading-line"><i id="loadingBar"></i></div><div id="loadingText">BUILDING THE SKY...</div></div>
 </div>
-<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.162.0/build/three.module.js"}}</script>
-<script type="module" src="./game.js"></script>
+<script type="module" src="game.js"></script>
 </body>
 </html>

@@ -1,157 +1,222 @@
-import * as THREE from 'three';
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.162.0/build/three.module.js';
+import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.162.0/examples/jsm/controls/OrbitControls.js';
+import { TransformControls } from 'https://cdn.jsdelivr.net/npm/three@0.162.0/examples/jsm/controls/TransformControls.js';
 
-const $ = id => document.getElementById(id);
-const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
-const snap = (v,s)=>Math.round(v/s)*s;
-const uid = ()=>Math.random().toString(36).slice(2,9);
+const $=id=>document.getElementById(id); const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const ui={menu:$('menu'),hud:$('hud'),pause:$('pauseScreen'),gameOver:$('gameOverScreen'),victory:$('victoryScreen'),how:$('howPanel'),loading:$('loading'),loadingBar:$('loadingBar'),loadingText:$('loadingText'),studio:$('studio'),play:$('playBtn'),dev:$('devBtn'),howBtn:$('howBtn'),closeHow:$('closeHow'),resume:$('resumeBtn'),restartPause:$('restartPauseBtn'),homePause:$('homePauseBtn'),retry:$('retryBtn'),homeGameOver:$('homeGameOverBtn'),victoryRetry:$('victoryRetryBtn'),victoryHome:$('victoryHomeBtn'),shards:$('shardsHud'),keys:$('keysHud'),score:$('scoreHud'),best:$('bestHud'),bestMenu:$('bestScoreMenu'),healthBar:$('healthBar'),explorer:$('explorer'),toolSelect:$('toolSelect'),toolMove:$('toolMove'),toolScale:$('toolScale'),snapToggle:$('snapToggle'),snapSize:$('snapSize'),duplicateSelected:$('duplicateSelected'),focusSelected:$('focusSelected'),healthText:$('healthText'),checkpoint:$('checkpointHud'),toast:$('messageToast'),goScore:$('gameOverScore'),goShards:$('gameOverShards'),goTitle:$('gameOverTitle'),goText:$('gameOverText'),vScore:$('victoryScore'),vShards:$('victoryShards'),vText:$('victoryText'),levelName:$('levelName'),selNone:$('selectedNone'),selPanel:$('selectedPanel'),selType:$('selType'),selX:$('selX'),selY:$('selY'),selZ:$('selZ'),selW:$('selW'),selH:$('selH'),selD:$('selD'),selLabel:$('selLabel'),deleteSelected:$('deleteSelected'),newLevel:$('newLevel'),exportJson:$('exportJson'),downloadJson:$('downloadJson'),jsonBox:$('jsonBox'),loadJson:$('loadJson'),studioStatus:$('studioStatus'),studioPlay:$('studioPlay'),studioBack:$('studioBack'),studioResetCam:$('studioResetCam'),studioTestSpawn:$('studioTestSpawn'),game:$('game')};
 
-const TYPES = {
-  platform:{color:0x3b7d5d, size:[6,1,4]}, wall:{color:0x566b82,size:[2,4,6]}, key:{color:0xffd54a,size:[.7,.7,.7]}, checkpoint:{color:0x5bdcff,size:[1,1,1]}, hazard:{color:0xff4c62,size:[5,.25,3]}, enemy:{color:0xff6d73,size:[1.2,1.2,1.2]}, door:{color:0x744dcd,size:[4,5,.8]}, goal:{color:0x62f7c1,size:[2,3,2]}
-};
+const state={mode:'menu',score:0,shards:0,keys:0,health:100,best:Number(localStorage.getItem('skybound_best')||0),checkpoint:'START',time:0,runTime:0}; ui.best.textContent=state.best;ui.bestMenu.textContent=state.best;
+const scene=new THREE.Scene();scene.background=new THREE.Color(0x081624);scene.fog=new THREE.FogExp2(0x081624,.008);
+const camera=new THREE.PerspectiveCamera(64,innerWidth/innerHeight,.05,500); const renderer=new THREE.WebGLRenderer({antialias:true,canvas:ui.game,powerPreference:'high-performance'});renderer.setPixelRatio(Math.min(devicePixelRatio,1.15));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFShadowMap;renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=.82;
+const hemi=new THREE.HemisphereLight(0x9fdfff,0x0a1724,1.05);scene.add(hemi);const sun=new THREE.DirectionalLight(0xffefd0,1.35);sun.position.set(-25,45,18);sun.castShadow=true;sun.shadow.mapSize.set(768,768);sun.shadow.camera.left=-65;sun.shadow.camera.right=65;sun.shadow.camera.top=65;sun.shadow.camera.bottom=-65;scene.add(sun);scene.add(new THREE.DirectionalLight(0x5abfff,.35)).position.set(25,12,-25);
+const world=new THREE.Group();scene.add(world);const dynamic=new THREE.Group();world.add(dynamic);const effects=new THREE.Group();world.add(effects);const particles=new THREE.Group();world.add(particles);
+const MAT={grass:new THREE.MeshStandardMaterial({color:0x235f4b,roughness:.9}),grass2:new THREE.MeshStandardMaterial({color:0x2f7f59,roughness:.88}),rock:new THREE.MeshStandardMaterial({color:0x394b58,roughness:.96}),dark:new THREE.MeshStandardMaterial({color:0x102331,roughness:.94}),gold:new THREE.MeshStandardMaterial({color:0xf0c95e,emissive:0x5a4100,emissiveIntensity:.35,roughness:.28,metalness:.25}),key:new THREE.MeshStandardMaterial({color:0xffdf6e,emissive:0x634900,emissiveIntensity:.45,metalness:.3,roughness:.25}),portal:new THREE.MeshStandardMaterial({color:0x67dfff,emissive:0x14596c,emissiveIntensity:1.2,roughness:.15,metalness:.2}),enemy:new THREE.MeshStandardMaterial({color:0xd95b66,emissive:0x351016,emissiveIntensity:.32,roughness:.45}),enemyEye:new THREE.MeshBasicMaterial({color:0xffe7ac}),player:new THREE.MeshStandardMaterial({color:0x66d8ff,emissive:0x0a5366,emissiveIntensity:.3,roughness:.38}),accent:new THREE.MeshStandardMaterial({color:0xf4cd68,emissive:0x5f4100,emissiveIntensity:.28,roughness:.25,metalness:.25}),hazard:new THREE.MeshStandardMaterial({color:0x8d3347,emissive:0x3d0e1a,emissiveIntensity:.35,roughness:.5}),door:new THREE.MeshStandardMaterial({color:0x493c57,emissive:0x1b1027,emissiveIntensity:.22,roughness:.55,metalness:.2})};
+const geo={box:(x,y,z)=>new THREE.BoxGeometry(x,y,z),sphere:r=>new THREE.SphereGeometry(r,18,12),torus:(a,b)=>new THREE.TorusGeometry(a,b,12,32),cyl:(r,h)=>new THREE.CylinderGeometry(r,r,h,18)};
+const platforms=[],hazards=[],collectibles=[],checkpoints=[],enemies=[],doors=[];let goals=[];let level={name:'Skybound: First Light',spawn:{x:0,y:1.1,z:8},objects:[]};
+function defaultLevel(){return {name:'Skybound: First Light',spawn:{x:0,y:1.1,z:8},objects:[
+ {type:'platform',x:0,y:0,z:0,w:24,h:1,d:22,label:'Start'},
+ {type:'platform',x:0,y:2,z:-13,w:10,h:1,d:8,label:'Stage 1'},
+ {type:'platform',x:0,y:4,z:-25,w:10,h:1,d:8,label:'Stage 2'},
+ {type:'platform',x:0,y:6,z:-37,w:11,h:1,d:9,label:'Stage 3'},
+ {type:'platform',x:0,y:8,z:-50,w:13,h:1,d:10,label:'Final Stage'},
+ {type:'platform',x:0,y:10,z:-62,w:16,h:1,d:12,label:'Summit'},
+ {type:'key',x:0,y:3.25,z:-13,label:'KEY-1'},
+ {type:'checkpoint',x:0,y:2.5,z:-13,label:'STAGE 1'},
+ {type:'door',x:0,y:3.45,z:-19,w:9,h:5.5,d:.8,label:'DOOR-1'},
+ {type:'key',x:0,y:5.25,z:-25,label:'KEY-2'},
+ {type:'checkpoint',x:0,y:4.5,z:-25,label:'STAGE 2'},
+ {type:'door',x:0,y:5.45,z:-31,w:9,h:5.5,d:.8,label:'DOOR-2'},
+ {type:'key',x:0,y:7.25,z:-37,label:'KEY-3'},
+ {type:'checkpoint',x:0,y:6.5,z:-37,label:'STAGE 3'},
+ {type:'door',x:0,y:7.45,z:-43,w:9,h:5.5,d:.8,label:'DOOR-3'},
+ {type:'goal',x:0,y:11.5,z:-62,label:'GOAL'}]};}
+level=defaultLevel();
 
-const defaultLevel={name:'Skybound Demo',spawn:[0,1,7],objects:[
- {id:'p1',type:'platform',pos:[0,-.5,0],size:[12,1,10],name:'Starting Platform'},
- {id:'p2',type:'platform',pos:[0,.5,-10],size:[10,1,6],name:'Jump 1'},
- {id:'k1',type:'key',pos:[0,1.35,-10],size:[.7,.7,.7],name:'Green Key'},
- {id:'p3',type:'platform',pos:[0,2,-19],size:[8,1,6],name:'Jump 2'},
- {id:'cp1',type:'checkpoint',pos:[0,2.65,-19],size:[1,1,1],name:'Checkpoint 1'},
- {id:'p4',type:'platform',pos:[0,3.5,-28],size:[12,1,6],name:'Door Platform'},
- {id:'d1',type:'door',pos:[0,6,-31],size:[4,5,.8],name:'Key Door'},
- {id:'p5',type:'platform',pos:[0,5,-39],size:[9,1,6],name:'Final Jump'},
- {id:'g1',type:'goal',pos:[0,6.1,-39],size:[2,3,2],name:'Summit Portal'},
- {id:'h1',type:'hazard',pos:[0,.05,-5],size:[5,.2,2],name:'Hazard'},
- {id:'e1',type:'enemy',pos:[-2,1.25,-10],size:[1.2,1.2,1.2],name:'Crawler'}
-]};
+function emptyGroup(g){while(g.children.length)g.remove(g.children[0])}
+function clearWorld(){emptyGroup(dynamic);emptyGroup(effects);emptyGroup(particles);for(const child of [...world.children]){if(child!==player)world.remove(child)}world.add(dynamic);world.add(effects);world.add(particles);if(!player.parent)world.add(player);platforms.length=hazards.length=collectibles.length=checkpoints.length=enemies.length=doors.length=0;goals=[];}
+function addBox(parent,mat,pos,size,opts={}){const m=new THREE.Mesh(geo.box(...size),mat);m.position.set(...pos);m.castShadow=opts.castShadow??true;m.receiveShadow=opts.receiveShadow??true;parent.add(m);return m;}
+function platform(o){const h=o.h??1;addBox(world,o.type==='wall'?MAT.rock:MAT.grass,[o.x,o.y,o.z],[o.w||4,h,o.d||4]);platforms.push({x:o.x,z:o.z,y:o.y+h/2,w:o.w||4,d:o.d||4,h,mesh:world.children[world.children.length-1],label:o.label||''});}
+function key(o){const g=new THREE.Group();g.position.set(o.x,o.y,o.z);const b=addBox(g,MAT.key,[0,0,0],[.25,.75,.25]);b.rotation.z=.35;const r=new THREE.Mesh(geo.torus(.45,.025),new THREE.MeshBasicMaterial({color:0xffe6a0,transparent:true,opacity:.55}));g.add(r);dynamic.add(g);collectibles.push({group:g,baseY:o.y,phase:Math.random()*6.28,got:false,label:o.label||'KEY'});}
+function checkpoint(o){const g=new THREE.Group();g.position.set(o.x,o.y,o.z);addBox(g,MAT.dark,[0,0,0],[1.35,.25,1.35]);addBox(g,MAT.portal,[0,1.1,0],[.14,2.2,.14]);const s=new THREE.Mesh(geo.sphere(.3),MAT.portal);s.position.y=2.03;g.add(s);dynamic.add(g);checkpoints.push({group:g,x:o.x,y:o.y,z:o.z,label:o.label||'CHECKPOINT',active:false});}
+function enemy(o){const g=new THREE.Group();g.position.set(o.x,o.y+.55,o.z);const b=new THREE.Mesh(geo.sphere(.58),MAT.enemy);b.scale.set(1.1,.85,.95);g.add(b);for(const s of [-.2,.2]){const e=new THREE.Mesh(geo.sphere(.07),MAT.enemyEye);e.position.set(s,.12,.53);g.add(e)}dynamic.add(g);enemies.push({group:g,originX:o.x,originZ:o.z,path:2.8,phase:Math.random()*6.28,dead:false});}
+function hazard(o){const m=addBox(world,MAT.hazard,[o.x,o.y+.11,o.z],[o.w||2,o.h||.18,o.d||2],{castShadow:false});hazards.push({x:o.x,y:o.y+.2,z:o.z,w:o.w||2,d:o.d||2,mesh:m});}
+function door(o){const m=addBox(world,MAT.door,[o.x,o.y,o.z],[o.w||8,o.h||5,o.d||.8]);doors.push({mesh:m,requiredKey:o.label?.match(/(\d+)/)?.[1]?Number(o.label.match(/(\d+)/)[1]):1,label:o.label||'DOOR',baseY:o.y,open:false,w:o.w||8,d:o.d||.8});}
+function goal(o){const g=new THREE.Group();g.position.set(o.x,o.y,o.z);const ring=new THREE.Mesh(geo.torus(2.1,.23),MAT.portal);ring.rotation.x=Math.PI/2;g.add(ring);const inner=new THREE.Mesh(new THREE.CircleGeometry(1.85,36),new THREE.MeshBasicMaterial({color:0x73e2ff,transparent:true,opacity:.14,side:THREE.DoubleSide}));inner.rotation.x=-Math.PI/2;g.add(inner);dynamic.add(g);goals.push({x:o.x,y:o.y,z:o.z,group:g});}
+function buildLevel(data){clearWorld();level=normalizeLevel(data);for(const o of level.objects){switch(o.type){case'platform':case'wall':platform(o);break;case'key':key(o);break;case'checkpoint':checkpoint(o);break;case'enemy':enemy(o);break;case'hazard':hazard(o);break;case'door':door(o);break;case'goal':goal(o);break;}}makeParticles();if(typeof buildEditorIndex==='function')buildEditorIndex();resetPlayer();}
+function normalizeLevel(data){const safe=data&&Array.isArray(data.objects)?data:defaultLevel();return {name:String(safe.name||'Untitled Level'),spawn:{x:Number(safe.spawn?.x)||0,y:Number(safe.spawn?.y)||1.1,z:Number(safe.spawn?.z)||8},objects:safe.objects.map(o=>({type:String(o.type||'platform'),x:Number(o.x)||0,y:Number(o.y)||0,z:Number(o.z)||0,w:o.w==null?4:Number(o.w),h:o.h==null?1:Number(o.h),d:o.d==null?4:Number(o.d),label:String(o.label||'')}))};}
+function makeParticles(){const count=220;const arr=new Float32Array(count*3);for(let i=0;i<count;i++){arr[i*3]=(Math.random()-.5)*150;arr[i*3+1]=Math.random()*55;arr[i*3+2]=(Math.random()-.5)*110}const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(arr,3));particles.add(new THREE.Points(g,new THREE.PointsMaterial({color:0xa4eaff,size:.05,transparent:true,opacity:.2})));}
 
-let level=structuredClone(defaultLevel);
-let gameState={running:false,paused:false,shards:0,key:false,checkpoint:[0,1,7],stage:'GREEN RUN',won:false,dead:false};
+const player=new THREE.Group();world.add(player);const body=new THREE.Mesh(geo.box(.78,1.18,.6),MAT.player);body.position.y=.72;body.castShadow=true;player.add(body);const head=new THREE.Mesh(geo.sphere(.48),MAT.accent);head.position.y=1.62;head.castShadow=true;player.add(head);const visor=new THREE.Mesh(geo.box(.52,.18,.08),new THREE.MeshStandardMaterial({color:0x06131e,emissive:0x32bdd7,emissiveIntensity:.4,roughness:.25,metalness:.25}));visor.position.set(0,1.66,.45);player.add(visor);const trail=new THREE.PointLight(0x58ddff,1.2,4);trail.position.set(0,.8,-.6);player.add(trail);
+const pstate={vel:new THREE.Vector3(),spawn:new THREE.Vector3(0,1.1,8),grounded:false,coyote:0,jumpBuffer:0,invuln:0,radius:.4,airTime:0,dashCooldown:0,dashHeld:false};
+const keys={};addEventListener('keydown',e=>{keys[e.code]=true;if(['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code))e.preventDefault();if(e.code==='Escape'){if(state.mode==='playing'||state.mode==='paused')togglePause();}if(e.code==='KeyR'&&['playing','paused'].includes(state.mode))restartGame();});addEventListener('keyup',e=>keys[e.code]=false);
+let mouseDX=0,mouseDY=0,pointerLocked=false;addEventListener('mousemove',e=>{if(pointerLocked&&state.mode==='playing'){mouseDX+=e.movementX;mouseDY+=e.movementY}});ui.game.addEventListener('click',()=>{if(state.mode==='playing'&&!pointerLocked)ui.game.requestPointerLock?.()});document.addEventListener('pointerlockchange',()=>pointerLocked=document.pointerLockElement===ui.game);
+const cameraRig={yaw:0,pitch:.22,distance:8,height:3.8};
+function halfHeight(){return .56;}
+function resetPlayer(){
+  const safe=groundBelow(level.spawn.x,level.spawn.z,level.spawn.y+2)||platforms[0];
+  const spawnY=safe?safe.y+halfHeight():Math.max(1.1,level.spawn.y);
+  pstate.spawn.set(level.spawn.x,spawnY,level.spawn.z); player.position.copy(pstate.spawn);pstate.vel.set(0,0,0);pstate.grounded=false;pstate.coyote=0;pstate.jumpBuffer=0;pstate.invuln=.7;pstate.airTime=0;cameraRig.yaw=0;cameraRig.pitch=.22;}
+function toast(msg,d=1300){ui.toast.textContent=msg;ui.toast.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>ui.toast.classList.remove('show'),d)}
+function flash(){ui.flash.style.opacity='.22';setTimeout(()=>ui.flash.style.opacity='0',100)}
+function setMode(m){state.mode=m;ui.menu.classList.toggle('hidden',m!=='menu');ui.hud.classList.toggle('hidden',!['playing','paused','gameover','victory'].includes(m));ui.pause.classList.toggle('hidden',m!=='paused');ui.gameOver.classList.toggle('hidden',m!=='gameover');ui.victory.classList.toggle('hidden',m!=='victory');ui.studio.classList.toggle('hidden',m!=='studio');}
+function startGame(){state.score=0;state.shards=0;state.keys=0;state.health=100;state.checkpoint='START';state.runTime=0;collectibles.forEach(c=>{c.got=false;c.group.visible=true});checkpoints.forEach(c=>c.active=false);enemies.forEach(e=>{e.dead=false;e.group.visible=true});doors.forEach(d=>{d.open=false;d.mesh.position.y=d.baseY;d.mesh.visible=true});resetPlayer();setMode('playing');toast(`LEVEL: ${level.name}`,1600);updateHud();}
+function restartGame(){startGame()}
+function goHome(){setMode('menu');document.exitPointerLock?.();resetPlayer()}
+function togglePause(){if(state.mode==='playing'){document.exitPointerLock?.();setMode('paused')}else if(state.mode==='paused'){setMode('playing')}}
+function groundBelow(x,z,y){let best=null;for(const p of platforms){if(x>=p.x-p.w/2&&x<=p.x+p.w/2&&z>=p.z-p.d/2&&z<=p.z+p.d/2&&p.y<=y+.2&&(!best||p.y>best.y))best=p}return best}
+function damage(n,msg){if(pstate.invuln>0)return;state.health-=n;pstate.invuln=1;flash();toast(msg);if(state.health<=0){state.health=0;gameOver('RUN TERMINATED','Use your checkpoint and try the route again.')}updateHud()}
+function respawn(){resetPlayer();toast(`RESPAWN • ${state.checkpoint}`,900)}
+function collect(c){if(c.got)return;c.got=true;c.group.visible=false;state.keys++;state.score+=250;toast(`KEY ACQUIRED • ${state.keys}`,1200);updateHud();}
+function activate(c){if(c.active)return;c.active=true;state.checkpoint=c.label;pstate.spawn.set(c.x,c.y+.45,c.z+2);state.score+=100;toast(`CHECKPOINT • ${c.label}`,1200);updateHud()}
+function killEnemy(e){e.dead=true;e.group.visible=false;state.score+=300;toast('SENTINEL STOMPED +300',900);updateHud()}
+function burst(pos){const g=new THREE.Group();for(let i=0;i<8;i++){const m=new THREE.Mesh(new THREE.SphereGeometry(.04,5,4),new THREE.MeshBasicMaterial({color:0x76dcff,transparent:true}));m.position.copy(pos);m.userData.v=new THREE.Vector3((Math.random()-.5)*3,Math.random()*3,(Math.random()-.5)*3);g.add(m)}g.userData.age=0;g.userData.max=.7;effects.add(g)}
+function updateEffects(dt){for(let i=effects.children.length-1;i>=0;i--){const g=effects.children[i];g.userData.age+=dt;for(const m of g.children){m.position.addScaledVector(m.userData.v,dt);m.userData.v.y-=5*dt;m.material.opacity=Math.max(0,1-g.userData.age/g.userData.max)}if(g.userData.age>g.userData.max)effects.remove(g)}}
 
-// ---------- shared scene helpers ----------
-function makeRenderer(container, shadows=false){
- const r=new THREE.WebGLRenderer({antialias:false,powerPreference:'high-performance'}); r.setPixelRatio(Math.min(window.devicePixelRatio||1,1.25)); r.setSize(container.clientWidth,container.clientHeight); r.outputColorSpace=THREE.SRGBColorSpace; r.shadowMap.enabled=!!shadows; if(shadows) r.shadowMap.type=THREE.PCFShadowMap; container.innerHTML='';container.appendChild(r.domElement); return r;
+// Stable camera-relative controller: W forward, S backward, A left, D right.
+function updatePlayer(dt){
+  pstate.invuln=Math.max(0,pstate.invuln-dt); pstate.coyote=Math.max(0,pstate.coyote-dt); pstate.jumpBuffer=Math.max(0,pstate.jumpBuffer-dt); pstate.dashCooldown=Math.max(0,pstate.dashCooldown-dt);
+  const forwardKey=!!(keys.KeyW||keys.ArrowUp), backKey=!!(keys.KeyS||keys.ArrowDown), leftKey=!!(keys.KeyA||keys.ArrowLeft), rightKey=!!(keys.KeyD||keys.ArrowRight);
+  let ix=(rightKey?1:0)-(leftKey?1:0), iz=(forwardKey?1:0)-(backKey?1:0);
+  const l=Math.hypot(ix,iz); if(l){ix/=l;iz/=l;}
+  const f=new THREE.Vector3(Math.sin(cameraRig.yaw)*-1,0,Math.cos(cameraRig.yaw)*-1);
+  const r=new THREE.Vector3(Math.cos(cameraRig.yaw),0,-Math.sin(cameraRig.yaw));
+  let dx=r.x*ix+f.x*iz, dz=r.z*ix+f.z*iz;
+  const dl=Math.hypot(dx,dz); if(dl>1e-5){dx/=dl;dz/=dl;}
+  const sprint=!!(keys.ShiftLeft||keys.ShiftRight); const speed=sprint?8.5:5.8; const accel=pstate.grounded?24:12; const blend=1-Math.exp(-accel*dt);
+  pstate.vel.x+=(dx*speed-pstate.vel.x)*blend; pstate.vel.z+=(dz*speed-pstate.vel.z)*blend;
+  if(l){let desired=Math.atan2(dx,dz),delta=desired-player.rotation.y; while(delta>Math.PI)delta-=Math.PI*2; while(delta<-Math.PI)delta+=Math.PI*2; player.rotation.y+=delta*(1-Math.exp(-18*dt));}
+  if(sprint&&l&&!pstate.dashHeld&&pstate.dashCooldown<=0){pstate.vel.x=dx*12;pstate.vel.z=dz*12;pstate.dashCooldown=.8;pstate.dashHeld=true;}else if(!sprint)pstate.dashHeld=false;
+  if(keys.Space||keys.Numpad0)pstate.jumpBuffer=.14;
+  if(pstate.jumpBuffer>0&&(pstate.grounded||pstate.coyote>0)){pstate.vel.y=11.2;pstate.grounded=false;pstate.coyote=0;pstate.jumpBuffer=0;keys.Space=false;keys.Numpad0=false;burst(player.position);}
+  pstate.vel.y-=27*dt;
+  const radius=pstate.radius,hh=.56,px=player.position.x,pz=player.position.z,py=player.position.y;
+  const solids=[...platforms.map(p=>({x:p.x,z:p.z,y:p.y,w:p.w,h:p.h,d:p.d})),...doors.filter(d=>!d.open).map(d=>({x:d.mesh.position.x,z:d.mesh.position.z,y:d.mesh.position.y-d.mesh.geometry.parameters.height/2,h:d.mesh.geometry.parameters.height,w:d.w,d:d.d}))];
+  let nx=px+pstate.vel.x*dt;
+  for(const s of solids){const vertical=(py-hh)<s.y+s.h&&(py+hh)>s.y;if(!vertical)continue; if(nx+radius>s.x-s.w/2&&nx-radius<s.x+s.w/2&&pz+radius>s.z-s.d/2&&pz-radius<s.z+s.d/2){nx=px;pstate.vel.x=0;break;}}
+  let nz=pz+pstate.vel.z*dt;
+  for(const s of solids){const vertical=(py-hh)<s.y+s.h&&(py+hh)>s.y;if(!vertical)continue; if(nx+radius>s.x-s.w/2&&nx-radius<s.x+s.w/2&&nz+radius>s.z-s.d/2&&nz-radius<s.z+s.d/2){nz=pz;pstate.vel.z=0;break;}}
+  player.position.x=nx; player.position.z=nz;
+  const oldY=py, newY=py+pstate.vel.y*dt; let land=null,top=-Infinity;
+  if(pstate.vel.y<=0){for(const s of solids){if(player.position.x+radius>s.x-s.w/2&&player.position.x-radius<s.x+s.w/2&&player.position.z+radius>s.z-s.d/2&&player.position.z-radius<s.z+s.d/2){const footOld=oldY-hh,footNew=newY-hh;if(footOld>=s.y-.08&&footNew<=s.y&&s.y>top){top=s.y;land=s;}}}}
+  if(land){player.position.y=land.y+hh;pstate.vel.y=0;pstate.grounded=true;pstate.coyote=.12;pstate.airTime=0;}else{player.position.y=newY;pstate.grounded=false;pstate.airTime+=dt;}
+  if(player.position.y<-20){respawn();return;}
+  for(const h of hazards){if(Math.abs(player.position.x-h.x)<h.w*.56&&Math.abs(player.position.z-h.z)<h.d*.56&&Math.abs(player.position.y-h.y)<1)damage(30,'HAZARD');}
+  for(const e of enemies){if(e.dead)continue;const dd=Math.hypot(player.position.x-e.group.position.x,player.position.z-e.group.position.z);if(dd<1.05&&Math.abs(player.position.y-e.group.position.y)<1.5){if(pstate.vel.y<0&&player.position.y>e.group.position.y+.55){killEnemy(e);pstate.vel.y=9;}else damage(24,'SENTINEL HIT');}}
+  for(const c of collectibles){if(!c.got&&player.position.distanceTo(c.group.position)<1.45)collect(c);}
+  for(const c of checkpoints){if(!c.active&&Math.hypot(player.position.x-c.x,player.position.z-c.z)<2.2&&player.position.y>c.y-.8)activate(c);}
+  for(const d of doors){if(!d.open&&state.keys>=d.requiredKey){d.open=true;toast(`${d.label} UNLOCKED`,1100);}}
+  for(const g of goals){if(Math.hypot(player.position.x-g.x,player.position.z-g.z)<2.6&&Math.abs(player.position.y-g.y)<2.8)victory();}
+  body.rotation.x=clamp(-pstate.vel.y*.02,-.18,.18);body.position.y=.72+(pstate.grounded?Math.sin(state.time*10)*Math.min(.04,Math.hypot(pstate.vel.x,pstate.vel.z)*.003):0);trail.intensity=1.1+(sprint?1.3:0);
 }
-function addLights(scene){
- scene.add(new THREE.HemisphereLight(0x9bd8ff,0x172033,1.6));
- const sun=new THREE.DirectionalLight(0xfff5d5,2.1); sun.position.set(25,35,20); sun.castShadow=false; scene.add(sun);
-}
-function clearGroup(group){while(group.children.length) group.remove(group.children[0]);}
-function boxMesh(size,color,wire=false){const g=new THREE.BoxGeometry(...size);const m=new THREE.MeshStandardMaterial({color,roughness:.72,metalness:.05});const mesh=new THREE.Mesh(g,m); if(wire){mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(g),new THREE.LineBasicMaterial({color:0xb9efff,transparent:true,opacity:.65})));} return mesh;}
-function objectMesh(o){
- const spec=TYPES[o.type]||TYPES.platform; const mesh=boxMesh(o.size||spec.size,spec.color); mesh.position.set(...o.pos); mesh.userData.id=o.id; mesh.userData.type=o.type; return mesh;
-}
-function aabb(o){const [x,y,z]=o.pos,[w,h,d]=o.size;return {minX:x-w/2,maxX:x+w/2,minY:y-h/2,maxY:y+h/2,minZ:z-d/2,maxZ:z+d/2};}
-function playerBox(pos){return {minX:pos.x-.45,maxX:pos.x+.45,minY:pos.y,maxY:pos.y+1.8,minZ:pos.z-.45,maxZ:pos.z+.45};}
-function overlap(a,b){return a.minX<b.maxX&&a.maxX>b.minX&&a.minY<b.maxY&&a.maxY>b.minY&&a.minZ<b.maxZ&&a.maxZ>b.minZ;}
 
-// ---------- GAME ----------
-let g={scene:null,renderer:null,camera:null,group:null,meshes:new Map(),player:null,vel:new THREE.Vector3(),yaw:0,pitch:-.18,last:0,keys:{},mouseDown:false,lastMX:0,lastMY:0,onGround:false,jumpBuffer:0,coyote:.0,dashCooldown:0};
+function updateWorld(dt){for(const c of collectibles){if(c.got)continue;c.group.rotation.y+=dt*1.8;c.group.position.y=c.baseY+Math.sin(state.time*2.4+c.phase)*.18}for(const e of enemies){if(e.dead)continue;const t=state.time*.8+e.phase;e.group.position.x=e.originX+Math.sin(t)*e.path;e.group.rotation.y+=dt}for(const d of doors){if(d.open){d.mesh.position.y+=(d.baseY+6-d.mesh.position.y)*Math.min(1,dt*3);if(d.mesh.position.y>d.baseY+5.5)d.mesh.visible=false}}for(const g of goals){g.group.rotation.z+=dt*.25;g.group.rotation.y+=dt*.35}particles.rotation.y+=dt*.01}
+function updateCamera(dt){if(state.mode==='menu'){cameraRig.yaw+=dt*.08;const focus=new THREE.Vector3(0,3,-16);const off=new THREE.Vector3(Math.sin(cameraRig.yaw)*11,5.2,Math.cos(cameraRig.yaw)*11);camera.position.lerp(focus.clone().add(off),1-Math.exp(-2*dt));camera.lookAt(focus);return}if(state.mode==='studio')return;cameraRig.yaw-=mouseDX*.0025;cameraRig.pitch=clamp(cameraRig.pitch-mouseDY*.0017,-.05,.58);mouseDX=mouseDY=0;const off=new THREE.Vector3(Math.sin(cameraRig.yaw)*cameraRig.distance,Math.sin(cameraRig.pitch)*cameraRig.distance*.7+cameraRig.height,Math.cos(cameraRig.yaw)*cameraRig.distance);camera.position.lerp(player.position.clone().add(off),1-Math.exp(-7*dt));camera.lookAt(player.position.clone().add(new THREE.Vector3(0,1.15,0)))}
+function updateHud(){ui.shards.textContent=state.shards;ui.keys.textContent=`${state.keys} / ${collectibles.length}`;ui.score.textContent=state.score;ui.best.textContent=state.best;ui.healthBar.style.width=`${state.health}%`;ui.healthText.textContent=`${Math.round(state.health)}%`;ui.checkpoint.textContent=state.checkpoint;if(state.score>state.best){state.best=state.score;localStorage.setItem('skybound_best',state.best);ui.best.textContent=state.best;ui.bestMenu.textContent=state.best}}
+function gameOver(t,txt){setMode('gameover');ui.goTitle.textContent=t;ui.goText.textContent=txt;ui.goScore.textContent=state.score;ui.goShards.textContent=state.shards}
+function victory(){if(state.mode!=='playing')return;state.score+=500;updateHud();setMode('victory');ui.vScore.textContent=state.score;ui.vShards.textContent=state.shards;ui.vText.textContent=`${level.name} complete.`}
 
-function enterGame(custom=level){
- level=structuredClone(custom); gameState={running:true,paused:false,shards:0,key:false,checkpoint:[...level.spawn],stage:'GREEN RUN',won:false,dead:false};
- $('menu').classList.remove('active'); $('studio').classList.remove('active'); $('game').classList.add('active'); $('gamePause').classList.remove('show');$('gameEnd').classList.remove('show');
- initGameScene();
+// DEV STUDIO — Roblox-style viewport workflow
+let editor={selected:null,selectedMesh:null,tool:'select',snap:true,snapSize:1,moveForward:false,moveBack:false,moveLeft:false,moveRight:false,moveUp:false,moveDown:false,fast:false};
+let studioOrbit=null,studioTransform=null,studioGrid=null,studioOutline=null;
+const studioRay=new THREE.Raycaster(),studioMouse=new THREE.Vector2();
+function studioStatus(t){ui.studioStatus.textContent=t}
+function escapeHtml(v){return String(v).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
+function snap(v){return editor.snap?Math.round(v/editor.snapSize)*editor.snapSize:v}
+function markEditorObject(root,obj){root.traverse(n=>{if(n.isMesh||n.isGroup)n.userData.levelObject=obj})}
+function buildEditorIndex(){
+  for(const p of platforms){const o=level.objects.find(v=>(v.type==='platform'||v.type==='wall')&&Math.abs(v.x-p.mesh.position.x)<.01&&Math.abs(v.z-p.mesh.position.z)<.01);if(o)markEditorObject(p.mesh,o)}
+  for(const d of doors){const o=level.objects.find(v=>v.type==='door'&&Math.abs(v.x-d.mesh.position.x)<.01&&Math.abs(v.z-d.mesh.position.z)<.01);if(o)markEditorObject(d.mesh,o)}
+  for(const c of collectibles){const o=level.objects.find(v=>v.type==='key'&&Math.abs(v.x-c.group.position.x)<.01&&Math.abs(v.z-c.group.position.z)<.01);if(o)markEditorObject(c.group,o)}
+  for(const c of checkpoints){const o=level.objects.find(v=>v.type==='checkpoint'&&Math.abs(v.x-c.group.position.x)<.01&&Math.abs(v.z-c.group.position.z)<.01);if(o)markEditorObject(c.group,o)}
+  for(const e of enemies){const o=level.objects.find(v=>v.type==='enemy'&&Math.abs(v.x-e.group.position.x)<.01&&Math.abs(v.z-e.group.position.z)<.01);if(o)markEditorObject(e.group,o)}
+  for(const h of hazards){const o=level.objects.find(v=>v.type==='hazard'&&Math.abs(v.x-h.mesh.position.x)<.01&&Math.abs(v.z-h.mesh.position.z)<.01);if(o)markEditorObject(h.mesh,o)}
+  for(const g of goals){const o=level.objects.find(v=>v.type==='goal'&&Math.abs(v.x-g.group.position.x)<.01&&Math.abs(v.z-g.group.position.z)<.01);if(o)markEditorObject(g.group,o)}
 }
-function initGameScene(){
- const c=$('gameCanvas'); g.renderer?.dispose(); g.renderer=makeRenderer(c,false); g.scene=new THREE.Scene(); g.scene.background=new THREE.Color(0x07121f); g.scene.fog=new THREE.Fog(0x07121f,45,110); addLights(g.scene); g.group=new THREE.Group(); g.scene.add(g.group);
- g.camera=new THREE.PerspectiveCamera(68,c.clientWidth/c.clientHeight,.05,220);
- g.player={pos:new THREE.Vector3(...level.spawn),height:1.8,radius:.45,mesh:null};
- const body=new THREE.Group(); const capsule=boxMesh([.8,1.7,.8],0x51c8ff); capsule.position.y=.9; capsule.add(new THREE.Mesh(new THREE.BoxGeometry(.48,.24,.05),new THREE.MeshStandardMaterial({color:0x062033}))); body.add(capsule); g.player.mesh=body; g.group.add(body);
- buildGameObjects(); resetPlayer(); updateHUD(); setupGameEvents(); animateGame(0);
+function refreshExplorer(){
+  if(!ui.explorer)return;ui.explorer.innerHTML='';
+  level.objects.forEach((o,i)=>{const row=document.createElement('button');row.className='explorer-item'+(editor.selected===o?' selected':'');row.innerHTML=`<span class="explorer-icon">${o.type==='platform'?'▰':o.type==='wall'?'▤':o.type==='key'?'◆':o.type==='checkpoint'?'◇':o.type==='enemy'?'●':o.type==='hazard'?'▲':o.type==='door'?'▥':'✦'}</span><span class="explorer-name">${escapeHtml(o.label||o.type)}</span><span class="explorer-type">${o.type}</span>`;row.onclick=()=>selectObject(o,true);ui.explorer.appendChild(row)})
 }
-function buildGameObjects(){g.meshes.clear(); clearGroup(g.group); if(g.player?.mesh) g.group.add(g.player.mesh); for(const o of level.objects){const m=objectMesh(o); if(o.type==='key'||o.type==='checkpoint'||o.type==='goal') m.material.emissive=new THREE.Color(TYPES[o.type].color).multiplyScalar(.35); g.group.add(m); g.meshes.set(o.id,m);} }
-function resetPlayer(){g.player.pos.set(...gameState.checkpoint); g.vel.set(0,0,0); g.onGround=false; g.coyote=0; g.player.mesh.position.set(g.player.pos.x,g.player.pos.y,g.player.pos.z);}
-function setupGameEvents(){
- const canvas=g.renderer.domElement; canvas.oncontextmenu=e=>e.preventDefault(); canvas.onmousedown=e=>{if(e.button===0||e.button===2){g.mouseDown=true;g.lastMX=e.clientX;g.lastMY=e.clientY}}; window.onmouseup=()=>g.mouseDown=false;
- window.onmousemove=e=>{if(!g.mouseDown||gameState.paused)return; const dx=e.clientX-g.lastMX,dy=e.clientY-g.lastMY;g.lastMX=e.clientX;g.lastMY=e.clientY;g.yaw-=dx*.004;g.pitch=clamp(g.pitch-dy*.0025,-.75,.35)};
- window.onkeydown=e=>{g.keys[e.code]=true;if(e.code==='Space'){e.preventDefault();g.jumpBuffer=.14} if(e.code==='Escape'&&gameState.running&&!gameState.won){gameState.paused=!gameState.paused;$('gamePause').classList.toggle('show',gameState.paused)}};
- window.onkeyup=e=>{g.keys[e.code]=false};
- $('resumeBtn').onclick=()=>{gameState.paused=false;$('gamePause').classList.remove('show')}; $('restartBtn').onclick=()=>enterGame(level); $('backMenuBtn').onclick=()=>showMenu();
- $('againBtn').onclick=()=>enterGame(level);$('endMenuBtn').onclick=()=>showMenu();
+function studioSelectableRoots(){return [...platforms.map(p=>p.mesh),...doors.map(d=>d.mesh),...collectibles.map(c=>c.group),...checkpoints.map(c=>c.group),...enemies.map(e=>e.group),...hazards.map(h=>h.mesh),...goals.map(g=>g.group)]}
+function objectAt(clientX,clientY){const r=ui.game.getBoundingClientRect();studioMouse.x=((clientX-r.left)/r.width)*2-1;studioMouse.y=-((clientY-r.top)/r.height)*2+1;studioRay.setFromCamera(studioMouse,camera);const hits=studioRay.intersectObjects(studioSelectableRoots(),true);if(!hits.length)return null;let n=hits[0].object;while(n&&n.parent&&!n.userData.levelObject)n=n.parent;return n?.userData?.levelObject||null}
+function getRootForObject(obj){for(const p of platforms)if(p.mesh.userData.levelObject===obj)return p.mesh;for(const d of doors)if(d.mesh.userData.levelObject===obj)return d.mesh;for(const c of collectibles)if(c.group.userData.levelObject===obj)return c.group;for(const c of checkpoints)if(c.group.userData.levelObject===obj)return c.group;for(const e of enemies)if(e.group.userData.levelObject===obj)return e.group;for(const h of hazards)if(h.mesh.userData.levelObject===obj)return h.mesh;for(const g of goals)if(g.group.userData.levelObject===obj)return g.group;return null}
+function syncSelected(obj){editor.selected=obj||null;if(!obj){ui.selNone.classList.remove('hidden');ui.selPanel.classList.add('hidden');refreshExplorer();return}ui.selNone.classList.add('hidden');ui.selPanel.classList.remove('hidden');ui.selType.value=obj.type;ui.selX.value=obj.x;ui.selY.value=obj.y;ui.selZ.value=obj.z;ui.selW.value=obj.w??4;ui.selH.value=obj.h??1;ui.selD.value=obj.d??4;ui.selLabel.value=obj.label||'';refreshExplorer()}
+function selectObject(obj,focus=false){editor.selected=obj||null;editor.selectedMesh=null;syncSelected(obj);if(studioTransform){studioTransform.detach();studioTransform.visible=false}if(obj){const root=getRootForObject(obj);editor.selectedMesh=root;if(root&&studioTransform&&editor.tool!=='select'){studioTransform.attach(root);studioTransform.visible=true}if(focus&&studioOrbit&&root){studioOrbit.target.copy(root.position);studioOrbit.update()}}}
+function setEditorTool(tool){editor.tool=tool;ui.toolSelect?.classList.toggle('active',tool==='select');ui.toolMove?.classList.toggle('active',tool==='move');ui.toolScale?.classList.toggle('active',tool==='scale');if(studioTransform){studioTransform.detach();studioTransform.visible=false;if(editor.selectedMesh&&tool!=='select'){studioTransform.setMode(tool==='scale'?'scale':'translate');studioTransform.attach(editor.selectedMesh);studioTransform.visible=true}}studioStatus(tool==='select'?'SELECT TOOL • Click an object to select it':tool==='move'?'MOVE TOOL • Drag the colored arrows to move':'SCALE TOOL • Drag the boxes to resize')}
+function setupStudioCamera(){
+  if(studioOrbit)studioOrbit.dispose();
+  studioOrbit=new OrbitControls(camera,ui.game);
+  studioOrbit.enableDamping=true; studioOrbit.dampingFactor=.10;
+  studioOrbit.screenSpacePanning=true; studioOrbit.minDistance=3; studioOrbit.maxDistance=140;
+  studioOrbit.maxPolarAngle=Math.PI-.05;
+  studioOrbit.mouseButtons.LEFT=THREE.MOUSE.ROTATE;
+  studioOrbit.mouseButtons.RIGHT=THREE.MOUSE.ROTATE;
+  studioOrbit.mouseButtons.MIDDLE=THREE.MOUSE.PAN;
+  studioOrbit.target.set(0,2,-18); camera.position.set(0,18,28); studioOrbit.update();
+  if(!studioTransform){
+    studioTransform=new TransformControls(camera,ui.game);
+    studioTransform.setSpace('world');
+    studioTransform.setTranslationSnap(editor.snapSize);
+    studioTransform.setScaleSnap(editor.snapSize/2);
+    studioTransform.addEventListener('dragging-changed',e=>{if(studioOrbit)studioOrbit.enabled=!e.value});
+    studioTransform.addEventListener('objectChange',()=>{
+      const o=editor.selected,m=editor.selectedMesh;if(!o||!m)return;
+      o.x=snap(m.position.x); o.y=snap(m.position.y); o.z=snap(m.position.z);
+      if(editor.tool==='scale' && (o.type==='platform'||o.type==='wall'||o.type==='door'||o.type==='hazard')){
+        o.w=Math.max(.25,snap(o.w*m.scale.x)); o.h=Math.max(.25,snap(o.h*m.scale.y)); o.d=Math.max(.25,snap(o.d*m.scale.z));
+        m.scale.set(1,1,1);
+      }
+      m.position.set(o.x,o.y,o.z); syncSelected(o); updateStudioOutline();
+    });
+    scene.add(studioTransform);
+  }
+  if(!studioGrid){studioGrid=new THREE.GridHelper(160,160,0x3e6477,0x183245);studioGrid.position.y=0;scene.add(studioGrid);}
+  setEditorTool(editor.tool); updateStudioOutline();
 }
-function showMenu(){gameState.running=false; $('game').classList.remove('active');$('studio').classList.remove('active');$('menu').classList.add('active');}
-function isSolid(o){return o.type==='platform'||o.type==='wall'||o.type==='door';}
-function movePlayer(dt){
- const k=g.keys; const f=(k.KeyW?1:0)-(k.KeyS?1:0); const s=(k.KeyD?1:0)-(k.KeyA?1:0); const speed=k.ShiftLeft?10:6; let dx=0,dz=0;
- if(f||s){dx=Math.sin(g.yaw)*f + Math.cos(g.yaw)*s; dz=Math.cos(g.yaw)*f - Math.sin(g.yaw)*s; const len=Math.hypot(dx,dz)||1;dx/=len;dz/=len;}
- const targetX=dx*speed,targetZ=dz*speed; const accel=g.onGround?16:10; g.vel.x += clamp(targetX-g.vel.x,-accel*dt,accel*dt); g.vel.z += clamp(targetZ-g.vel.z,-accel*dt,accel*dt);
- if(!f&&!s){g.vel.x*=Math.pow(.001,dt);g.vel.z*=Math.pow(.001,dt)}
- if(g.jumpBuffer>0)g.jumpBuffer-=dt; if(g.coyote>0)g.coyote-=dt; if(g.dashCooldown>0)g.dashCooldown-=dt;
- if(g.jumpBuffer>0&&g.coyote>0){g.vel.y=11;g.jumpBuffer=0;g.onGround=false;g.coyote=0}
- if(k.ShiftLeft&&!g._shift){g._shift=true;if(g.dashCooldown<=0){const l=Math.hypot(dx,dz)||1;g.vel.x=(dx/l)*15;g.vel.z=(dz/l)*15;g.dashCooldown=.7}} if(!k.ShiftLeft)g._shift=false;
- g.vel.y-=28*dt;
- const oldY=g.player.pos.y; // X collision
- let nx=g.player.pos.x+g.vel.x*dt; let nz=g.player.pos.z;
- if(wouldCollide(nx,nz,g.player.pos.y)) nx=g.player.pos.x; else g.player.pos.x=nx;
- nz=g.player.pos.z+g.vel.z*dt; if(wouldCollide(g.player.pos.x,nz,g.player.pos.y)) nz=g.player.pos.z; else g.player.pos.z=nz;
- let ny=g.player.pos.y+g.vel.y*dt; let landed=false;
- if(g.vel.y<=0){for(const o of level.objects){if(!isSolid(o))continue;const b=aabb(o);const px=g.player.pos.x,pz=g.player.pos.z;if(px+.42>b.minX&&px-.42<b.maxX&&pz+.42>b.minZ&&pz-.42<b.maxZ){const top=b.maxY;if(oldY>=top-.08&&ny<top+0.02){ny=top;g.vel.y=0;landed=true;break}}}}
- if(!landed)g.player.pos.y=ny; g.onGround=landed||false;if(landed)g.coyote=.1;else if(oldY!==g.player.pos.y&&g.vel.y<0)g.coyote=0;
- g.player.mesh.position.set(g.player.pos.x,g.player.pos.y,g.player.pos.z);
- // face movement direction
- if(Math.hypot(g.vel.x,g.vel.z)>.25)g.player.mesh.rotation.y=Math.atan2(g.vel.x,g.vel.z);
- if(g.player.pos.y<-20){resetPlayer()}
+function teardownStudioHelpers(){
+  if(studioOrbit){studioOrbit.dispose();studioOrbit=null;}
+  if(studioTransform){studioTransform.detach();studioTransform.visible=false;}
+  if(studioGrid){scene.remove(studioGrid);studioGrid=null;}
+  if(studioOutline){scene.remove(studioOutline);studioOutline.geometry?.dispose?.();studioOutline.material?.dispose?.();studioOutline=null;}
 }
-function wouldCollide(x,z,y){const pb={minX:x-.45,maxX:x+.45,minY:y+.15,maxY:y+1.7,minZ:z-.45,maxZ:z+.45};for(const o of level.objects){if(!isSolid(o))continue; if(overlap(pb,aabb(o))){return true}}return false;}
-function interact(dt){
- for(const o of level.objects){const d=Math.hypot(g.player.pos.x-o.pos[0],g.player.pos.y-o.pos[1],g.player.pos.z-o.pos[2]); if(o.type==='key'&&d<1.5){gameState.key=true; o.collected=true; const m=g.meshes.get(o.id);if(m)m.visible=false}
- if(o.type==='checkpoint'&&d<1.7){gameState.checkpoint=[o.pos[0],o.pos[1]+o.size[1]/2,o.pos[2]];gameState.stage='CHECKPOINT';}
- if(o.type==='hazard'&&d<1.7&&Math.abs(g.player.pos.y-(o.pos[1]+o.size[1]/2))<1){resetPlayer()}
- if(o.type==='enemy'&&d<1.25){if(g.vel.y< -1 && g.player.pos.y>o.pos[1]){o.dead=true;const m=g.meshes.get(o.id);if(m)m.visible=false;g.vel.y=9}else resetPlayer()}
- if(o.type==='door'){const b=aabb(o); const front=Math.abs(g.player.pos.z-b.maxZ)<1&&Math.abs(g.player.pos.x-o.pos[0])<2; if(front&&gameState.key){o.open=true;const m=g.meshes.get(o.id);if(m){m.visible=false}} else if(front&&!gameState.key){g.player.pos.z += 0.2}}
- if(o.type==='goal'&&d<2){gameState.won=true;gameState.running=false;$('endTitle').textContent='SUMMIT REACHED';$('endText').textContent=`You finished the level with ${gameState.shards} shards.`;$('gameEnd').classList.add('show')}}
+function updateStudioOutline(){
+  if(state.mode!=='studio'){if(studioOutline)studioOutline.visible=false;return;}
+  if(!editor.selectedMesh){if(studioOutline)studioOutline.visible=false;return;}
+  if(!studioOutline){studioOutline=new THREE.BoxHelper(editor.selectedMesh,0x42e6ff);scene.add(studioOutline);}else{studioOutline.visible=true;studioOutline.setFromObject(editor.selectedMesh);studioOutline.material.color.set(0x42e6ff);}
 }
-function updateCamera(){
- const target=g.player.pos.clone();target.y+=1.2; const dist=7; const cx=Math.sin(g.yaw)*Math.cos(g.pitch)*dist, cz=Math.cos(g.yaw)*Math.cos(g.pitch)*dist, cy=Math.sin(g.pitch)*dist; const desired=new THREE.Vector3(target.x+cx,target.y+cy,target.z+cz); g.camera.position.lerp(desired,.12); g.camera.lookAt(target);
+function updateStudioCamera(dt){
+  if(state.mode!=='studio'||!studioOrbit)return;
+  const speed=(editor.fast?18:9)*dt;
+  const forward=new THREE.Vector3(); camera.getWorldDirection(forward); forward.y=0; if(forward.lengthSq()<1e-6)forward.set(0,0,-1); else forward.normalize();
+  const right=new THREE.Vector3(forward.z,0,-forward.x);
+  if(editor.moveForward)studioOrbit.target.addScaledVector(forward,speed),camera.position.addScaledVector(forward,speed);
+  if(editor.moveBack)studioOrbit.target.addScaledVector(forward,-speed),camera.position.addScaledVector(forward,-speed);
+  if(editor.moveRight)studioOrbit.target.addScaledVector(right,speed),camera.position.addScaledVector(right,speed);
+  if(editor.moveLeft)studioOrbit.target.addScaledVector(right,-speed),camera.position.addScaledVector(right,-speed);
+  if(editor.moveUp)studioOrbit.target.y+=speed,camera.position.y+=speed;
+  if(editor.moveDown)studioOrbit.target.y-=speed,camera.position.y-=speed;
 }
-function updateHUD(){ $('shards').textContent=gameState.shards; $('keyState').textContent=gameState.key?'OPENED':'LOCKED'; $('cpState').textContent=gameState.stage; $('objectiveText').textContent=gameState.key?'Reach the door and summit portal.':'Find the glowing key.'; }
-function animateGame(t){if(!gameState.running&&g.renderer){ if(gameState.won){} else return; } requestAnimationFrame(animateGame); const dt=Math.min(.033,(t-g.last)/1000||.016);g.last=t;if(!gameState.paused&&!gameState.won){movePlayer(dt);interact(dt);updateCamera();updateHUD()}g.renderer.render(g.scene,g.camera);}
+function addObject(type,x=0,z=-6){let y=0;if(type==='platform'||type==='wall')y=.5;else if(type==='key')y=2.3;else if(type==='checkpoint')y=.5;else if(type==='enemy')y=1;else if(type==='hazard')y=0;else if(type==='door')y=2.5;else if(type==='goal')y=2.5;const defaults={platform:{w:6,h:1,d:6},wall:{w:6,h:4,d:.8},key:{w:.25,h:.75,d:.25},checkpoint:{w:1.35,h:.25,d:1.35},enemy:{w:1,h:1,d:1},hazard:{w:2,h:.18,d:2},door:{w:6,h:5,d:.8},goal:{w:4,h:4,d:1}};const s=defaults[type]||defaults.platform;const o={type,x:snap(x),y:snap(y),z:snap(z),w:s.w,h:s.h,d:s.d,label:type.toUpperCase()+'-'+(level.objects.length+1)};level.objects.push(o);buildLevel(level);selectObject(o,true);studioStatus(`${type.toUpperCase()} added • use MOVE (2) to position it`)}
+function selectedChanged(){if(!editor.selected)return;const idx=level.objects.indexOf(editor.selected);if(idx<0)return;const o=editor.selected;o.x=snap(Number(ui.selX.value)||0);o.y=snap(Number(ui.selY.value)||0);o.z=snap(Number(ui.selZ.value)||0);o.w=Math.max(.1,Number(ui.selW.value)||1);o.h=Math.max(.1,Number(ui.selH.value)||1);o.d=Math.max(.1,Number(ui.selD.value)||1);o.label=ui.selLabel.value;buildLevel(level);selectObject(level.objects[idx],true)}
+function duplicateSelected(){if(!editor.selected)return;const i=level.objects.indexOf(editor.selected);if(i<0)return;const c={...editor.selected,x:snap(editor.selected.x+editor.snapSize),z:snap(editor.selected.z+editor.snapSize),label:(editor.selected.label||editor.selected.type)+' COPY'};level.objects.splice(i+1,0,c);buildLevel(level);selectObject(c,true);studioStatus('Duplicated object • drag the gizmo to position it')}
+function exportData(){level.name=ui.levelName.value.trim()||'Untitled Level';ui.jsonBox.value=JSON.stringify({version:1,name:level.name,spawn:level.spawn,objects:level.objects},null,2);ui.jsonBox.select();navigator.clipboard?.writeText(ui.jsonBox.value).then(()=>studioStatus('JSON copied. Share it or paste it into LOAD JSON.')).catch(()=>studioStatus('JSON selected — press Ctrl+C.'))}
+function downloadData(){exportData();const blob=new Blob([ui.jsonBox.value],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(level.name.replace(/[^a-z0-9]+/gi,'_')||'skybound_level')+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),500)}
+function loadData(){try{const data=JSON.parse(ui.jsonBox.value);level=normalizeLevel(data);ui.levelName.value=level.name;buildLevel(level);selectObject(null);studioStatus(`Loaded ${level.name} • ${level.objects.length} objects`)}catch(e){studioStatus('Invalid JSON: '+e.message)}}
+function newLevel(){level={name:'New Skybound Level',spawn:{x:0,y:1.1,z:8},objects:[{type:'platform',x:0,y:0,z:0,w:18,h:1,d:18,label:'START'}]};ui.levelName.value=level.name;buildLevel(level);selectObject(null);studioStatus('New level created')}
+function setSpawnHere(){const o=editor.selected;if(o){level.spawn={x:snap(o.x),y:1.1,z:snap(o.z+Math.max(2,(o.d||4)/2+2))}}else if(studioOrbit){level.spawn={x:snap(studioOrbit.target.x),y:1.1,z:snap(studioOrbit.target.z+3)}}studioStatus(`Spawn set to ${level.spawn.x}, ${level.spawn.y}, ${level.spawn.z}`)}
+function enterStudio(){document.exitPointerLock?.();state.mode='studio';ui.menu.classList.add('hidden');ui.hud.classList.add('hidden');ui.pause.classList.add('hidden');ui.gameOver.classList.add('hidden');ui.victory.classList.add('hidden');ui.studio.classList.remove('hidden');ui.studio.style.display='flex';buildLevel(level);ui.levelName.value=level.name;setupStudioCamera();buildEditorIndex();selectObject(null);studioStatus('Roblox-style editor ready • 1 Select • 2 Move • 3 Scale • Ctrl+D Duplicate')}
+function exitStudio(){document.exitPointerLock?.();teardownStudioHelpers();setMode('menu');ui.studio.style.display='none'}
 
-// ---------- STUDIO ----------
-let s={renderer:null,scene:null,camera:null,group:null,outline:null,gizmo:null,selected:null,tool:'select',keys:{},drag:false,lastX:0,lastY:0,yaw:.7,pitch:-.35,camPos:new THREE.Vector3(16,13,20),snap:1,mode:'orbit',dragAxis:null,dragStart:null,selectionStart:null};
-function enterStudio(){ $('menu').classList.remove('active');$('game').classList.remove('active');$('studio').classList.add('active'); initStudio(); }
-function initStudio(){
- const c=$('studioCanvas'); s.renderer?.dispose(); s.renderer=makeRenderer(c,true);s.scene=new THREE.Scene();s.scene.background=new THREE.Color(0x07121f);s.scene.fog=new THREE.Fog(0x07121f,60,170);addLights(s.scene);s.group=new THREE.Group();s.scene.add(s.group);s.camera=new THREE.PerspectiveCamera(60,c.clientWidth/c.clientHeight,.1,300);
- const grid=new THREE.GridHelper(120,120,0x2b435b,0x17293b);grid.position.y=0;grid.material.transparent=true;grid.material.opacity=.55;s.scene.add(grid);
- buildStudio();setupStudioEvents();updateExplorer();updateProps();updateJson();animateStudio();
-}
-function buildStudio(){clearGroup(s.group);for(const o of level.objects){const m=objectMesh(o);m.castShadow=true;m.receiveShadow=true;m.userData.id=o.id;s.group.add(m)}s.outline=null;s.gizmo=null;if(s.selected){const o=level.objects.find(x=>x.id===s.selected);if(!o)s.selected=null} if(s.selected)selectObject(s.selected,false);}
-function objectFromHit(hit){let id=hit?.object?.userData?.id;return id?level.objects.find(o=>o.id===id):null;}
-function setupStudioEvents(){
- const canvas=s.renderer.domElement;canvas.oncontextmenu=e=>e.preventDefault();canvas.onmousedown=e=>{s.drag=true;s.lastX=e.clientX;s.lastY=e.clientY; s.mode=e.button===0?'left':'orbit'; const rect=canvas.getBoundingClientRect();const ndc=new THREE.Vector2(((e.clientX-rect.left)/rect.width)*2-1,-((e.clientY-rect.top)/rect.height)*2+1);const ray=new THREE.Raycaster();ray.setFromCamera(ndc,s.camera);const hits=ray.intersectObjects(s.group.children,true);if(e.button===0&&hits.length){const o=objectFromHit(hits[0]);if(o){selectObject(o.id);s.dragStart=[...o.pos];s.selectionStart={x:e.clientX,y:e.clientY};return}} if(e.button===0){s.selectionStart=null}};
- window.addEventListener('mouseup',()=>{s.drag=false;s.dragAxis=null});window.addEventListener('mousemove',e=>{
-  if(!s.drag)return;const dx=e.clientX-s.lastX,dy=e.clientY-s.lastY;s.lastX=e.clientX;s.lastY=e.clientY;
-  if(s.selected&&s.tool!=='select'&&s.mode==='left'){handleGizmoDrag(dx,dy)} else if(s.mode==='orbit'){s.yaw-=dx*.004;s.pitch=clamp(s.pitch-dy*.003,-1.35,1.35)}
- });
- window.addEventListener('wheel',e=>{if(!$('studio').classList.contains('active'))return;const dir=e.deltaY>0?1:-1;const forward=new THREE.Vector3(Math.sin(s.yaw)*Math.cos(s.pitch),Math.sin(s.pitch),Math.cos(s.yaw)*Math.cos(s.pitch));s.camPos.addScaledVector(forward,dir*1.2)} ,{passive:true});
- window.addEventListener('keydown',e=>{if(!$('studio').classList.contains('active'))return;s.keys[e.code]=true;if(e.code==='Digit1')setTool('select');if(e.code==='Digit2')setTool('move');if(e.code==='Digit3')setTool('scale');if(e.code==='Delete')deleteSelected();if(e.ctrlKey&&e.code==='KeyD'){e.preventDefault();duplicateSelected()}if(e.code==='KeyF')focusSelected()});window.addEventListener('keyup',e=>s.keys[e.code]=false);
- document.querySelectorAll('.tool').forEach(b=>b.onclick=()=>setTool(b.dataset.tool));document.querySelectorAll('[data-add]').forEach(b=>b.onclick=()=>addPart(b.dataset.add));
- $('studioMenu').onclick=()=>showMenu();$('duplicateBtn').onclick=duplicateSelected;$('deleteBtn').onclick=deleteSelected;$('newLevelBtn').onclick=()=>{level={name:'New Level',spawn:[0,1,0],objects:[]};s.selected=null;buildStudio();updateExplorer();updateProps();updateJson()};$('playEditedBtn').onclick=()=>enterGame(level);
- $('copyJsonBtn').onclick=async()=>{try{await navigator.clipboard.writeText(JSON.stringify(level,null,2));studioToast('JSON copied')}catch{studioToast('Clipboard blocked — use Download instead')}};
- $('loadJsonBtn').onclick=()=>{try{level=JSON.parse($('jsonBox').value);if(!Array.isArray(level.objects))throw Error('Bad format');s.selected=null;buildStudio();updateExplorer();updateProps();updateJson();studioToast('Level loaded')}catch(e){studioToast('Invalid JSON')}};
- $('downloadJsonBtn').onclick=()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(level,null,2)],{type:'application/json'}));a.download=(level.name||'level')+'.json';a.click();URL.revokeObjectURL(a.href)};
- $('snapMinus').onclick=()=>{s.snap=Math.max(.1,s.snap/2);$('snapValue').value=s.snap};$('snapPlus').onclick=()=>{s.snap*=2;$('snapValue').value=s.snap};$('snapValue').onchange=()=>{s.snap=Math.max(.1,parseFloat($('snapValue').value)||1);$('snapValue').value=s.snap};
-}
-function setTool(t){s.tool=t;document.querySelectorAll('.tool').forEach(b=>b.classList.toggle('active',b.dataset.tool===t));updateGizmo()}
-function selectObject(id,refresh=true){s.selected=id;s.selectionStart=null;updateGizmo();if(refresh){updateExplorer();updateProps()}}
-function updateExplorer(){const ex=$('explorer');ex.innerHTML='';for(const o of level.objects){const d=document.createElement('div');d.className='item'+(o.id===s.selected?' selected':'');d.innerHTML=`<span>▣</span><span>${o.name||o.type}</span><small>${o.type}</small>`;d.onclick=()=>selectObject(o.id);ex.appendChild(d)}}
-function field(label,key,val,cb){const d=document.createElement('div');d.className='field';d.innerHTML=`<label>${label}</label><input type="number" step="0.1" value="${val}">`;d.querySelector('input').oninput=e=>cb(parseFloat(e.target.value)||0);return d}
-function updateProps(){const p=$('propertyPanel');if(!s.selected){$('noSelection').style.display='block';p.style.display='none';return}const o=level.objects.find(x=>x.id===s.selected);if(!o)return; $('noSelection').style.display='none';p.style.display='block';p.innerHTML='';const grid=document.createElement('div');grid.className='grid2';['x','y','z'].forEach((axis,i)=>grid.appendChild(field(axis.toUpperCase(),axis,o.pos[i],v=>{o.pos[i]=snap(v,s.snap);syncSelectedMesh()})));['width','height','depth'].forEach((label,i)=>grid.appendChild(field(label[0].toUpperCase(),`s${i}`,o.size[i],v=>{o.size[i]=Math.max(.1,v);syncSelectedMesh()})));p.appendChild(grid);const name=document.createElement('div');name.className='field';name.style.marginTop='8px';name.innerHTML=`<label>Name</label><input value="${o.name||''}">`;name.querySelector('input').oninput=e=>{o.name=e.target.value;updateExplorer()};p.appendChild(name)}
-function syncSelectedMesh(){const o=level.objects.find(x=>x.id===s.selected),m=s.group.children.find(m=>m.userData.id===s.selected);if(o&&m){m.position.set(...o.pos);m.scale.set(o.size[0]/TYPES[o.type].size[0],o.size[1]/TYPES[o.type].size[1],o.size[2]/TYPES[o.type].size[2]);updateGizmo();updateJson()}}
-function updateGizmo(){if(s.gizmo){s.scene.remove(s.gizmo);s.gizmo=null}s.outline&&s.scene.remove(s.outline);s.outline=null;if(!s.selected)return;const o=level.objects.find(x=>x.id===s.selected);if(!o)return;const m=s.group.children.find(m=>m.userData.id===o.id);if(!m)return;
- const e=new THREE.EdgesGeometry(new THREE.BoxGeometry(...o.size));s.outline=new THREE.LineSegments(e,new THREE.LineBasicMaterial({color:0x54e7ff}));s.outline.position.set(...o.pos);s.outline.userData.id='outline';s.scene.add(s.outline);
- if(s.tool!=='move'&&s.tool!=='scale')return; const gg=new THREE.Group();gg.position.set(...o.pos); if(s.tool==='move'){[['x',0xff4f5c],[ 'y',0x6dff83],['z',0x5599ff]].forEach(([axis,col])=>{const dir=axis==='x'?new THREE.Vector3(1,0,0):axis==='y'?new THREE.Vector3(0,1,0):new THREE.Vector3(0,0,1);const line=new THREE.Mesh(new THREE.CylinderGeometry(.045,.045,2.4,8),new THREE.MeshBasicMaterial({color:col}));line.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dir);line.userData.axis=axis;line.userData.gizmo=true;line.position.copy(dir.clone().multiplyScalar(1.2));gg.add(line);const cone=new THREE.Mesh(new THREE.ConeGeometry(.13,.35,8),new THREE.MeshBasicMaterial({color:col}));cone.quaternion.copy(line.quaternion);cone.position.copy(dir.clone().multiplyScalar(2.35));cone.userData.axis=axis;cone.userData.gizmo=true;gg.add(cone)})} else {['x','y','z'].forEach((axis,i)=>{const p=new THREE.Mesh(new THREE.BoxGeometry(.28,.28,.28),new THREE.MeshBasicMaterial({color:[0xff4f5c,0x6dff83,0x5599ff][i]}));const dir=i===0?new THREE.Vector3(1,0,0):i===1?new THREE.Vector3(0,1,0):new THREE.Vector3(0,0,1);p.position.copy(dir.multiplyScalar(1.1));p.userData.axis=axis;p.userData.gizmo=true;gg.add(p)})}s.gizmo=gg;s.scene.add(gg)}
-function handleGizmoDrag(dx,dy){const o=level.objects.find(x=>x.id===s.selected);if(!o)return;if(!s.dragAxis){ // choose dominant axis based on mouse direction
-  s.dragAxis=Math.abs(dx)>Math.abs(dy)?'x':'y';
- }
- const amt=(Math.abs(dx)>Math.abs(dy)?dx:-dy)*.025;const i='xyz'.indexOf(s.dragAxis);if(i<0)return;if(s.tool==='move')o.pos[i]=snap(o.pos[i]+amt,s.snap);else{o.size[i]=Math.max(.1,snap(o.size[i]+amt,s.snap));}syncSelectedMesh();updateProps();}
-function addPart(type){const spec=TYPES[type];const id=uid();const center=s.selected?level.objects.find(o=>o.id===s.selected)?.pos:[0,0,0];const o={id,type,pos:[center?.[0]||0,(center?.[1]||0)+2,(center?.[2]||0)-4],size:[...spec.size],name:type[0].toUpperCase()+type.slice(1)};level.objects.push(o);buildStudio();selectObject(id);updateExplorer();updateProps();updateJson()}
-function deleteSelected(){if(!s.selected)return;level.objects=level.objects.filter(o=>o.id!==s.selected);s.selected=null;buildStudio();updateExplorer();updateProps();updateJson()}
-function duplicateSelected(){const o=level.objects.find(x=>x.id===s.selected);if(!o)return;const n=structuredClone(o);n.id=uid();n.name=(o.name||o.type)+' Copy';n.pos=[o.pos[0]+s.snap,o.pos[1],o.pos[2]-s.snap];level.objects.push(n);buildStudio();selectObject(n.id);updateExplorer();updateProps();updateJson()}
-function focusSelected(){const o=level.objects.find(x=>x.id===s.selected);if(!o)return;s.camPos.set(o.pos[0]+8,o.pos[1]+6,o.pos[2]+8)}
-function updateJson(){$('jsonBox').value=JSON.stringify(level,null,2)}
-function studioToast(msg){const t=$('studioToast');t.textContent=msg;t.classList.add('show');clearTimeout(studioToast.t);studioToast.t=setTimeout(()=>t.classList.remove('show'),1400)}
-function animateStudio(t=0){if(!$('studio').classList.contains('active'))return;requestAnimationFrame(animateStudio);const dt=.016;const k=s.keys;const f=(k.KeyW?1:0)-(k.KeyS?1:0);const str=(k.KeyD?1:0)-(k.KeyA?1:0);const up=(k.KeyE?1:0)-(k.KeyQ?1:0);const sp=k.ShiftLeft?20:10;const dir=new THREE.Vector3(Math.sin(s.yaw),0,Math.cos(s.yaw));const right=new THREE.Vector3(Math.cos(s.yaw),0,-Math.sin(s.yaw));s.camPos.addScaledVector(dir,f*sp*dt);s.camPos.addScaledVector(right,str*sp*dt);s.camPos.y+=up*sp*dt;const target=new THREE.Vector3(s.camPos.x+Math.sin(s.yaw)*Math.cos(s.pitch)*20,s.camPos.y+Math.sin(s.pitch)*20,s.camPos.z+Math.cos(s.yaw)*Math.cos(s.pitch)*20);s.camera.position.copy(s.camPos);s.camera.lookAt(target);s.renderer.render(s.scene,s.camera)}
+ui.play.onclick=()=>startGame();ui.dev.onclick=e=>{e.preventDefault();enterStudio()};ui.howBtn.onclick=()=>ui.how.classList.toggle('hidden');ui.closeHow.onclick=()=>ui.how.classList.add('hidden');ui.resume.onclick=()=>setMode('playing');ui.restartPause.onclick=restartGame;ui.homePause.onclick=goHome;ui.retry.onclick=restartGame;ui.homeGameOver.onclick=goHome;ui.victoryRetry.onclick=restartGame;ui.victoryHome.onclick=goHome;
+ui.studioBack.onclick=exitStudio;ui.studioPlay.onclick=()=>{teardownStudioHelpers();startGame();};ui.newLevel.onclick=newLevel;ui.exportJson.onclick=exportData;ui.downloadJson.onclick=downloadData;ui.loadJson.onclick=loadData;ui.deleteSelected.onclick=()=>{if(!editor.selected)return;const i=level.objects.indexOf(editor.selected);if(i>=0){level.objects.splice(i,1);buildLevel(level);selectObject(null);studioStatus('Object deleted')}};ui.levelName.onchange=()=>{level.name=ui.levelName.value};
+for(const k of ['selX','selY','selZ','selW','selH','selD','selLabel'])ui[k].onchange=selectedChanged;
+for(const b of document.querySelectorAll('[data-add]'))b.onclick=()=>{const t=studioOrbit?.target||new THREE.Vector3(0,0,-6);addObject(b.dataset.add,t.x,t.z)};
+ui.studioResetCam.onclick=setupStudioCamera;ui.studioTestSpawn.onclick=setSpawnHere;ui.toolSelect.onclick=()=>setEditorTool('select');ui.toolMove.onclick=()=>setEditorTool('move');ui.toolScale.onclick=()=>setEditorTool('scale');ui.duplicateSelected.onclick=duplicateSelected;ui.focusSelected.onclick=()=>{if(editor.selectedMesh&&studioOrbit){studioOrbit.target.copy(editor.selectedMesh.position);studioOrbit.update()}};ui.snapToggle.onchange=()=>{editor.snap=ui.snapToggle.checked;if(studioTransform){studioTransform.setTranslationSnap(editor.snap?editor.snapSize:null);studioTransform.setScaleSnap(editor.snap?editor.snapSize/2:null)}studioStatus(editor.snap?`Snap ON • ${editor.snapSize} stud grid`:'Snap OFF')};ui.snapSize.onchange=()=>{editor.snapSize=Math.max(.25,Number(ui.snapSize.value)||1);ui.snapSize.value=editor.snapSize;if(studioTransform){studioTransform.setTranslationSnap(editor.snap?editor.snapSize:null);studioTransform.setScaleSnap(editor.snap?editor.snapSize/2:null)}};
+ui.game.addEventListener('pointerdown',e=>{if(state.mode!=='studio'||e.button!==0)return;const hit=objectAt(e.clientX,e.clientY);if(hit){selectObject(hit,true)}else if(editor.tool==='select'){const r=ui.game.getBoundingClientRect();studioMouse.x=((e.clientX-r.left)/r.width)*2-1;studioMouse.y=-((e.clientY-r.top)/r.height)*2+1;studioRay.setFromCamera(studioMouse,camera);const p=new THREE.Vector3();const plane=new THREE.Plane(new THREE.Vector3(0,1,0),0);if(studioRay.ray.intersectPlane(plane,p))addObject('platform',p.x,p.z)}});
+window.addEventListener('keydown',e=>{if(state.mode!=='studio')return;if(['INPUT','TEXTAREA'].includes(document.activeElement?.tagName))return;const k=e.key.toLowerCase();if((e.ctrlKey||e.metaKey)&&k==='d'){e.preventDefault();duplicateSelected();return;}if(e.key==='Delete'||e.key==='Backspace'){e.preventDefault();if(editor.selected)ui.deleteSelected.click();return;}if(k==='1')return setEditorTool('select');if(k==='2')return setEditorTool('move');if(k==='3')return setEditorTool('scale');if(k==='f')return ui.focusSelected.click();if(k==='r'&&editor.selected)return selectObject(editor.selected,true);if(k==='w')editor.moveForward=true;else if(k==='s')editor.moveBack=true;else if(k==='a')editor.moveLeft=true;else if(k==='d')editor.moveRight=true;else if(k==='q')editor.moveDown=true;else if(k==='e')editor.moveUp=true;else if(k==='shift')editor.fast=true;});
+window.addEventListener('keyup',e=>{if(state.mode!=='studio')return;const k=e.key.toLowerCase();if(k==='w')editor.moveForward=false;else if(k==='s')editor.moveBack=false;else if(k==='a')editor.moveLeft=false;else if(k==='d')editor.moveRight=false;else if(k==='q')editor.moveDown=false;else if(k==='e')editor.moveUp=false;else if(k==='shift')editor.fast=false;});
 
-// ---------- routing + resize ----------
-$('playBtn').onclick=()=>enterGame(defaultLevel);$('studioBtn').onclick=()=>enterStudio();
-window.addEventListener('resize',()=>{if(g.renderer&&g.camera){g.renderer.setSize($('gameCanvas').clientWidth,$('gameCanvas').clientHeight);g.camera.aspect=$('gameCanvas').clientWidth/$('gameCanvas').clientHeight;g.camera.updateProjectionMatrix()}if(s.renderer&&s.camera){s.renderer.setSize($('studioCanvas').clientWidth,$('studioCanvas').clientHeight);s.camera.aspect=$('studioCanvas').clientWidth/$('studioCanvas').clientHeight;s.camera.updateProjectionMatrix()}});
+function resize(){const w=innerWidth,h=innerHeight;camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setPixelRatio(Math.min(devicePixelRatio,1.15));renderer.setSize(w,h)}addEventListener('resize',resize);
+
+buildLevel(level);
+let last=performance.now();function animate(now){const dt=Math.min(.033,(now-last)/1000||.016);last=now;state.time+=dt;if(state.mode==='playing')state.runTime+=dt;updateWorld(dt);updateEffects(dt);if(state.mode==='playing')updatePlayer(dt);if(state.mode==='studio'){updateStudioCamera(dt);if(studioOrbit)studioOrbit.update();updateStudioOutline();}else updateCamera(dt);renderer.render(scene,camera);requestAnimationFrame(animate)}
+(async()=>{for(let i=0;i<=100;i+=20){await new Promise(r=>setTimeout(r,40));ui.loadingBar.style.width=i+'%';ui.loadingText.textContent=['BUILDING THE SKY...','LOADING LEVEL DATA...','CHARGING KEYS...','OPENING DEV STUDIO...','READY'][i/20]}await new Promise(r=>setTimeout(r,220));ui.loading.classList.add('done');setMode('menu');requestAnimationFrame(animate)})();
