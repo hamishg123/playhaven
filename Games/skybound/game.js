@@ -144,7 +144,7 @@ function selectObject(obj,focus=false){editor.selected=obj||null;editor.selected
 function setEditorTool(tool){editor.tool=tool;ui.toolSelect?.classList.toggle('active',tool==='select');ui.toolMove?.classList.toggle('active',tool==='move');ui.toolScale?.classList.toggle('active',tool==='scale');if(studioTransform){studioTransform.detach();studioTransform.visible=false;if(editor.selectedMesh&&tool!=='select'){studioTransform.setMode(tool==='scale'?'scale':'translate');studioTransform.attach(editor.selectedMesh);studioTransform.visible=true}}studioStatus(tool==='select'?'SELECT TOOL • Click an object to select it':tool==='move'?'MOVE TOOL • Drag the colored arrows to move':'SCALE TOOL • Drag the boxes to resize')}
 function setupStudioCamera(){
   if(studioOrbit)studioOrbit.dispose();
-  studioOrbit=new OrbitControls(camera,ui.game);
+  studioOrbit=new OrbitControls(camera,renderer.domElement);
   studioOrbit.enableDamping=true; studioOrbit.dampingFactor=.10;
   studioOrbit.screenSpacePanning=true; studioOrbit.minDistance=3; studioOrbit.maxDistance=140;
   studioOrbit.maxPolarAngle=Math.PI-.05;
@@ -153,21 +153,28 @@ function setupStudioCamera(){
   studioOrbit.mouseButtons.MIDDLE=THREE.MOUSE.PAN;
   studioOrbit.target.set(0,2,-18); camera.position.set(0,18,28); studioOrbit.update();
   if(!studioTransform){
-    studioTransform=new TransformControls(camera,ui.game);
-    studioTransform.setSpace('world');
-    studioTransform.setTranslationSnap(editor.snapSize);
-    studioTransform.setScaleSnap(editor.snapSize/2);
-    studioTransform.addEventListener('dragging-changed',e=>{if(studioOrbit)studioOrbit.enabled=!e.value});
-    studioTransform.addEventListener('objectChange',()=>{
-      const o=editor.selected,m=editor.selectedMesh;if(!o||!m)return;
-      o.x=snap(m.position.x); o.y=snap(m.position.y); o.z=snap(m.position.z);
-      if(editor.tool==='scale' && (o.type==='platform'||o.type==='wall'||o.type==='door'||o.type==='hazard')){
-        o.w=Math.max(.25,snap(o.w*m.scale.x)); o.h=Math.max(.25,snap(o.h*m.scale.y)); o.d=Math.max(.25,snap(o.d*m.scale.z));
-        m.scale.set(1,1,1);
-      }
-      m.position.set(o.x,o.y,o.z); syncSelected(o); updateStudioOutline();
-    });
-    scene.add(studioTransform);
+    try {
+      const dom = renderer && renderer.domElement ? renderer.domElement : ui.game;
+      if(!dom) throw new Error('Studio canvas not available');
+      studioTransform=new TransformControls(camera,dom);
+      studioTransform.setSpace('world');
+      studioTransform.setTranslationSnap(editor.snapSize);
+      studioTransform.setScaleSnap(editor.snapSize/2);
+      studioTransform.addEventListener('dragging-changed',e=>{if(studioOrbit)studioOrbit.enabled=!e.value});
+      studioTransform.addEventListener('objectChange',()=>{
+        const o=editor.selected,m=editor.selectedMesh;if(!o||!m)return;
+        o.x=snap(m.position.x); o.y=snap(m.position.y); o.z=snap(m.position.z);
+        if(editor.tool==='scale' && (o.type==='platform'||o.type==='wall'||o.type==='door'||o.type==='hazard')){
+          o.w=Math.max(.25,snap(o.w*m.scale.x)); o.h=Math.max(.25,snap(o.h*m.scale.y)); o.d=Math.max(.25,snap(o.d*m.scale.z));
+          m.scale.set(1,1,1);
+        }
+        m.position.set(o.x,o.y,o.z); syncSelected(o); updateStudioOutline();
+      });
+      scene.add(studioTransform);
+    } catch(err) {
+      console.warn('Transform gizmo disabled:', err);
+      studioTransform=null;
+    }
   }
   if(!studioGrid){studioGrid=new THREE.GridHelper(160,160,0x3e6477,0x183245);studioGrid.position.y=0;scene.add(studioGrid);}
   setEditorTool(editor.tool); updateStudioOutline();
