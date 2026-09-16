@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Skybound — 3D Platformer</title>
+  <link rel="stylesheet" href="style.css" />
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.162.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.162.0/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body>
+  <div id="app">
+    <canvas id="game"></canvas>
+
+    <div id="vignette"></div>
+    <div id="flash"></div>
+
+    <div id="menu" class="screen">
+      <div class="menu-glow"></div>
+      <div class="logo-wrap">
+        <div class="eyebrow">A PLAYABLE 3D PLATFORMER</div>
+        <h1>SKYBOUND</h1>
+        <p class="tagline">Leap. Explore. Rise above.</p>
+      </div>
+
+      <div class="menu-card">
+        <button id="playBtn" class="primary-btn">PLAY</button>
+        <button id="howBtn" class="secondary-btn">HOW TO PLAY</button>
+        <div class="menu-stats">
+          <span>BEST SCORE <b id="bestScoreMenu">0</b></span>
+          <span>BUILD <b>01</b></span>
+        </div>
+      </div>
+
+      <div id="howPanel" class="how-panel hidden">
+        <div class="panel-head"><span>CONTROLS</span><button id="closeHow">×</button></div>
+        <div class="control-grid">
+          <div><strong>W / A / S / D</strong><small>Move</small></div>
+          <div><strong>SPACE</strong><small>Jump / Double Jump</small></div>
+          <div><strong>SHIFT</strong><small>Dash / Air Dash</small></div>
+          <div><strong>MOUSE</strong><small>Turn camera</small></div>
+          <div><strong>ESC</strong><small>Pause</small></div>
+          <div><strong>R</strong><small>Restart</small></div>
+        </div>
+        <p>Chain shards and enemy stomps for combo points, bounce from super-jump pads, ride moving platforms, hit boost pads, and reach the glowing summit portal.</p>
+      </div>
+
+      <div class="footer-note">Runs fully in your browser • Three.js • No game engine required</div>
+    </div>
+
+    <div id="hud" class="hidden">
+      <div class="hud-top">
+        <div class="brand-chip">SKYBOUND <span>01</span></div>
+        <div class="stats-row">
+          <div class="stat"><span>SHARDS</span><b id="shardsHud">0 / 18</b></div>
+          <div class="stat"><span>SCORE</span><b id="scoreHud">0</b></div>
+          <div class="stat"><span>BEST</span><b id="bestHud">0</b></div>
+        </div>
+      </div>
+
+      <div class="hud-bottom">
+        <div class="health-wrap">
+          <div class="health-label"><span>VITALS</span><b id="healthText">100%</b></div>
+          <div class="health-bar"><i id="healthBar"></i></div>
+        </div>
+        <div class="checkpoint">CHECKPOINT <b id="checkpointHud">START</b></div>
+      </div>
+
+      <div id="messageToast" class="toast"></div>
+      <div id="reticle" class="reticle"><span></span></div>
+    </div>
+
+    <div id="pauseScreen" class="screen overlay hidden">
+      <div class="pause-card">
+        <div class="eyebrow">RUN PAUSED</div>
+        <h2>TAKE A BREATH</h2>
+        <p>Keep exploring when you're ready.</p>
+        <button id="resumeBtn" class="primary-btn">RESUME</button>
+        <button id="restartPauseBtn" class="secondary-btn">RESTART RUN</button>
+        <button id="homePauseBtn" class="ghost-btn">MAIN MENU</button>
+      </div>
+    </div>
+
+    <div id="gameOverScreen" class="screen overlay hidden">
+      <div class="pause-card">
+        <div class="eyebrow">RUN TERMINATED</div>
+        <h2 id="gameOverTitle">FALLEN</h2>
+        <p id="gameOverText">The sky can wait.</p>
+        <div class="results">
+          <div><span>SCORE</span><b id="gameOverScore">0</b></div>
+          <div><span>SHARDS</span><b id="gameOverShards">0</b></div>
+        </div>
+        <button id="retryBtn" class="primary-btn">TRY AGAIN</button>
+        <button id="homeGameOverBtn" class="ghost-btn">MAIN MENU</button>
+      </div>
+    </div>
+
+    <div id="victoryScreen" class="screen overlay hidden">
+      <div class="pause-card victory-card">
+        <div class="eyebrow">SUMMIT REACHED</div>
+        <h2>YOU MADE IT</h2>
+        <p>The portal is open. The whole sky is yours.</p>
+        <div class="results">
+          <div><span>SCORE</span><b id="victoryScore">0</b></div>
+          <div><span>SHARDS</span><b id="victoryShards">0</b></div>
+        </div>
+        <button id="victoryRetryBtn" class="primary-btn">PLAY AGAIN</button>
+        <button id="victoryHomeBtn" class="ghost-btn">MAIN MENU</button>
+      </div>
+    </div>
+
+    <div id="loading" class="loading-screen">
+      <div class="loading-mark">S</div>
+      <div class="loading-line"><i id="loadingBar"></i></div>
+      <div id="loadingText">BUILDING THE SKY...</div>
+    </div>
+  </div>
+
+  <script type="module" src="game.js"></script>
+</body>
+</html>

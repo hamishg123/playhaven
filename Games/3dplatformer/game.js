@@ -108,67 +108,146 @@ function addPortal(x,y,z){
   const g=new THREE.Group();g.position.set(x,y,z);const ring=new THREE.Mesh(geo.torus(2.25,.24,16,64),MAT.portal);ring.rotation.x=Math.PI/2;g.add(ring);const inner=new THREE.Mesh(new THREE.CircleGeometry(1.95,48),new THREE.MeshBasicMaterial({color:0x5bdfff,transparent:true,opacity:.15,side:THREE.DoubleSide}));inner.rotation.x=-Math.PI/2;g.add(inner);const l=new THREE.PointLight(0x64ddff,8,20);g.add(l);dynamic.add(g);portal={group:g,x,y,z};}
 
 function buildWorld(){
-  // Ground + opening area
-  addPlatform(0,-.65,0,36,36,1,MAT.rockDark);
-  addPlatform(0,.0,0,22,22,.8,MAT.grass);
-  addPlatform(-16,2,-1,9,9,1.1,MAT.grass2);
-  addPlatform(-28,4,-1,8,8,1.1,MAT.rock);
-  addPlatform(-38,6,2,7,9,1.1,MAT.grass2);
-  addPlatform(-47,8,-2,8,8,1.1,MAT.grass);
-  addPlatform(-57,11,-5,8,8,1.1,MAT.rock);
-  addPlatform(-67,14,-8,10,10,1.1,MAT.grass2);
+  // SKYBOUND 2.0 — a more deliberate adventure route with distinct zones.
+  // Start plaza -> Green Run -> Ember Canyon -> Sky Ruins -> Summit.
 
-  // Central route
-  addPlatform(10,2,-12,10,8,1.0,MAT.grass);
-  addPlatform(19,4,-19,8,8,1.0,MAT.rock);
-  addPlatform(28,6,-14,8,8,1.0,MAT.grass2);
-  addPlatform(38,8,-21,11,9,1.0,MAT.grass);
-  addPlatform(50,11,-13,8,8,1.0,MAT.rock);
-  addPlatform(61,14,-21,10,9,1.0,MAT.grass2);
+  // --- START PLAZA / HUB ---
+  addPlatform(0,-.65,4,32,30,1,MAT.rockDark);
+  addPlatform(0,.0,4,22,18,.8,MAT.grass);
+  addPlatform(-9,1.8,-5,8,7,1.0,MAT.grass2);
+  addPlatform(8,2.2,-5,8,7,1.0,MAT.grass2);
+  addPlatform(0,3.6,-9,7,6,1.0,MAT.rock);
 
-  // Far summit branch
-  addPlatform(56,17,-34,9,8,1.0,MAT.grass);
-  addPlatform(46,20,-40,8,8,1.0,MAT.rock);
-  addPlatform(34,23,-36,8,8,1.0,MAT.grass2);
-  addPlatform(22,26,-44,11,9,1.0,MAT.grass);
-  addPlatform(8,29,-39,8,8,1.0,MAT.rock);
-  addPlatform(-5,32,-46,12,10,1.2,MAT.grass2);
-  addPlatform(-20,35,-39,10,10,1.2,MAT.grass);
-  addPlatform(-35,39,-46,13,11,1.2,MAT.rock);
+  // --- ZONE 1: GREEN RUN ---
+  addPlatform(-7,4.5,-15,7,7,1.0,MAT.grass);
+  addPlatform(-15,6.8,-20,7,7,1.0,MAT.grass2);
+  addPlatform(-24,9.4,-17,8,8,1.0,MAT.grass);
+  addPlatform(-31,12.0,-23,7,7,1.0,MAT.rock);
+  addPlatform(-39,14.7,-18,9,8,1.0,MAT.grass2);
+  addPlatform(-48,17.4,-25,8,8,1.0,MAT.grass);
+  addPlatform(-58,20.3,-20,10,9,1.0,MAT.rock);
 
-  // Shortcut / floating stepping stones
-  const stones=[[-3,4,-11,4,4],[-6,6,-16,4,4],[-10,8,-20,4,4],[-14,11,-24,5,4],[-10,15,-31,5,5],[0,18,-29,4,4],[11,21,-30,5,5]];
-  stones.forEach(s=>addPlatform(s[0],s[1],s[2],s[3],s[4],.9,MAT.rock));
+  // Alternate upper shortcut through Green Run
+  addMovingPlatform(-10,10.2,-10,4.4,3.4,.9,2.0,0,1.1,.3);
+  addPlatform(-18,13.3,-9,5,5,.9,MAT.rock);
+  addPlatform(-28,16.2,-7,5,5,.9,MAT.grass2);
+  addPlatform(-38,19.1,-12,5.5,5.5,.9,MAT.rock);
+  addSpring(-7,2.8,-7,.95);
+  addSpring(-39,16.2,-12,.95);
 
-  // High-speed movement toys
-  addMovingPlatform(3,4.5,-8,4.5,3.5,.9,0,3.2,1.25,.2);
-  addMovingPlatform(14,10,-27,4.5,3.5,.9,3.5,0,1.05,1.7);
-  addMovingPlatform(-12,21,-36,4.2,3.8,.9,0,3.0,1.3,.8);
-  addSpring(-3,3.0,-8,1.0);addSpring(16,5.0,-16,1.0);addSpring(41,9.0,-18,1.0);addSpring(11,22.0,-31,1.0);
-  addBoostPad(1,0.5,8,0,-1);addBoostPad(36,8.5,-18,1,-.2);addBoostPad(-23,35.5,-39,-.8,-.2);
+  // --- ZONE 2: EMBER CANYON ---
+  addPlatform(-58,23.7,-31,11,7,1.0,MAT.rock);
+  addPlatform(-49,26.8,-39,7,6,1.0,MAT.rockDark);
+  addPlatform(-38,30.0,-34,7,6,1.0,MAT.rock);
+  addPlatform(-27,33.3,-42,8,7,1.0,MAT.grass2);
+  addPlatform(-16,36.8,-35,7,7,1.0,MAT.rock);
+  addPlatform(-7,40.2,-44,10,8,1.1,MAT.grass);
 
-  // Decorative rocks
-  for(let i=0;i<30;i++){
-    const x=(Math.random()-.5)*100,z=(Math.random()-.5)*70;
-    if(Math.abs(x)<10&&Math.abs(z)<10) continue;
-    addRockCluster(x,-.3,z,.45+Math.random()*.55,3+Math.floor(Math.random()*4));
+  // Canyon crossing: moving islands + jump pad
+  addMovingPlatform(-43,35.8,-52,4.6,3.7,.9,0,4.2,1.25,1.3);
+  addMovingPlatform(-28,39.2,-53,4.3,3.7,.9,3.6,0,1.0,.7);
+  addMovingPlatform(-12,42.8,-54,4.5,3.6,.9,0,3.8,1.2,.2);
+  addBoostPad(-7,40.8,-40,0,-1);
+  addHazard(-49,27.5,-39,2.2,1.7);
+  addHazard(-27,34.0,-42,2.0,2.0);
+
+  // --- ZONE 3: SKY RUINS ---
+  addPlatform(2,44.0,-37,8,7,1.0,MAT.rock);
+  addPlatform(12,47.8,-28,7,6,1.0,MAT.grass2);
+  addPlatform(22,51.4,-36,7,7,1.0,MAT.rock);
+  addPlatform(32,55.0,-27,9,7,1.0,MAT.grass);
+  addPlatform(43,58.4,-36,8,8,1.0,MAT.grass2);
+  addPlatform(54,62.0,-28,10,9,1.1,MAT.rock);
+
+  // Ruin bridges / side route
+  addPlatform(5,47.0,-50,6,5,.9,MAT.rockDark);
+  addPlatform(16,51.0,-48,5,5,.9,MAT.rockDark);
+  addPlatform(27,55.0,-50,5,5,.9,MAT.rockDark);
+  addMovingPlatform(38,59.0,-48,5.0,3.5,.9,0,4.5,.95,.9);
+  addSpring(22,53.0,-36,1.0);
+  addBoostPad(43,59.0,-36,0,1);
+
+  // --- ZONE 4: SUMMIT ASCENT ---
+  addPlatform(64,66.0,-39,10,9,1.1,MAT.grass);
+  addPlatform(58,70.0,-51,8,7,1.1,MAT.rock);
+  addPlatform(47,74.0,-58,8,8,1.1,MAT.grass2);
+  addPlatform(35,78.0,-53,9,8,1.1,MAT.grass);
+  addPlatform(23,82.0,-62,7,7,1.1,MAT.rock);
+  addPlatform(10,86.0,-55,8,8,1.1,MAT.grass2);
+  addPlatform(-4,90.0,-63,12,10,1.3,MAT.rock);
+
+  // Final staircase / gauntlet
+  addPlatform(-18,94.0,-54,7,7,1.1,MAT.grass);
+  addPlatform(-30,98.0,-62,7,7,1.1,MAT.rock);
+  addPlatform(-42,102.0,-55,7,7,1.1,MAT.grass2);
+  addPlatform(-54,106.0,-63,14,11,1.3,MAT.rock);
+
+  // Moving finale and launch pad to portal
+  addMovingPlatform(-18,100.5,-70,4.8,3.8,.9,5.0,0,1.15,1.2);
+  addMovingPlatform(-38,105.0,-70,4.8,3.8,.9,0,5.0,1.1,2.2);
+  addSpring(-54,107.0,-57,1.1);
+  addPortal(-54,108.8,-63);
+
+  // --- LANDMARKS / VISUAL STORYTELLING ---
+  // Giant canyon pillars.
+  for(const [x,z,h,r] of [[-62,-31,12,2.3],[-50,-48,17,2.1],[-23,-49,13,2.0],[4,-29,16,2.4],[34,-18,20,2.6],[56,-22,15,2.2]]){
+    const p=addBox(world,MAT.rockDark,[x,h/2-0.5,z],[r*1.5,h,r*1.5]);
+    p.rotation.y=Math.random()*Math.PI;
+  }
+  // Ruined arches.
+  for(const [x,y,z] of [[22,55,-36],[43,62,-36],[-30,101,-62]]){
+    addBox(world,MAT.rockDark,[x-2,y+2,z],[1.1,5.2,1.1]);
+    addBox(world,MAT.rockDark,[x+2,y+2,z],[1.1,5.2,1.1]);
+    addBox(world,MAT.rockDark,[x,y+4.4,z],[5.2,1.1,1.1]);
+  }
+  // Small rock scatter keeps the empty sky from feeling sterile.
+  for(let i=0;i<55;i++){
+    const x=(Math.random()*2-1)*85,z=-5-Math.random()*78;
+    const s=.5+Math.random()*1.3;
+    addRockCluster(x,-.1+Math.random()*2,z,s,2+Math.floor(Math.random()*3));
   }
 
-  // Shards along the route
-  [[-5,2,0],[-15,4,-1],[-28,6,-1],[-38,8,2],[-47,10,-2],[-57,13,-5],[-67,16,-8],
-   [8,3,-12],[19,5,-19],[28,7,-14],[38,9,-21],[50,12,-13],[61,15,-21],
-   [55,18,-34],[46,21,-40],[34,24,-36],[22,27,-44],[8,30,-39],[-5,33,-46],[-20,36,-39],[-35,40,-46]]
-   .forEach(p=>addShard(p[0],p[1]+1.5,p[2]));
+  // --- COLLECTIBLES ---
+  [
+    [0,2.6,4],[-7,6.1,-15],[-15,8.5,-20],[-24,11.1,-17],[-31,13.7,-23],[-39,16.4,-18],[-48,19.1,-25],[-58,22.0,-20],
+    [-10,11.8,-10],[-18,15,-9],[-28,17.9,-7],[-38,20.8,-12],
+    [-58,25.5,-31],[-49,28.6,-39],[-38,31.8,-34],[-27,35.1,-42],[-16,38.6,-35],[-7,42,-44],
+    [-43,37.6,-52],[-28,41,-53],[-12,44.6,-54],
+    [2,46,-37],[12,49.8,-28],[22,53.4,-36],[32,57,-27],[43,60.4,-36],[54,64,-28],
+    [5,49,-50],[16,53,-48],[27,57,-50],[38,61,-48],
+    [64,68,-39],[58,72,-51],[47,76,-58],[35,80,-53],[23,84,-62],[10,88,-55],[-4,92,-63],[-18,96,-54],[-30,100,-62],[-42,104,-55]
+  ].forEach(([x,y,z])=>addShard(x,y+1.5,z));
 
-  // Hazards and enemies
-  addHazard(4,.52,3,2.4,2.4);addHazard(-4,.52,-4,2.2,2.2);addHazard(24,4.52,-20,2.1,2.1);addHazard(60,14.52,-21,2.1,2.1);
-  addEnemy(7,2,-5,5);addEnemy(31,6,-18,4);addEnemy(53,11,-13,4);addEnemy(-33,39,-46,5);addEnemy(-4,32,-46,4);
-  addCheckpoint(-15,4,-1,'CANYON');addCheckpoint(28,6,-14,'MID SKY');addCheckpoint(-5,32,-46,'SUMMIT');
-  addPortal(-35,40.5,-46);
+  // --- ENEMIES / HAZARDS ---
+  addEnemy(-15,6.8,-20,3.2);
+  addEnemy(-39,14.7,-18,4.2);
+  addEnemy(-27,33.3,-42,3.0);
+  addEnemy(-12,42.8,-54,3.5);
+  addEnemy(22,51.4,-36,3.8);
+  addEnemy(43,58.4,-36,4.5);
+  addEnemy(35,78,-53,3.5);
+  addEnemy(-30,98,-62,4.0);
+  addHazard(8,2.2,0,2.8,2.4);
+  addHazard(-31,12.8,-23,2.1,2.0);
+  addHazard(-16,37.5,-35,2.0,1.8);
+  addHazard(32,56,-27,2.5,2.0);
+  addHazard(54,63,-28,2.5,2.0);
+  addHazard(-42,103,-55,2.4,2.4);
 
-  // Wind particles
-  const pGeo=new THREE.BufferGeometry();const arr=[];for(let i=0;i<900;i++){arr.push((Math.random()-.5)*180,Math.random()*55-2,(Math.random()-.5)*110)}pGeo.setAttribute('position',new THREE.Float32BufferAttribute(arr,3));const pm=new THREE.PointsMaterial({color:0xa4eaff,size:.06,transparent:true,opacity:.45});particles.add(new THREE.Points(pGeo,pm));
+  // --- CHECKPOINTS ---
+  addCheckpoint(-15,6.8,-20,'GREEN RUN');
+  addCheckpoint(-16,36.8,-35,'EMBER CANYON');
+  addCheckpoint(22,51.4,-36,'SKY RUINS');
+  addCheckpoint(23,82,-62,'SUMMIT RIDGE');
+
+  // Wind / altitude particles.
+  const pGeo=new THREE.BufferGeometry();const arr=[];
+  for(let i=0;i<1400;i++) arr.push((Math.random()-.5)*190,Math.random()*115-4,-Math.random()*100-2);
+  pGeo.setAttribute('position',new THREE.Float32BufferAttribute(arr,3));
+  const pm=new THREE.PointsMaterial({color:0xa4eaff,size:.055,transparent:true,opacity:.42});
+  particles.add(new THREE.Points(pGeo,pm));
 }
+
 buildWorld();
 
 // Player
@@ -214,7 +293,7 @@ function updatePlayer(dt){
   state.comboTimer=Math.max(0,state.comboTimer-dt);if(state.comboTimer<=0)state.combo=0;
   const input=getMoveInput();
   if(jumpPressed())pstate.jumpBuffer=.14;
-  const forward=new THREE.Vector3(-Math.sin(cameraRig.yaw),0,-Math.cos(cameraRig.yaw));
+  const forward=new THREE.Vector3(Math.sin(cameraRig.yaw),0,Math.cos(cameraRig.yaw));
   const right=new THREE.Vector3(Math.cos(cameraRig.yaw),0,-Math.sin(cameraRig.yaw));
   const dir=new THREE.Vector3();dir.addScaledVector(right,input.x).addScaledVector(forward,input.z);if(dir.lengthSq()>0)dir.normalize();
   const sprint=(keys.ShiftLeft||keys.ShiftRight);const targetSpeed=sprint?10.5:7.8;const accel=pstate.grounded?31:18;
@@ -268,9 +347,9 @@ function updateWorld(dt){
 
 function updateCamera(dt){
   if(state.mode==='menu'){cameraRig.yaw+=dt*.065;cameraRig.pitch=.28;cameraRig.distance=11;cameraRig.height=4.9;
-    const focus=new THREE.Vector3(0,4,-8);const target=new THREE.Vector3(focus.x+Math.sin(cameraRig.yaw)*cameraRig.distance,focus.y+cameraRig.height,focus.z+Math.cos(cameraRig.yaw)*cameraRig.distance);camera.position.lerp(target,1-Math.exp(-2.1*dt));camera.lookAt(focus);return}
+    const focus=new THREE.Vector3(0,4,-8);const target=new THREE.Vector3(focus.x-Math.sin(cameraRig.yaw)*cameraRig.distance,focus.y+cameraRig.height,focus.z-Math.cos(cameraRig.yaw)*cameraRig.distance);camera.position.lerp(target,1-Math.exp(-2.1*dt));camera.lookAt(focus);return}
   cameraRig.yaw-=mouseDX*.0025;cameraRig.pitch=clamp(cameraRig.pitch-mouseDY*.0017,-.05,.65);mouseDX=0;mouseDY=0;
-  const offset=new THREE.Vector3(Math.sin(cameraRig.yaw)*cameraRig.distance,Math.sin(cameraRig.pitch)*cameraRig.distance*.7+cameraRig.height,Math.cos(cameraRig.yaw)*cameraRig.distance);
+  const offset=new THREE.Vector3(-Math.sin(cameraRig.yaw)*cameraRig.distance,Math.sin(cameraRig.pitch)*cameraRig.distance*.7+cameraRig.height,-Math.cos(cameraRig.yaw)*cameraRig.distance);
   const desired=player.position.clone().add(new THREE.Vector3(offset.x,offset.y,offset.z));
   camera.position.lerp(desired,1-Math.exp(-7*dt));
   const look=player.position.clone().add(new THREE.Vector3(0,1.2,0));camera.lookAt(look);
