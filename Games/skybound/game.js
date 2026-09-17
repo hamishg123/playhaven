@@ -800,7 +800,7 @@ function updateCamera(dt) {
 }
 
 const editor = { selected: null, selectedMesh: null, tool: 'select', snap: true, snapSize: 1, moveForward: false, moveBack: false, moveLeft: false, moveRight: false, moveUp: false, moveDown: false, fast: false };
-let studioOrbit = null, studioTransform = null, studioTransformHelper = null, studioGrid = null, studioOutline = null;
+let studioOrbit = null, studioTransform = null, studioTransformHelper = null, studioGrid = null, studioOutline = null, studioDomGizmo = null, studioDomDrag = null;
 const studioRay = new THREE.Raycaster();
 const studioMouse = new THREE.Vector2();
 const studioOrbitInput = { active: false, lastX: 0, lastY: 0 };
@@ -898,6 +898,7 @@ function setEditorTool(tool) {
   studioStatus(tool === 'select' ? 'SELECT TOOL • Click an object to select it' : tool === 'move' ? 'MOVE TOOL • Drag the colored arrows to move' : 'SCALE TOOL • Drag the boxes to resize');
 }
 function setupStudioCamera() {
+  ensureDomGizmo();
   studioOrbit?.dispose();
   studioOrbit = new OrbitControls(camera, renderer.domElement);
   studioOrbit.enableDamping = true;
@@ -986,6 +987,51 @@ function updateStudioOutline() {
   studioOutline.material.opacity = 0.95;
   studioOutline.material.depthTest = false;
   studioOutline.renderOrder = 20;
+}
+function ensureDomGizmo() {
+  if (studioDomGizmo) return;
+  studioDomGizmo = document.createElement('div');
+  studioDomGizmo.className = 'studio-gizmo-overlay';
+  const handles = [['x', 'axis'], ['y', 'axis'], ['z', 'axis'], ['nw', 'scale'], ['ne', 'scale'], ['sw', 'scale'], ['se', 'scale']];
+  for (const [name, kind] of handles) {
+    const handle = document.createElement('button');
+    handle.className = `studio-gizmo-handle studio-gizmo-${kind} ${name}`;
+    handle.dataset.axis = name;
+    if (kind === 'axis') { handle.innerHTML = '<i class="studio-gizmo-tip"></i>'; }
+    handle.addEventListener('pointerdown', (event) => {
+      if (state.mode !== 'studio' || !editor.selected || editor.tool === 'select') return;
+      event.preventDefault(); event.stopPropagation();
+      studioDomDrag = { axis: name, x: event.clientX, y: event.clientY, object: editor.selected, tool: editor.tool };
+      handle.setPointerCapture?.(event.pointerId);
+      studioStatus(`${editor.tool === 'scale' ? 'SCALING' : 'MOVING'} ${name.toUpperCase()} • Release mouse to commit`);
+    });
+    handle.addEventListener('pointermove', (event) => {
+      if (!studioDomDrag) return;
+      event.preventDefault(); event.stopPropagation();
+      const drag = studioDomDrag; const dx = event.clientX - drag.x; const dy = event.clientY - drag.y; const object = drag.object;
+      if (drag.tool === 'move') {
+        if (drag.axis.includes('x') || drag.axis === 'nw' || drag.axis === 'sw') object.x = snap(object.x + dx * 0.025);
+        if (drag.axis.includes('y') || drag.axis === 'nw' || drag.axis === 'ne') object.y = snap(object.y - dy * 0.025);
+        if (drag.axis === 'z') object.z = snap(object.z + dx * 0.025);
+      } else {
+        const factor = clamp(1 + (dx - dy) * 0.004, 0.1, 4);
+        object.w = Math.max(0.25, snap((object.w || 1) * factor)); object.h = Math.max(0.25, snap((object.h || 1) * factor)); object.d = Math.max(0.25, snap((object.d || 1) * factor));
+      }
+      drag.x = event.clientX; drag.y = event.clientY; buildLevel(level); selectObject(object, false);
+    });
+    handle.addEventListener('pointerup', (event) => { if (studioDomDrag) { event.preventDefault(); event.stopPropagation(); studioDomDrag = null; studioStatus(editor.tool === 'scale' ? 'SCALE TOOL • Drag the colored boxes to resize' : 'MOVE TOOL • Drag the colored arrows to move'); } });
+    studioDomGizmo.append(handle);
+  }
+  document.querySelector('.studio-main').append(studioDomGizmo);
+}
+function updateDomGizmo() {
+  if (!studioDomGizmo || state.mode !== 'studio' || !editor.selectedMesh || editor.tool === 'select') { if (studioDomGizmo) studioDomGizmo.style.display = 'none'; return; }
+  studioDomGizmo.style.display = 'block';
+  const rect = ui.game.getBoundingClientRect(); const main = document.querySelector('.studio-main').getBoundingClientRect();
+  const p = editor.selectedMesh.position.clone().project(camera); const x = rect.left + (p.x + 1) * rect.width / 2 - main.left; const y = rect.top + (1 - p.y) * rect.height / 2 - main.top;
+  const set = (selector, left, top, transform = '') => { const node = studioDomGizmo.querySelector(selector); if (node) { node.style.left = `${left}px`; node.style.top = `${top}px`; node.style.transform = transform; } };
+  set('.x', x, y - 5); set('.y', x - 5, y, 'rotate(-90deg)'); set('.z', x, y - 5, 'rotate(35deg)');
+  set('.nw', x - 86, y - 86); set('.ne', x + 70, y - 86); set('.sw', x - 86, y + 70); set('.se', x + 70, y + 70);
 }
 function updateStudioCamera(dt) {
   if (state.mode !== 'studio' || !studioOrbit) return;
@@ -1341,6 +1387,7 @@ function animate(now) {
     updateStudioCamera(dt);
     studioOrbit?.update();
     updateStudioOutline();
+    updateDomGizmo();
   } else updateCamera(dt);
   renderer.render(scene, camera);
   requestAnimationFrame(animate);

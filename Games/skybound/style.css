@@ -12,3 +12,14 @@
 .studio-sidebar { position: relative; z-index: 5; }
 .studio-main { user-select: none; cursor: grab; }
 .studio-main:active { cursor: grabbing; }
+
+/* Roblox-style viewport transform handles. */
+.studio-gizmo-overlay{position:absolute;inset:0;pointer-events:none;z-index:8;user-select:none}
+.studio-gizmo-handle{position:absolute;pointer-events:auto;display:block;border:0;padding:0;filter:drop-shadow(0 0 5px rgba(0,0,0,.75));cursor:grab;touch-action:none}
+.studio-gizmo-handle:active{cursor:grabbing}
+.studio-gizmo-axis{height:10px;border-radius:6px;transform-origin:left center}
+.studio-gizmo-axis.x{width:110px;background:#ff3d4f}.studio-gizmo-axis.y{width:110px;background:#5dff72;transform:rotate(-90deg)}.studio-gizmo-axis.z{width:110px;background:#4e8dff;transform:rotate(35deg)}
+.studio-gizmo-tip{position:absolute;width:0;height:0;border-top:9px solid transparent;border-bottom:9px solid transparent}
+.studio-gizmo-handle.x .studio-gizmo-tip{right:-2px;top:-4px;border-left:16px solid #ff3d4f}.studio-gizmo-handle.y .studio-gizmo-tip{right:-2px;top:-4px;border-left:16px solid #5dff72}.studio-gizmo-handle.z .studio-gizmo-tip{right:-2px;top:-4px;border-left:16px solid #4e8dff}
+.studio-gizmo-scale{width:16px;height:16px;border:3px solid #ffd34e;background:rgba(255,211,78,.35);border-radius:3px;cursor:nwse-resize}
+.studio-gizmo-scale.ne{cursor:nesw-resize}.studio-gizmo-scale.sw{cursor:nesw-resize}
