@@ -918,7 +918,9 @@ function setupStudioCamera() {
     studioTransform = new TransformControls(camera, renderer.domElement);
     studioTransform.setSpace('world');
     studioTransform.setSize(1.25);
-    studioTransform.enabled = true;
+    // The visible controller is used as a gizmo surface; pointer math below
+    // performs the edit directly so OrbitControls cannot steal the drag.
+    studioTransform.enabled = false;
     studioTransform.showX = true;
     studioTransform.showY = true;
     studioTransform.showZ = true;
@@ -1151,11 +1153,83 @@ ui.snapSize.onchange = () => {
   studioTransform?.setScaleSnap(editor.snap ? editor.snapSize / 2 : null);
 };
 let studioPointer = null;
+let studioGizmoDrag = null;
+const studioGizmoRay = new THREE.Raycaster();
+const studioGizmoMouse = new THREE.Vector2();
+function gizmoAxisAt(clientX, clientY) {
+  if (!editor.selectedMesh || editor.tool === 'select') return null;
+  const rect = ui.game.getBoundingClientRect();
+  studioGizmoMouse.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+  studioGizmoMouse.y = -((clientY - rect.top) / rect.height) * 2 + 1;
+  studioGizmoRay.setFromCamera(studioGizmoMouse, camera);
+  const hits = studioTransformHelper?.visible ? studioGizmoRay.intersectObject(studioTransformHelper, true) : [];
+  const hit = hits.find((item) => ['X', 'Y', 'Z', 'XY', 'YZ', 'XZ', 'XYZ'].includes(item.object?.name));
+  if (hit?.object?.name) return hit.object.name;
+  // Some Three.js revisions do not expose the controller's internal picker
+  // meshes to Raycaster. Keep the visible arrows clickable with screen-space
+  // fallback zones around their projected endpoints.
+  const center = editor.selectedMesh.position.clone().project(camera);
+  const sx = rect.left + (center.x + 1) * rect.width / 2;
+  const sy = rect.top + (1 - center.y) * rect.height / 2;
+  const handles = [
+    ['X', sx + 105, sy], ['Y', sx, sy - 105], ['Z', sx, sy + 105],
+    ['XY', sx + 55, sy - 55], ['YZ', sx - 55, sy + 55], ['XZ', sx + 55, sy + 55]
+  ];
+  const nearest = handles.map(([name, x, y]) => ({ name, distance: Math.hypot(clientX - x, clientY - y) })).sort((a, b) => a.distance - b.distance)[0];
+  // Use a forgiving zone because the rendered gizmo can be visually scaled
+  // by the browser while the canvas keeps its internal pixel dimensions.
+  if (nearest?.distance <= 140) return nearest.name;
+  // Move/Scale modes are intentionally transform-first: if a user misses a
+  // thin arrow by a few pixels, still start an axis drag from the gizmo area
+  // rather than silently falling back to camera movement.
+  const offsetX = clientX - sx;
+  const offsetY = clientY - sy;
+  if (Math.hypot(offsetX, offsetY) <= 300) return Math.abs(offsetX) >= Math.abs(offsetY) ? 'X' : 'Y';
+  return null;
+}
+function beginGizmoDrag(event) {
+  const axis = gizmoAxisAt(event.clientX, event.clientY);
+  if (!axis || !editor.selected) return false;
+  studioGizmoDrag = { axis, x: event.clientX, y: event.clientY, object: editor.selected, mesh: editor.selectedMesh };
+  studioTransform.userData.dragging = true;
+  studioStatus(editor.tool === 'scale' ? `SCALING ${axis} • Release mouse to commit` : `MOVING ${axis} • Release mouse to commit`);
+  studioOrbit.enabled = false;
+  ui.game.setPointerCapture?.(event.pointerId);
+  return true;
+}
+function updateGizmoDrag(event) {
+  if (!studioGizmoDrag) return;
+  const drag = studioGizmoDrag;
+  const dx = event.clientX - drag.x;
+  const dy = event.clientY - drag.y;
+  const amount = (dx - dy) * 0.018;
+  const object = drag.object;
+  if (editor.tool === 'move') {
+    if (drag.axis.includes('X')) object.x = snap(object.x + dx * 0.025);
+    if (drag.axis.includes('Y')) object.y = snap(object.y - dy * 0.025);
+    if (drag.axis.includes('Z')) object.z = snap(object.z + dx * 0.025);
+  } else {
+    const factor = clamp(1 + amount * 0.08, 0.1, 4);
+    if (drag.axis.includes('X')) object.w = Math.max(0.25, snap(object.w * factor));
+    if (drag.axis.includes('Y')) object.h = Math.max(0.25, snap(object.h * factor));
+    if (drag.axis.includes('Z')) object.d = Math.max(0.25, snap(object.d * factor));
+  }
+  drag.x = event.clientX;
+  drag.y = event.clientY;
+  buildLevel(level);
+  selectObject(object, false);
+}
+function endGizmoDrag(event) {
+  if (!studioGizmoDrag) return;
+  studioGizmoDrag = null;
+  studioTransform.userData.dragging = false;
+  studioOrbit.enabled = true;
+  ui.game.releasePointerCapture?.(event.pointerId);
+  studioStatus(editor.tool === 'scale' ? 'SCALE TOOL • Drag the colored boxes to resize' : 'MOVE TOOL • Drag the colored arrows to move');
+}
 ui.game.addEventListener('pointerdown', (event) => {
   if (state.mode !== 'studio' || event.button !== 0) return;
-  // In transform modes, TransformControls owns the entire pointer stream.
-  // Do not raycast, capture, or reattach the gizmo from this handler.
-  if (editor.tool !== 'select') return;
+  if (beginGizmoDrag(event)) return;
   const hit = objectAt(event.clientX, event.clientY);
   // Select immediately so a visible object is never lost to a competing
   // camera/transform pointer handler. The same gesture may still orbit.
@@ -1167,7 +1241,9 @@ ui.game.addEventListener('pointerdown', (event) => {
   ui.game.setPointerCapture?.(event.pointerId);
 });
 ui.game.addEventListener('pointermove', (event) => {
-  if (state.mode !== 'studio' || !studioPointer) return;
+  if (state.mode !== 'studio') return;
+  if (studioGizmoDrag) { updateGizmoDrag(event); return; }
+  if (!studioPointer) return;
   if (studioTransform?.userData.dragging) return;
   if (studioOrbitInput.active) {
     const dx = event.clientX - studioOrbitInput.lastX;
@@ -1183,7 +1259,9 @@ ui.game.addEventListener('pointermove', (event) => {
   if (Math.hypot(event.clientX - studioPointer.x, event.clientY - studioPointer.y) > 5) studioPointer.moved = true;
 });
 ui.game.addEventListener('pointerup', (event) => {
-  if (state.mode !== 'studio' || event.button !== 0 || !studioPointer) return;
+  if (state.mode !== 'studio' || event.button !== 0) return;
+  if (studioGizmoDrag) { endGizmoDrag(event); return; }
+  if (!studioPointer) return;
   const click = !studioPointer.moved;
   studioPointer = null;
   studioOrbitInput.active = false;
@@ -1192,7 +1270,7 @@ ui.game.addEventListener('pointerup', (event) => {
   const hit = objectAt(event.clientX, event.clientY);
   if (hit) selectObject(hit, true);
 });
-ui.game.addEventListener('pointercancel', () => { studioPointer = null; studioOrbitInput.active = false; });
+ui.game.addEventListener('pointercancel', (event) => { if (studioGizmoDrag) endGizmoDrag(event); studioPointer = null; studioOrbitInput.active = false; });
 window.addEventListener('keydown', (event) => {
   if (state.mode !== 'studio' || ['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)) return;
   const key = event.key.toLowerCase();
