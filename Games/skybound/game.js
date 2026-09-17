@@ -1005,6 +1005,12 @@ function ensureDomGizmo() {
       handle.setPointerCapture?.(event.pointerId);
       studioStatus(`${editor.tool === 'scale' ? 'SCALING' : 'MOVING'} ${name.toUpperCase()} • Release mouse to commit`);
     });
+    handle.addEventListener('mousedown', (event) => {
+      if (studioDomDrag || state.mode !== 'studio' || !editor.selected || editor.tool === 'select') return;
+      event.preventDefault(); event.stopPropagation();
+      studioDomDrag = { axis: name, x: event.clientX, y: event.clientY, object: editor.selected, tool: editor.tool };
+      studioStatus(`${editor.tool === 'scale' ? 'SCALING' : 'MOVING'} ${name.toUpperCase()} • Release mouse to commit`);
+    });
     studioDomGizmo.append(handle);
   }
   document.querySelector('.studio-main').append(studioDomGizmo);
@@ -1026,6 +1032,25 @@ function ensureDomGizmo() {
   window.addEventListener('pointerup', (event) => {
     if (!studioDomDrag) return;
     event.preventDefault(); studioDomDrag = null;
+    studioStatus(editor.tool === 'scale' ? 'SCALE TOOL • Drag the colored boxes to resize' : 'MOVE TOOL • Drag the colored arrows to move');
+  }, { capture: true });
+  window.addEventListener('mousemove', (event) => {
+    if (!studioDomDrag || event.buttons === 0) return;
+    const synthetic = { ...event, preventDefault: () => event.preventDefault() };
+    const drag = studioDomDrag; const dx = synthetic.clientX - drag.x; const dy = synthetic.clientY - drag.y; const object = drag.object;
+    if (drag.tool === 'move') {
+      if (drag.axis.includes('x') || drag.axis === 'nw' || drag.axis === 'sw') object.x = snap(object.x + dx * 0.025);
+      if (drag.axis.includes('y') || drag.axis === 'nw' || drag.axis === 'ne') object.y = snap(object.y - dy * 0.025);
+      if (drag.axis === 'z') object.z = snap(object.z + dx * 0.025);
+    } else {
+      const factor = clamp(1 + (dx - dy) * 0.004, 0.1, 4);
+      object.w = Math.max(0.25, snap((object.w || 1) * factor)); object.h = Math.max(0.25, snap((object.h || 1) * factor)); object.d = Math.max(0.25, snap((object.d || 1) * factor));
+    }
+    drag.x = synthetic.clientX; drag.y = synthetic.clientY; buildLevel(level); selectObject(object, false);
+  }, { capture: true });
+  window.addEventListener('mouseup', () => {
+    if (!studioDomDrag) return;
+    studioDomDrag = null;
     studioStatus(editor.tool === 'scale' ? 'SCALE TOOL • Drag the colored boxes to resize' : 'MOVE TOOL • Drag the colored arrows to move');
   }, { capture: true });
 }
@@ -1341,6 +1366,24 @@ ui.game.addEventListener('pointercancel', (event) => { if (studioGizmoDrag) endG
 ui.game.addEventListener('contextmenu', (event) => { if (state.mode === 'studio') event.preventDefault(); });
 window.addEventListener('keydown', (event) => {
   if (state.mode !== 'studio' || ['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)) return;
+  if (editor.selected && ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.code)) {
+    event.preventDefault();
+    const amount = event.shiftKey ? 0.25 : 1;
+    if (editor.tool === 'scale') {
+      const factor = event.code === 'ArrowLeft' || event.code === 'ArrowDown' ? 1 - amount * 0.05 : 1 + amount * 0.05;
+      editor.selected.w = Math.max(0.25, snap(editor.selected.w * factor));
+      editor.selected.h = Math.max(0.25, snap(editor.selected.h * factor));
+      editor.selected.d = Math.max(0.25, snap(editor.selected.d * factor));
+    } else if (editor.tool === 'move') {
+      if (event.code === 'ArrowLeft') editor.selected.x = snap(editor.selected.x - amount);
+      if (event.code === 'ArrowRight') editor.selected.x = snap(editor.selected.x + amount);
+      if (event.code === 'ArrowUp') editor.selected.y = snap(editor.selected.y + amount);
+      if (event.code === 'ArrowDown') editor.selected.y = snap(editor.selected.y - amount);
+    }
+    buildLevel(level); selectObject(editor.selected, false);
+    studioStatus(editor.tool === 'scale' ? 'SCALE TOOL • Arrow keys resize selected part' : 'MOVE TOOL • Arrow keys move selected part');
+    return;
+  }
   const key = event.key.toLowerCase();
   if ((event.ctrlKey || event.metaKey) && key === 'd') { event.preventDefault(); duplicateSelected(); return; }
   if (event.key === 'Delete' || event.key === 'Backspace') { event.preventDefault(); ui.deleteSelected.click(); return; }

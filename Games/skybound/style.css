@@ -23,3 +23,4 @@
 .studio-gizmo-handle.x .studio-gizmo-tip{right:-2px;top:-4px;border-left:16px solid #ff3d4f}.studio-gizmo-handle.y .studio-gizmo-tip{right:-2px;top:-4px;border-left:16px solid #5dff72}.studio-gizmo-handle.z .studio-gizmo-tip{right:-2px;top:-4px;border-left:16px solid #4e8dff}
 .studio-gizmo-scale{width:16px;height:16px;border:3px solid #ffd34e;background:rgba(255,211,78,.35);border-radius:3px;cursor:nwse-resize}
 .studio-gizmo-scale.ne{cursor:nesw-resize}.studio-gizmo-scale.sw{cursor:nesw-resize}
+.studio-gizmo-axis{height:28px;width:150px;margin-top:-9px;opacity:.18}.studio-gizmo-axis:hover,.studio-gizmo-axis:active{opacity:1}.studio-gizmo-scale{width:30px;height:30px;margin:-7px}.studio-gizmo-axis .studio-gizmo-tip{opacity:1}
