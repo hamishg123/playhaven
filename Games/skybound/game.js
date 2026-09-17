@@ -195,10 +195,13 @@ function platform(o) {
   const top = o.y + h / 2;
   if (o.type === 'platform') {
     const rimMaterial = (o.label || '').includes('SUMMIT') ? MAT.gold : MAT.moss;
-    addBox(world, rimMaterial, [o.x, top + 0.035, o.z - (o.d || 4) / 2 + 0.12], [o.w || 4, 0.07, 0.22], { castShadow: false });
-    addBox(world, rimMaterial, [o.x, top + 0.035, o.z + (o.d || 4) / 2 - 0.12], [o.w || 4, 0.07, 0.22], { castShadow: false });
-    addBox(world, rimMaterial, [o.x - (o.w || 4) / 2 + 0.12, top + 0.035, o.z], [0.22, 0.07, (o.d || 4) - 0.44], { castShadow: false });
-    addBox(world, rimMaterial, [o.x + (o.w || 4) / 2 - 0.12, top + 0.035, o.z], [0.22, 0.07, (o.d || 4) - 0.44], { castShadow: false });
+    const rims = [
+      addBox(world, rimMaterial, [o.x, top + 0.035, o.z - (o.d || 4) / 2 + 0.12], [o.w || 4, 0.07, 0.22], { castShadow: false }),
+      addBox(world, rimMaterial, [o.x, top + 0.035, o.z + (o.d || 4) / 2 - 0.12], [o.w || 4, 0.07, 0.22], { castShadow: false }),
+      addBox(world, rimMaterial, [o.x - (o.w || 4) / 2 + 0.12, top + 0.035, o.z], [0.22, 0.07, (o.d || 4) - 0.44], { castShadow: false }),
+      addBox(world, rimMaterial, [o.x + (o.w || 4) / 2 - 0.12, top + 0.035, o.z], [0.22, 0.07, (o.d || 4) - 0.44], { castShadow: false })
+    ];
+    rims.forEach((rim) => markEditorObject(rim, o));
     addIslandUnderside(o);
     addPlatformDressing(o);
   }
@@ -820,12 +823,17 @@ function refreshExplorer() {
 function studioSelectableRoots() {
   return [...platforms.map((item) => item.mesh), ...collectibles.map((item) => item.group), ...checkpoints.map((item) => item.group), ...enemies.map((item) => item.group), ...hazards.map((item) => item.mesh), ...doors.map((item) => item.group), ...goals.map((item) => item.group)];
 }
+function studioSelectableParts() {
+  const parts = [];
+  world.traverse((node) => { if (node.userData.levelObject) parts.push(node); });
+  return parts;
+}
 function objectAt(clientX, clientY) {
   const rect = ui.game.getBoundingClientRect();
   studioMouse.x = ((clientX - rect.left) / rect.width) * 2 - 1;
   studioMouse.y = -((clientY - rect.top) / rect.height) * 2 + 1;
   studioRay.setFromCamera(studioMouse, camera);
-  const hit = studioRay.intersectObjects(studioSelectableRoots(), true)[0];
+  const hit = studioRay.intersectObjects(studioSelectableParts(), true)[0];
   if (!hit) return null;
   let node = hit.object;
   while (node && node.parent && !node.userData.levelObject) node = node.parent;
@@ -907,7 +915,10 @@ function setupStudioCamera() {
     studioTransform.setSpace('world');
     studioTransform.setTranslationSnap(editor.snapSize);
     studioTransform.setScaleSnap(editor.snapSize / 2);
-    studioTransform.addEventListener('dragging-changed', (event) => { if (studioOrbit) studioOrbit.enabled = !event.value; });
+    studioTransform.addEventListener('dragging-changed', (event) => {
+      studioTransform.userData.dragging = event.value;
+      if (studioOrbit) studioOrbit.enabled = !event.value;
+    });
     studioTransform.addEventListener('objectChange', () => {
       const object = editor.selected;
       const mesh = editor.selectedMesh;
@@ -1110,6 +1121,10 @@ ui.snapSize.onchange = () => {
 let studioPointer = null;
 ui.game.addEventListener('pointerdown', (event) => {
   if (state.mode !== 'studio' || event.button !== 0) return;
+  const hit = objectAt(event.clientX, event.clientY);
+  // Select immediately so a visible object is never lost to a competing
+  // camera/transform pointer handler. The same gesture may still orbit.
+  if (hit) selectObject(hit, false);
   studioPointer = { x: event.clientX, y: event.clientY, moved: false };
   studioOrbitInput.active = true;
   studioOrbitInput.lastX = event.clientX;
@@ -1118,6 +1133,7 @@ ui.game.addEventListener('pointerdown', (event) => {
 });
 ui.game.addEventListener('pointermove', (event) => {
   if (state.mode !== 'studio' || !studioPointer) return;
+  if (studioTransform?.userData.dragging) return;
   if (studioOrbitInput.active) {
     const dx = event.clientX - studioOrbitInput.lastX;
     const dy = event.clientY - studioOrbitInput.lastY;
@@ -1140,14 +1156,6 @@ ui.game.addEventListener('pointerup', (event) => {
   if (!click || editor.tool !== 'select') return;
   const hit = objectAt(event.clientX, event.clientY);
   if (hit) selectObject(hit, true);
-  else {
-    const rect = ui.game.getBoundingClientRect();
-    studioMouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-    studioMouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-    studioRay.setFromCamera(studioMouse, camera);
-    const point = new THREE.Vector3();
-    if (studioRay.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), point)) addObject('platform', point.x, point.z);
-  }
 });
 ui.game.addEventListener('pointercancel', () => { studioPointer = null; studioOrbitInput.active = false; });
 window.addEventListener('keydown', (event) => {
