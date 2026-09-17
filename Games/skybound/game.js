@@ -917,6 +917,19 @@ function setupStudioCamera() {
     studioTransform.setScaleSnap(editor.snapSize / 2);
     studioTransform.addEventListener('dragging-changed', (event) => {
       studioTransform.userData.dragging = event.value;
+      if (event.value && editor.tool === 'scale' && editor.selected) {
+        studioTransform.userData.scaleBase = { w: editor.selected.w ?? 1, h: editor.selected.h ?? 1, d: editor.selected.d ?? 1 };
+      }
+      if (!event.value && editor.tool === 'scale' && editor.selected && studioTransform.userData.scaleBase) {
+        const object = editor.selected;
+        const mesh = editor.selectedMesh;
+        if (mesh) {
+          mesh.scale.set(1, 1, 1);
+          buildLevel(level);
+          selectObject(object, false);
+        }
+        studioTransform.userData.scaleBase = null;
+      }
       if (studioOrbit) studioOrbit.enabled = !event.value;
     });
     studioTransform.addEventListener('objectChange', () => {
@@ -927,10 +940,10 @@ function setupStudioCamera() {
       object.y = snap(mesh.position.y);
       object.z = snap(mesh.position.z);
       if (editor.tool === 'scale' && ['platform', 'wall', 'door', 'hazard'].includes(object.type)) {
-        object.w = Math.max(0.25, snap(object.w * mesh.scale.x));
-        object.h = Math.max(0.25, snap(object.h * mesh.scale.y));
-        object.d = Math.max(0.25, snap(object.d * mesh.scale.z));
-        mesh.scale.set(1, 1, 1);
+        const base = studioTransform.userData.scaleBase || { w: object.w, h: object.h, d: object.d };
+        object.w = Math.max(0.25, snap(base.w * mesh.scale.x));
+        object.h = Math.max(0.25, snap(base.h * mesh.scale.y));
+        object.d = Math.max(0.25, snap(base.d * mesh.scale.z));
       }
       mesh.position.set(object.x, object.y, object.z);
       syncSelected(object);
@@ -1125,6 +1138,10 @@ ui.game.addEventListener('pointerdown', (event) => {
   // Select immediately so a visible object is never lost to a competing
   // camera/transform pointer handler. The same gesture may still orbit.
   if (hit) selectObject(hit, false);
+  // TransformControls must receive the original pointer stream untouched;
+  // custom pointer capture here prevents its arrow/scale handles from seeing
+  // the drag. In Move/Scale mode, only use this event for selecting a part.
+  if (editor.tool !== 'select') return;
   studioPointer = { x: event.clientX, y: event.clientY, moved: false };
   studioOrbitInput.active = true;
   studioOrbitInput.lastX = event.clientX;
