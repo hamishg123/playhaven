@@ -2,228 +2,1171 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.162.0/build/three.m
 import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.162.0/examples/jsm/controls/OrbitControls.js';
 import { TransformControls } from 'https://cdn.jsdelivr.net/npm/three@0.162.0/examples/jsm/controls/TransformControls.js';
 
-const $=id=>document.getElementById(id); const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
-const ui={menu:$('menu'),hud:$('hud'),pause:$('pauseScreen'),gameOver:$('gameOverScreen'),victory:$('victoryScreen'),how:$('howPanel'),loading:$('loading'),loadingBar:$('loadingBar'),loadingText:$('loadingText'),studio:$('studio'),play:$('playBtn'),dev:$('devBtn'),howBtn:$('howBtn'),closeHow:$('closeHow'),resume:$('resumeBtn'),restartPause:$('restartPauseBtn'),homePause:$('homePauseBtn'),retry:$('retryBtn'),homeGameOver:$('homeGameOverBtn'),victoryRetry:$('victoryRetryBtn'),victoryHome:$('victoryHomeBtn'),shards:$('shardsHud'),keys:$('keysHud'),score:$('scoreHud'),best:$('bestHud'),bestMenu:$('bestScoreMenu'),healthBar:$('healthBar'),explorer:$('explorer'),toolSelect:$('toolSelect'),toolMove:$('toolMove'),toolScale:$('toolScale'),snapToggle:$('snapToggle'),snapSize:$('snapSize'),duplicateSelected:$('duplicateSelected'),focusSelected:$('focusSelected'),healthText:$('healthText'),checkpoint:$('checkpointHud'),toast:$('messageToast'),goScore:$('gameOverScore'),goShards:$('gameOverShards'),goTitle:$('gameOverTitle'),goText:$('gameOverText'),vScore:$('victoryScore'),vShards:$('victoryShards'),vText:$('victoryText'),levelName:$('levelName'),selNone:$('selectedNone'),selPanel:$('selectedPanel'),selType:$('selType'),selX:$('selX'),selY:$('selY'),selZ:$('selZ'),selW:$('selW'),selH:$('selH'),selD:$('selD'),selLabel:$('selLabel'),deleteSelected:$('deleteSelected'),newLevel:$('newLevel'),exportJson:$('exportJson'),downloadJson:$('downloadJson'),jsonBox:$('jsonBox'),loadJson:$('loadJson'),studioStatus:$('studioStatus'),studioPlay:$('studioPlay'),studioBack:$('studioBack'),studioResetCam:$('studioResetCam'),studioTestSpawn:$('studioTestSpawn'),game:$('game')};
+const $ = (id) => document.getElementById(id);
+const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+const ui = {
+  menu: $('menu'), hud: $('hud'), pause: $('pauseScreen'), gameOver: $('gameOverScreen'), victory: $('victoryScreen'), how: $('howPanel'), loading: $('loading'), loadingBar: $('loadingBar'), loadingText: $('loadingText'), studio: $('studio'), game: $('game'), flash: $('flash'),
+  play: $('playBtn'), dev: $('devBtn'), howBtn: $('howBtn'), closeHow: $('closeHow'), resume: $('resumeBtn'), restartPause: $('restartPauseBtn'), homePause: $('homePauseBtn'), retry: $('retryBtn'), homeGameOver: $('homeGameOverBtn'), victoryRetry: $('victoryRetryBtn'), victoryHome: $('victoryHomeBtn'),
+  shards: $('shardsHud'), keys: $('keysHud'), score: $('scoreHud'), best: $('bestHud'), bestMenu: $('bestScoreMenu'), healthBar: $('healthBar'), healthText: $('healthText'), checkpoint: $('checkpointHud'), objective: $('objectiveHud'), toast: $('messageToast'),
+  goScore: $('gameOverScore'), goShards: $('gameOverShards'), goTitle: $('gameOverTitle'), goText: $('gameOverText'), vScore: $('victoryScore'), vShards: $('victoryShards'), vText: $('victoryText'),
+  explorer: $('explorer'), toolSelect: $('toolSelect'), toolMove: $('toolMove'), toolScale: $('toolScale'), snapToggle: $('snapToggle'), snapSize: $('snapSize'), duplicateSelected: $('duplicateSelected'), focusSelected: $('focusSelected'),
+  levelName: $('levelName'), selNone: $('selectedNone'), selPanel: $('selectedPanel'), selType: $('selType'), selX: $('selX'), selY: $('selY'), selZ: $('selZ'), selW: $('selW'), selH: $('selH'), selD: $('selD'), selLabel: $('selLabel'), deleteSelected: $('deleteSelected'),
+  newLevel: $('newLevel'), exportJson: $('exportJson'), downloadJson: $('downloadJson'), jsonBox: $('jsonBox'), loadJson: $('loadJson'), studioStatus: $('studioStatus'), studioPlay: $('studioPlay'), studioBack: $('studioBack'), studioResetCam: $('studioResetCam'), studioTestSpawn: $('studioTestSpawn')
+};
 
-const state={mode:'menu',score:0,shards:0,keys:0,health:100,best:Number(localStorage.getItem('skybound_best')||0),checkpoint:'START',time:0,runTime:0}; ui.best.textContent=state.best;ui.bestMenu.textContent=state.best;
-const scene=new THREE.Scene();scene.background=new THREE.Color(0x081624);scene.fog=new THREE.FogExp2(0x081624,.008);
-const camera=new THREE.PerspectiveCamera(64,innerWidth/innerHeight,.05,500); const renderer=new THREE.WebGLRenderer({antialias:true,canvas:ui.game,powerPreference:'high-performance'});renderer.setPixelRatio(Math.min(devicePixelRatio,1.15));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFShadowMap;renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=.82;
-const hemi=new THREE.HemisphereLight(0x9fdfff,0x0a1724,1.05);scene.add(hemi);const sun=new THREE.DirectionalLight(0xffefd0,1.35);sun.position.set(-25,45,18);sun.castShadow=true;sun.shadow.mapSize.set(768,768);sun.shadow.camera.left=-65;sun.shadow.camera.right=65;sun.shadow.camera.top=65;sun.shadow.camera.bottom=-65;scene.add(sun);scene.add(new THREE.DirectionalLight(0x5abfff,.35)).position.set(25,12,-25);
-const world=new THREE.Group();scene.add(world);const dynamic=new THREE.Group();world.add(dynamic);const effects=new THREE.Group();world.add(effects);const particles=new THREE.Group();world.add(particles);
-const MAT={grass:new THREE.MeshStandardMaterial({color:0x235f4b,roughness:.9}),grass2:new THREE.MeshStandardMaterial({color:0x2f7f59,roughness:.88}),rock:new THREE.MeshStandardMaterial({color:0x394b58,roughness:.96}),dark:new THREE.MeshStandardMaterial({color:0x102331,roughness:.94}),gold:new THREE.MeshStandardMaterial({color:0xf0c95e,emissive:0x5a4100,emissiveIntensity:.35,roughness:.28,metalness:.25}),key:new THREE.MeshStandardMaterial({color:0xffdf6e,emissive:0x634900,emissiveIntensity:.45,metalness:.3,roughness:.25}),portal:new THREE.MeshStandardMaterial({color:0x67dfff,emissive:0x14596c,emissiveIntensity:1.2,roughness:.15,metalness:.2}),enemy:new THREE.MeshStandardMaterial({color:0xd95b66,emissive:0x351016,emissiveIntensity:.32,roughness:.45}),enemyEye:new THREE.MeshBasicMaterial({color:0xffe7ac}),player:new THREE.MeshStandardMaterial({color:0x66d8ff,emissive:0x0a5366,emissiveIntensity:.3,roughness:.38}),accent:new THREE.MeshStandardMaterial({color:0xf4cd68,emissive:0x5f4100,emissiveIntensity:.28,roughness:.25,metalness:.25}),hazard:new THREE.MeshStandardMaterial({color:0x8d3347,emissive:0x3d0e1a,emissiveIntensity:.35,roughness:.5}),door:new THREE.MeshStandardMaterial({color:0x493c57,emissive:0x1b1027,emissiveIntensity:.22,roughness:.55,metalness:.2})};
-const geo={box:(x,y,z)=>new THREE.BoxGeometry(x,y,z),sphere:r=>new THREE.SphereGeometry(r,18,12),torus:(a,b)=>new THREE.TorusGeometry(a,b,12,32),cyl:(r,h)=>new THREE.CylinderGeometry(r,r,h,18)};
-const platforms=[],hazards=[],collectibles=[],checkpoints=[],enemies=[],doors=[];let goals=[];let level={name:'Skybound: First Light',spawn:{x:0,y:1.1,z:8},objects:[]};
-function defaultLevel(){return {name:'Skybound: First Light',spawn:{x:0,y:1.1,z:8},objects:[
- {type:'platform',x:0,y:0,z:0,w:24,h:1,d:22,label:'Start'},
- {type:'platform',x:0,y:2,z:-13,w:10,h:1,d:8,label:'Stage 1'},
- {type:'platform',x:0,y:4,z:-25,w:10,h:1,d:8,label:'Stage 2'},
- {type:'platform',x:0,y:6,z:-37,w:11,h:1,d:9,label:'Stage 3'},
- {type:'platform',x:0,y:8,z:-50,w:13,h:1,d:10,label:'Final Stage'},
- {type:'platform',x:0,y:10,z:-62,w:16,h:1,d:12,label:'Summit'},
- {type:'key',x:0,y:3.25,z:-13,label:'KEY-1'},
- {type:'checkpoint',x:0,y:2.5,z:-13,label:'STAGE 1'},
- {type:'door',x:0,y:3.45,z:-19,w:9,h:5.5,d:.8,label:'DOOR-1'},
- {type:'key',x:0,y:5.25,z:-25,label:'KEY-2'},
- {type:'checkpoint',x:0,y:4.5,z:-25,label:'STAGE 2'},
- {type:'door',x:0,y:5.45,z:-31,w:9,h:5.5,d:.8,label:'DOOR-2'},
- {type:'key',x:0,y:7.25,z:-37,label:'KEY-3'},
- {type:'checkpoint',x:0,y:6.5,z:-37,label:'STAGE 3'},
- {type:'door',x:0,y:7.45,z:-43,w:9,h:5.5,d:.8,label:'DOOR-3'},
- {type:'goal',x:0,y:11.5,z:-62,label:'GOAL'}]};}
-level=defaultLevel();
+const demoMode = new URLSearchParams(location.search).has('demo');
+const state = {
+  mode: 'menu', score: 0, shards: 0, keys: 0, health: 100,
+  best: Number(localStorage.getItem('skybound_best') || 0), checkpoint: 'START', time: 0, runTime: 0
+};
+ui.best.textContent = state.best;
+ui.bestMenu.textContent = state.best;
 
-function emptyGroup(g){while(g.children.length)g.remove(g.children[0])}
-function clearWorld(){emptyGroup(dynamic);emptyGroup(effects);emptyGroup(particles);for(const child of [...world.children]){if(child!==player)world.remove(child)}world.add(dynamic);world.add(effects);world.add(particles);if(!player.parent)world.add(player);platforms.length=hazards.length=collectibles.length=checkpoints.length=enemies.length=doors.length=0;goals=[];}
-function addBox(parent,mat,pos,size,opts={}){const m=new THREE.Mesh(geo.box(...size),mat);m.position.set(...pos);m.castShadow=opts.castShadow??true;m.receiveShadow=opts.receiveShadow??true;parent.add(m);return m;}
-function platform(o){const h=o.h??1;addBox(world,o.type==='wall'?MAT.rock:MAT.grass,[o.x,o.y,o.z],[o.w||4,h,o.d||4]);platforms.push({x:o.x,z:o.z,y:o.y+h/2,w:o.w||4,d:o.d||4,h,mesh:world.children[world.children.length-1],label:o.label||''});}
-function key(o){const g=new THREE.Group();g.position.set(o.x,o.y,o.z);const b=addBox(g,MAT.key,[0,0,0],[.25,.75,.25]);b.rotation.z=.35;const r=new THREE.Mesh(geo.torus(.45,.025),new THREE.MeshBasicMaterial({color:0xffe6a0,transparent:true,opacity:.55}));g.add(r);dynamic.add(g);collectibles.push({group:g,baseY:o.y,phase:Math.random()*6.28,got:false,label:o.label||'KEY'});}
-function checkpoint(o){const g=new THREE.Group();g.position.set(o.x,o.y,o.z);addBox(g,MAT.dark,[0,0,0],[1.35,.25,1.35]);addBox(g,MAT.portal,[0,1.1,0],[.14,2.2,.14]);const s=new THREE.Mesh(geo.sphere(.3),MAT.portal);s.position.y=2.03;g.add(s);dynamic.add(g);checkpoints.push({group:g,x:o.x,y:o.y,z:o.z,label:o.label||'CHECKPOINT',active:false});}
-function enemy(o){const g=new THREE.Group();g.position.set(o.x,o.y+.55,o.z);const b=new THREE.Mesh(geo.sphere(.58),MAT.enemy);b.scale.set(1.1,.85,.95);g.add(b);for(const s of [-.2,.2]){const e=new THREE.Mesh(geo.sphere(.07),MAT.enemyEye);e.position.set(s,.12,.53);g.add(e)}dynamic.add(g);enemies.push({group:g,originX:o.x,originZ:o.z,path:2.8,phase:Math.random()*6.28,dead:false});}
-function hazard(o){const m=addBox(world,MAT.hazard,[o.x,o.y+.11,o.z],[o.w||2,o.h||.18,o.d||2],{castShadow:false});hazards.push({x:o.x,y:o.y+.2,z:o.z,w:o.w||2,d:o.d||2,mesh:m});}
-function door(o){const m=addBox(world,MAT.door,[o.x,o.y,o.z],[o.w||8,o.h||5,o.d||.8]);doors.push({mesh:m,requiredKey:o.label?.match(/(\d+)/)?.[1]?Number(o.label.match(/(\d+)/)[1]):1,label:o.label||'DOOR',baseY:o.y,open:false,w:o.w||8,d:o.d||.8});}
-function goal(o){const g=new THREE.Group();g.position.set(o.x,o.y,o.z);const ring=new THREE.Mesh(geo.torus(2.1,.23),MAT.portal);ring.rotation.x=Math.PI/2;g.add(ring);const inner=new THREE.Mesh(new THREE.CircleGeometry(1.85,36),new THREE.MeshBasicMaterial({color:0x73e2ff,transparent:true,opacity:.14,side:THREE.DoubleSide}));inner.rotation.x=-Math.PI/2;g.add(inner);dynamic.add(g);goals.push({x:o.x,y:o.y,z:o.z,group:g});}
-function buildLevel(data){clearWorld();level=normalizeLevel(data);for(const o of level.objects){switch(o.type){case'platform':case'wall':platform(o);break;case'key':key(o);break;case'checkpoint':checkpoint(o);break;case'enemy':enemy(o);break;case'hazard':hazard(o);break;case'door':door(o);break;case'goal':goal(o);break;}}makeParticles();if(typeof buildEditorIndex==='function')buildEditorIndex();resetPlayer();}
-function normalizeLevel(data){const safe=data&&Array.isArray(data.objects)?data:defaultLevel();return {name:String(safe.name||'Untitled Level'),spawn:{x:Number(safe.spawn?.x)||0,y:Number(safe.spawn?.y)||1.1,z:Number(safe.spawn?.z)||8},objects:safe.objects.map(o=>({type:String(o.type||'platform'),x:Number(o.x)||0,y:Number(o.y)||0,z:Number(o.z)||0,w:o.w==null?4:Number(o.w),h:o.h==null?1:Number(o.h),d:o.d==null?4:Number(o.d),label:String(o.label||'')}))};}
-function makeParticles(){const count=220;const arr=new Float32Array(count*3);for(let i=0;i<count;i++){arr[i*3]=(Math.random()-.5)*150;arr[i*3+1]=Math.random()*55;arr[i*3+2]=(Math.random()-.5)*110}const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(arr,3));particles.add(new THREE.Points(g,new THREE.PointsMaterial({color:0xa4eaff,size:.05,transparent:true,opacity:.2})));}
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x75cbed);
+scene.fog = new THREE.FogExp2(0x73c1db, 0.008);
+const camera = new THREE.PerspectiveCamera(62, innerWidth / innerHeight, 0.05, 500);
+const renderer = new THREE.WebGLRenderer({ antialias: true, canvas: ui.game, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
+renderer.setSize(innerWidth, innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.04;
 
-const player=new THREE.Group();world.add(player);const body=new THREE.Mesh(geo.box(.78,1.18,.6),MAT.player);body.position.y=.72;body.castShadow=true;player.add(body);const head=new THREE.Mesh(geo.sphere(.48),MAT.accent);head.position.y=1.62;head.castShadow=true;player.add(head);const visor=new THREE.Mesh(geo.box(.52,.18,.08),new THREE.MeshStandardMaterial({color:0x06131e,emissive:0x32bdd7,emissiveIntensity:.4,roughness:.25,metalness:.25}));visor.position.set(0,1.66,.45);player.add(visor);const trail=new THREE.PointLight(0x58ddff,1.2,4);trail.position.set(0,.8,-.6);player.add(trail);
-const pstate={vel:new THREE.Vector3(),spawn:new THREE.Vector3(0,1.1,8),grounded:false,coyote:0,jumpBuffer:0,invuln:0,radius:.4,airTime:0,dashCooldown:0,dashHeld:false};
-const keys={};addEventListener('keydown',e=>{keys[e.code]=true;if(['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code))e.preventDefault();if(e.code==='Escape'){if(state.mode==='playing'||state.mode==='paused')togglePause();}if(e.code==='KeyR'&&['playing','paused'].includes(state.mode))restartGame();});addEventListener('keyup',e=>keys[e.code]=false);
-let mouseDX=0,mouseDY=0,pointerLocked=false;addEventListener('mousemove',e=>{if(pointerLocked&&state.mode==='playing'){mouseDX+=e.movementX;mouseDY+=e.movementY}});ui.game.addEventListener('click',()=>{if(state.mode==='playing'&&!pointerLocked)ui.game.requestPointerLock?.()});document.addEventListener('pointerlockchange',()=>pointerLocked=document.pointerLockElement===ui.game);
-const cameraRig={yaw:0,pitch:.22,distance:8,height:3.8};
-function halfHeight(){return .56;}
-function resetPlayer(){
-  const safe=groundBelow(level.spawn.x,level.spawn.z,level.spawn.y+2)||platforms[0];
-  const spawnY=safe?safe.y+halfHeight():Math.max(1.1,level.spawn.y);
-  pstate.spawn.set(level.spawn.x,spawnY,level.spawn.z); player.position.copy(pstate.spawn);pstate.vel.set(0,0,0);pstate.grounded=false;pstate.coyote=0;pstate.jumpBuffer=0;pstate.invuln=.7;pstate.airTime=0;cameraRig.yaw=0;cameraRig.pitch=.22;}
-function toast(msg,d=1300){ui.toast.textContent=msg;ui.toast.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>ui.toast.classList.remove('show'),d)}
-function flash(){ui.flash.style.opacity='.22';setTimeout(()=>ui.flash.style.opacity='0',100)}
-function setMode(m){state.mode=m;ui.menu.classList.toggle('hidden',m!=='menu');ui.hud.classList.toggle('hidden',!['playing','paused','gameover','victory'].includes(m));ui.pause.classList.toggle('hidden',m!=='paused');ui.gameOver.classList.toggle('hidden',m!=='gameover');ui.victory.classList.toggle('hidden',m!=='victory');ui.studio.classList.toggle('hidden',m!=='studio');}
-function startGame(){state.score=0;state.shards=0;state.keys=0;state.health=100;state.checkpoint='START';state.runTime=0;collectibles.forEach(c=>{c.got=false;c.group.visible=true});checkpoints.forEach(c=>c.active=false);enemies.forEach(e=>{e.dead=false;e.group.visible=true});doors.forEach(d=>{d.open=false;d.mesh.position.y=d.baseY;d.mesh.visible=true});resetPlayer();setMode('playing');toast(`LEVEL: ${level.name}`,1600);updateHud();}
-function restartGame(){startGame()}
-function goHome(){setMode('menu');document.exitPointerLock?.();resetPlayer()}
-function togglePause(){if(state.mode==='playing'){document.exitPointerLock?.();setMode('paused')}else if(state.mode==='paused'){setMode('playing')}}
-function groundBelow(x,z,y){let best=null;for(const p of platforms){if(x>=p.x-p.w/2&&x<=p.x+p.w/2&&z>=p.z-p.d/2&&z<=p.z+p.d/2&&p.y<=y+.2&&(!best||p.y>best.y))best=p}return best}
-function damage(n,msg){if(pstate.invuln>0)return;state.health-=n;pstate.invuln=1;flash();toast(msg);if(state.health<=0){state.health=0;gameOver('RUN TERMINATED','Use your checkpoint and try the route again.')}updateHud()}
-function respawn(){resetPlayer();toast(`RESPAWN • ${state.checkpoint}`,900)}
-function collect(c){if(c.got)return;c.got=true;c.group.visible=false;state.keys++;state.score+=250;toast(`KEY ACQUIRED • ${state.keys}`,1200);updateHud();}
-function activate(c){if(c.active)return;c.active=true;state.checkpoint=c.label;pstate.spawn.set(c.x,c.y+.45,c.z+2);state.score+=100;toast(`CHECKPOINT • ${c.label}`,1200);updateHud()}
-function killEnemy(e){e.dead=true;e.group.visible=false;state.score+=300;toast('SENTINEL STOMPED +300',900);updateHud()}
-function burst(pos){const g=new THREE.Group();for(let i=0;i<8;i++){const m=new THREE.Mesh(new THREE.SphereGeometry(.04,5,4),new THREE.MeshBasicMaterial({color:0x76dcff,transparent:true}));m.position.copy(pos);m.userData.v=new THREE.Vector3((Math.random()-.5)*3,Math.random()*3,(Math.random()-.5)*3);g.add(m)}g.userData.age=0;g.userData.max=.7;effects.add(g)}
-function updateEffects(dt){for(let i=effects.children.length-1;i>=0;i--){const g=effects.children[i];g.userData.age+=dt;for(const m of g.children){m.position.addScaledVector(m.userData.v,dt);m.userData.v.y-=5*dt;m.material.opacity=Math.max(0,1-g.userData.age/g.userData.max)}if(g.userData.age>g.userData.max)effects.remove(g)}}
+const hemi = new THREE.HemisphereLight(0xb9efff, 0x2c4f3f, 1.7);
+scene.add(hemi);
+const sun = new THREE.DirectionalLight(0xfff1c9, 2.4);
+sun.position.set(-28, 42, 18);
+sun.castShadow = true;
+sun.shadow.mapSize.set(1024, 1024);
+sun.shadow.camera.left = -65;
+sun.shadow.camera.right = 65;
+sun.shadow.camera.top = 65;
+sun.shadow.camera.bottom = -65;
+scene.add(sun);
+const skyFill = new THREE.DirectionalLight(0x5ae8ff, 0.55);
+skyFill.position.set(28, 14, -28);
+scene.add(skyFill);
 
-// Stable camera-relative controller: W forward, S backward, A left, D right.
-function updatePlayer(dt){
-  pstate.invuln=Math.max(0,pstate.invuln-dt); pstate.coyote=Math.max(0,pstate.coyote-dt); pstate.jumpBuffer=Math.max(0,pstate.jumpBuffer-dt); pstate.dashCooldown=Math.max(0,pstate.dashCooldown-dt);
-  const forwardKey=!!(keys.KeyW||keys.ArrowUp), backKey=!!(keys.KeyS||keys.ArrowDown), leftKey=!!(keys.KeyA||keys.ArrowLeft), rightKey=!!(keys.KeyD||keys.ArrowRight);
-  let ix=(rightKey?1:0)-(leftKey?1:0), iz=(forwardKey?1:0)-(backKey?1:0);
-  const l=Math.hypot(ix,iz); if(l){ix/=l;iz/=l;}
-  const f=new THREE.Vector3(Math.sin(cameraRig.yaw)*-1,0,Math.cos(cameraRig.yaw)*-1);
-  const r=new THREE.Vector3(Math.cos(cameraRig.yaw),0,-Math.sin(cameraRig.yaw));
-  let dx=r.x*ix+f.x*iz, dz=r.z*ix+f.z*iz;
-  const dl=Math.hypot(dx,dz); if(dl>1e-5){dx/=dl;dz/=dl;}
-  const sprint=!!(keys.ShiftLeft||keys.ShiftRight); const speed=sprint?8.5:5.8; const accel=pstate.grounded?24:12; const blend=1-Math.exp(-accel*dt);
-  pstate.vel.x+=(dx*speed-pstate.vel.x)*blend; pstate.vel.z+=(dz*speed-pstate.vel.z)*blend;
-  if(l){let desired=Math.atan2(dx,dz),delta=desired-player.rotation.y; while(delta>Math.PI)delta-=Math.PI*2; while(delta<-Math.PI)delta+=Math.PI*2; player.rotation.y+=delta*(1-Math.exp(-18*dt));}
-  if(sprint&&l&&!pstate.dashHeld&&pstate.dashCooldown<=0){pstate.vel.x=dx*12;pstate.vel.z=dz*12;pstate.dashCooldown=.8;pstate.dashHeld=true;}else if(!sprint)pstate.dashHeld=false;
-  if(keys.Space||keys.Numpad0)pstate.jumpBuffer=.14;
-  if(pstate.jumpBuffer>0&&(pstate.grounded||pstate.coyote>0)){pstate.vel.y=11.2;pstate.grounded=false;pstate.coyote=0;pstate.jumpBuffer=0;keys.Space=false;keys.Numpad0=false;burst(player.position);}
-  pstate.vel.y-=27*dt;
-  const radius=pstate.radius,hh=.56,px=player.position.x,pz=player.position.z,py=player.position.y;
-  const solids=[...platforms.map(p=>({x:p.x,z:p.z,y:p.y,w:p.w,h:p.h,d:p.d})),...doors.filter(d=>!d.open).map(d=>({x:d.mesh.position.x,z:d.mesh.position.z,y:d.mesh.position.y-d.mesh.geometry.parameters.height/2,h:d.mesh.geometry.parameters.height,w:d.w,d:d.d}))];
-  let nx=px+pstate.vel.x*dt;
-  for(const s of solids){const vertical=(py-hh)<s.y+s.h&&(py+hh)>s.y;if(!vertical)continue; if(nx+radius>s.x-s.w/2&&nx-radius<s.x+s.w/2&&pz+radius>s.z-s.d/2&&pz-radius<s.z+s.d/2){nx=px;pstate.vel.x=0;break;}}
-  let nz=pz+pstate.vel.z*dt;
-  for(const s of solids){const vertical=(py-hh)<s.y+s.h&&(py+hh)>s.y;if(!vertical)continue; if(nx+radius>s.x-s.w/2&&nx-radius<s.x+s.w/2&&nz+radius>s.z-s.d/2&&nz-radius<s.z+s.d/2){nz=pz;pstate.vel.z=0;break;}}
-  player.position.x=nx; player.position.z=nz;
-  const oldY=py, newY=py+pstate.vel.y*dt; let land=null,top=-Infinity;
-  if(pstate.vel.y<=0){for(const s of solids){if(player.position.x+radius>s.x-s.w/2&&player.position.x-radius<s.x+s.w/2&&player.position.z+radius>s.z-s.d/2&&player.position.z-radius<s.z+s.d/2){const footOld=oldY-hh,footNew=newY-hh;if(footOld>=s.y-.08&&footNew<=s.y&&s.y>top){top=s.y;land=s;}}}}
-  if(land){player.position.y=land.y+hh;pstate.vel.y=0;pstate.grounded=true;pstate.coyote=.12;pstate.airTime=0;}else{player.position.y=newY;pstate.grounded=false;pstate.airTime+=dt;}
-  if(player.position.y<-20){respawn();return;}
-  for(const h of hazards){if(Math.abs(player.position.x-h.x)<h.w*.56&&Math.abs(player.position.z-h.z)<h.d*.56&&Math.abs(player.position.y-h.y)<1)damage(30,'HAZARD');}
-  for(const e of enemies){if(e.dead)continue;const dd=Math.hypot(player.position.x-e.group.position.x,player.position.z-e.group.position.z);if(dd<1.05&&Math.abs(player.position.y-e.group.position.y)<1.5){if(pstate.vel.y<0&&player.position.y>e.group.position.y+.55){killEnemy(e);pstate.vel.y=9;}else damage(24,'SENTINEL HIT');}}
-  for(const c of collectibles){if(!c.got&&player.position.distanceTo(c.group.position)<1.45)collect(c);}
-  for(const c of checkpoints){if(!c.active&&Math.hypot(player.position.x-c.x,player.position.z-c.z)<2.2&&player.position.y>c.y-.8)activate(c);}
-  for(const d of doors){if(!d.open&&state.keys>=d.requiredKey){d.open=true;toast(`${d.label} UNLOCKED`,1100);}}
-  for(const g of goals){if(Math.hypot(player.position.x-g.x,player.position.z-g.z)<2.6&&Math.abs(player.position.y-g.y)<2.8)victory();}
-  body.rotation.x=clamp(-pstate.vel.y*.02,-.18,.18);body.position.y=.72+(pstate.grounded?Math.sin(state.time*10)*Math.min(.04,Math.hypot(pstate.vel.x,pstate.vel.z)*.003):0);trail.intensity=1.1+(sprint?1.3:0);
+const world = new THREE.Group();
+const dynamic = new THREE.Group();
+const effects = new THREE.Group();
+const atmosphere = new THREE.Group();
+world.add(dynamic, effects, atmosphere);
+scene.add(world);
+
+const loader = new THREE.TextureLoader();
+const runeTexture = loader.load('assets/skybound-rune-tile.jpg', (texture) => {
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+  texture.repeat.set(2, 2);
+  texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+}, undefined, () => console.warn('Skybound rune texture was unavailable; using material color.'));
+runeTexture.wrapS = runeTexture.wrapT = THREE.RepeatWrapping;
+
+const MAT = {
+  rune: new THREE.MeshStandardMaterial({ color: 0x699c65, map: runeTexture, roughness: 0.86, metalness: 0.02 }),
+  moss: new THREE.MeshStandardMaterial({ color: 0x307651, roughness: 0.96 }),
+  rock: new THREE.MeshStandardMaterial({ color: 0x355464, roughness: 0.94 }),
+  underside: new THREE.MeshStandardMaterial({ color: 0x274451, roughness: 0.98, flatShading: true }),
+  ruin: new THREE.MeshStandardMaterial({ color: 0x718e86, roughness: 0.85 }),
+  cyan: new THREE.MeshStandardMaterial({ color: 0x65e8ff, emissive: 0x147d99, emissiveIntensity: 1.3, roughness: 0.22, metalness: 0.2 }),
+  shard: new THREE.MeshStandardMaterial({ color: 0x78efff, emissive: 0x1d9abb, emissiveIntensity: 1.4, roughness: 0.12, metalness: 0.35 }),
+  gold: new THREE.MeshStandardMaterial({ color: 0xffd36b, emissive: 0x694300, emissiveIntensity: 0.45, roughness: 0.25, metalness: 0.48 }),
+  player: new THREE.MeshStandardMaterial({ color: 0x2763b9, emissive: 0x102d61, emissiveIntensity: 0.25, roughness: 0.35, metalness: 0.35 }),
+  playerAccent: new THREE.MeshStandardMaterial({ color: 0xffd77c, emissive: 0x6d4100, emissiveIntensity: 0.35, roughness: 0.2, metalness: 0.45 }),
+  visor: new THREE.MeshStandardMaterial({ color: 0x0b263d, emissive: 0x36dbf5, emissiveIntensity: 0.62, roughness: 0.1, metalness: 0.65 }),
+  enemy: new THREE.MeshStandardMaterial({ color: 0xd64b61, emissive: 0x521023, emissiveIntensity: 0.54, roughness: 0.3, metalness: 0.45 }),
+  enemyEye: new THREE.MeshBasicMaterial({ color: 0xfff4c2 }),
+  hazard: new THREE.MeshStandardMaterial({ color: 0x762844, emissive: 0x7a1634, emissiveIntensity: 0.8, roughness: 0.4 }),
+  gate: new THREE.MeshStandardMaterial({ color: 0x4d356c, emissive: 0x25143d, emissiveIntensity: 0.55, roughness: 0.35, metalness: 0.35 }),
+  gateGold: new THREE.MeshStandardMaterial({ color: 0xd3a84f, emissive: 0x5d3f0a, emissiveIntensity: 0.44, roughness: 0.32, metalness: 0.5 }),
+  cloud: new THREE.MeshBasicMaterial({ color: 0xe6fbff, transparent: true, opacity: 0.52, depthWrite: false })
+};
+const GEO = {
+  box: (x, y, z) => new THREE.BoxGeometry(x, y, z), sphere: (r, w = 18, h = 12) => new THREE.SphereGeometry(r, w, h),
+  cylinder: (top, bottom, height, sides = 16) => new THREE.CylinderGeometry(top, bottom, height, sides),
+  torus: (major, tube, radial = 12, tubular = 32) => new THREE.TorusGeometry(major, tube, radial, tubular),
+  octahedron: (radius) => new THREE.OctahedronGeometry(radius, 0)
+};
+
+const platforms = [], hazards = [], collectibles = [], checkpoints = [], enemies = [], doors = [];
+let goals = [];
+let level = { name: 'Skybound: First Light', spawn: { x: 0, y: 1.1, z: 8 }, objects: [] };
+
+function defaultLevel() {
+  return {
+    name: 'Skybound: First Light', spawn: { x: 0, y: 1.1, z: 8 }, objects: [
+      { type: 'platform', x: 0, y: 0, z: 8, w: 18, h: 1, d: 18, label: 'LOWER REACH' },
+      { type: 'platform', x: -1.5, y: 2.1, z: -6, w: 12, h: 1, d: 11, label: 'CLOUD RELAY' },
+      { type: 'platform', x: 2, y: 3.9, z: -19, w: 10, h: 1, d: 10, label: 'RUNE STEP' },
+      { type: 'platform', x: -2, y: 5.7, z: -33, w: 12, h: 1, d: 12, label: 'AETHER GATE' },
+      { type: 'platform', x: 0, y: 7.5, z: -50, w: 17, h: 1, d: 16, label: 'SUMMIT' },
+      { type: 'wall', x: -7.6, y: 2.0, z: -7, w: 1, h: 3.2, d: 3.5, label: 'RELAY RUIN' },
+      { type: 'wall', x: 7.4, y: 7.3, z: -50, w: 1, h: 4.5, d: 2.5, label: 'SUMMIT RUIN' },
+      { type: 'shard', x: -4.5, y: 2.1, z: 6, label: 'SKY SHARD 1' },
+      { type: 'shard', x: 3.8, y: 3.8, z: -5.8, label: 'SKY SHARD 2' },
+      { type: 'shard', x: -1.5, y: 5.7, z: -19, label: 'SKY SHARD 3' },
+      { type: 'shard', x: 3.8, y: 7.5, z: -33, label: 'SKY SHARD 4' },
+      { type: 'shard', x: -4.2, y: 9.3, z: -50, label: 'SKY SHARD 5' },
+      { type: 'key', x: -1.5, y: 3.65, z: -7.6, label: 'KEY-1' },
+      { type: 'key', x: -2, y: 7.25, z: -34.2, label: 'KEY-2' },
+      { type: 'checkpoint', x: -1.5, y: 2.6, z: -3.4, label: 'CLOUD RELAY' },
+      { type: 'checkpoint', x: -2, y: 6.2, z: -30.3, label: 'AETHER GATE' },
+      { type: 'hazard', x: 1.8, y: 4.4, z: -15.7, w: 2.1, h: 0.18, d: 2.3, label: 'RUNE SURGE' },
+      { type: 'hazard', x: 1.8, y: 8.0, z: -45, w: 2.4, h: 0.18, d: 2.1, label: 'SUMMIT SURGE' },
+      { type: 'enemy', x: 3.4, y: 4.4, z: -21.2, label: 'SENTINEL A' },
+      { type: 'enemy', x: 2.4, y: 6.2, z: -34.8, label: 'SENTINEL B' },
+      { type: 'door', x: 0, y: 4.7, z: -12.4, w: 8.8, h: 6.2, d: 0.8, label: 'GATE-1' },
+      { type: 'door', x: 0, y: 8.1, z: -41.0, w: 9.0, h: 6.2, d: 0.8, label: 'GATE-2' },
+      { type: 'goal', x: 0, y: 9.8, z: -52.5, label: 'FIRST LIGHT PORTAL' }
+    ]
+  };
 }
 
-function updateWorld(dt){for(const c of collectibles){if(c.got)continue;c.group.rotation.y+=dt*1.8;c.group.position.y=c.baseY+Math.sin(state.time*2.4+c.phase)*.18}for(const e of enemies){if(e.dead)continue;const t=state.time*.8+e.phase;e.group.position.x=e.originX+Math.sin(t)*e.path;e.group.rotation.y+=dt}for(const d of doors){if(d.open){d.mesh.position.y+=(d.baseY+6-d.mesh.position.y)*Math.min(1,dt*3);if(d.mesh.position.y>d.baseY+5.5)d.mesh.visible=false}}for(const g of goals){g.group.rotation.z+=dt*.25;g.group.rotation.y+=dt*.35}particles.rotation.y+=dt*.01}
-function updateCamera(dt){if(state.mode==='menu'){cameraRig.yaw+=dt*.08;const focus=new THREE.Vector3(0,3,-16);const off=new THREE.Vector3(Math.sin(cameraRig.yaw)*11,5.2,Math.cos(cameraRig.yaw)*11);camera.position.lerp(focus.clone().add(off),1-Math.exp(-2*dt));camera.lookAt(focus);return}if(state.mode==='studio')return;cameraRig.yaw-=mouseDX*.0025;cameraRig.pitch=clamp(cameraRig.pitch-mouseDY*.0017,-.05,.58);mouseDX=mouseDY=0;const off=new THREE.Vector3(Math.sin(cameraRig.yaw)*cameraRig.distance,Math.sin(cameraRig.pitch)*cameraRig.distance*.7+cameraRig.height,Math.cos(cameraRig.yaw)*cameraRig.distance);camera.position.lerp(player.position.clone().add(off),1-Math.exp(-7*dt));camera.lookAt(player.position.clone().add(new THREE.Vector3(0,1.15,0)))}
-function updateHud(){ui.shards.textContent=state.shards;ui.keys.textContent=`${state.keys} / ${collectibles.length}`;ui.score.textContent=state.score;ui.best.textContent=state.best;ui.healthBar.style.width=`${state.health}%`;ui.healthText.textContent=`${Math.round(state.health)}%`;ui.checkpoint.textContent=state.checkpoint;if(state.score>state.best){state.best=state.score;localStorage.setItem('skybound_best',state.best);ui.best.textContent=state.best;ui.bestMenu.textContent=state.best}}
-function gameOver(t,txt){setMode('gameover');ui.goTitle.textContent=t;ui.goText.textContent=txt;ui.goScore.textContent=state.score;ui.goShards.textContent=state.shards}
-function victory(){if(state.mode!=='playing')return;state.score+=500;updateHud();setMode('victory');ui.vScore.textContent=state.score;ui.vShards.textContent=state.shards;ui.vText.textContent=`${level.name} complete.`}
+function emptyGroup(group) {
+  while (group.children.length) group.remove(group.children[0]);
+}
+function addMesh(parent, geometry, material, position = [0, 0, 0]) {
+  const mesh = new THREE.Mesh(geometry, material);
+  mesh.position.set(...position);
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+  parent.add(mesh);
+  return mesh;
+}
+function addBox(parent, material, position, size, options = {}) {
+  const mesh = addMesh(parent, GEO.box(...size), material, position);
+  mesh.castShadow = options.castShadow ?? true;
+  mesh.receiveShadow = options.receiveShadow ?? true;
+  return mesh;
+}
+function makeGlow(color, size, opacity = 0.6) {
+  return new THREE.Sprite(new THREE.SpriteMaterial({ color, transparent: true, opacity, depthWrite: false, blending: THREE.AdditiveBlending, map: null, sizeAttenuation: true }));
+}
 
-// DEV STUDIO — Roblox-style viewport workflow
-let editor={selected:null,selectedMesh:null,tool:'select',snap:true,snapSize:1,moveForward:false,moveBack:false,moveLeft:false,moveRight:false,moveUp:false,moveDown:false,fast:false};
-let studioOrbit=null,studioTransform=null,studioGrid=null,studioOutline=null;
-const studioRay=new THREE.Raycaster(),studioMouse=new THREE.Vector2();
-function studioStatus(t){ui.studioStatus.textContent=t}
-function escapeHtml(v){return String(v).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
-function snap(v){return editor.snap?Math.round(v/editor.snapSize)*editor.snapSize:v}
-function markEditorObject(root,obj){root.traverse(n=>{if(n.isMesh||n.isGroup)n.userData.levelObject=obj})}
-function buildEditorIndex(){
-  for(const p of platforms){const o=level.objects.find(v=>(v.type==='platform'||v.type==='wall')&&Math.abs(v.x-p.mesh.position.x)<.01&&Math.abs(v.z-p.mesh.position.z)<.01);if(o)markEditorObject(p.mesh,o)}
-  for(const d of doors){const o=level.objects.find(v=>v.type==='door'&&Math.abs(v.x-d.mesh.position.x)<.01&&Math.abs(v.z-d.mesh.position.z)<.01);if(o)markEditorObject(d.mesh,o)}
-  for(const c of collectibles){const o=level.objects.find(v=>v.type==='key'&&Math.abs(v.x-c.group.position.x)<.01&&Math.abs(v.z-c.group.position.z)<.01);if(o)markEditorObject(c.group,o)}
-  for(const c of checkpoints){const o=level.objects.find(v=>v.type==='checkpoint'&&Math.abs(v.x-c.group.position.x)<.01&&Math.abs(v.z-c.group.position.z)<.01);if(o)markEditorObject(c.group,o)}
-  for(const e of enemies){const o=level.objects.find(v=>v.type==='enemy'&&Math.abs(v.x-e.group.position.x)<.01&&Math.abs(v.z-e.group.position.z)<.01);if(o)markEditorObject(e.group,o)}
-  for(const h of hazards){const o=level.objects.find(v=>v.type==='hazard'&&Math.abs(v.x-h.mesh.position.x)<.01&&Math.abs(v.z-h.mesh.position.z)<.01);if(o)markEditorObject(h.mesh,o)}
-  for(const g of goals){const o=level.objects.find(v=>v.type==='goal'&&Math.abs(v.x-g.group.position.x)<.01&&Math.abs(v.z-g.group.position.z)<.01);if(o)markEditorObject(g.group,o)}
+function clearWorld() {
+  emptyGroup(dynamic);
+  emptyGroup(effects);
+  emptyGroup(atmosphere);
+  for (const child of [...world.children]) if (child !== player && child !== dynamic && child !== effects && child !== atmosphere) world.remove(child);
+  platforms.length = hazards.length = collectibles.length = checkpoints.length = enemies.length = doors.length = 0;
+  goals = [];
 }
-function refreshExplorer(){
-  if(!ui.explorer)return;ui.explorer.innerHTML='';
-  level.objects.forEach((o,i)=>{const row=document.createElement('button');row.className='explorer-item'+(editor.selected===o?' selected':'');row.innerHTML=`<span class="explorer-icon">${o.type==='platform'?'▰':o.type==='wall'?'▤':o.type==='key'?'◆':o.type==='checkpoint'?'◇':o.type==='enemy'?'●':o.type==='hazard'?'▲':o.type==='door'?'▥':'✦'}</span><span class="explorer-name">${escapeHtml(o.label||o.type)}</span><span class="explorer-type">${o.type}</span>`;row.onclick=()=>selectObject(o,true);ui.explorer.appendChild(row)})
+function addIslandUnderside(o) {
+  if (o.type !== 'platform') return;
+  const radius = Math.max(2.6, Math.min(o.w, o.d) * 0.38);
+  const height = clamp(Math.min(o.w, o.d) * 0.65, 4.5, 10);
+  const rock = addMesh(world, GEO.cylinder(radius * 0.55, radius, height, 9), MAT.underside, [o.x, o.y - height / 2 - 0.35, o.z]);
+  rock.rotation.y = (o.x + o.z) * 0.17;
+  rock.scale.x = Math.max(0.85, o.w / Math.max(o.d, 1));
+  rock.scale.z = Math.max(0.85, o.d / Math.max(o.w, 1));
+  const glow = addMesh(world, GEO.cylinder(radius * 0.6, radius * 0.75, 0.15, 12), MAT.moss, [o.x, o.y - 0.55, o.z]);
+  glow.scale.x = Math.max(0.85, o.w / Math.max(o.d, 1));
+  glow.scale.z = Math.max(0.85, o.d / Math.max(o.w, 1));
 }
-function studioSelectableRoots(){return [...platforms.map(p=>p.mesh),...doors.map(d=>d.mesh),...collectibles.map(c=>c.group),...checkpoints.map(c=>c.group),...enemies.map(e=>e.group),...hazards.map(h=>h.mesh),...goals.map(g=>g.group)]}
-function objectAt(clientX,clientY){const r=ui.game.getBoundingClientRect();studioMouse.x=((clientX-r.left)/r.width)*2-1;studioMouse.y=-((clientY-r.top)/r.height)*2+1;studioRay.setFromCamera(studioMouse,camera);const hits=studioRay.intersectObjects(studioSelectableRoots(),true);if(!hits.length)return null;let n=hits[0].object;while(n&&n.parent&&!n.userData.levelObject)n=n.parent;return n?.userData?.levelObject||null}
-function getRootForObject(obj){for(const p of platforms)if(p.mesh.userData.levelObject===obj)return p.mesh;for(const d of doors)if(d.mesh.userData.levelObject===obj)return d.mesh;for(const c of collectibles)if(c.group.userData.levelObject===obj)return c.group;for(const c of checkpoints)if(c.group.userData.levelObject===obj)return c.group;for(const e of enemies)if(e.group.userData.levelObject===obj)return e.group;for(const h of hazards)if(h.mesh.userData.levelObject===obj)return h.mesh;for(const g of goals)if(g.group.userData.levelObject===obj)return g.group;return null}
-function syncSelected(obj){editor.selected=obj||null;if(!obj){ui.selNone.classList.remove('hidden');ui.selPanel.classList.add('hidden');refreshExplorer();return}ui.selNone.classList.add('hidden');ui.selPanel.classList.remove('hidden');ui.selType.value=obj.type;ui.selX.value=obj.x;ui.selY.value=obj.y;ui.selZ.value=obj.z;ui.selW.value=obj.w??4;ui.selH.value=obj.h??1;ui.selD.value=obj.d??4;ui.selLabel.value=obj.label||'';refreshExplorer()}
-function selectObject(obj,focus=false){editor.selected=obj||null;editor.selectedMesh=null;syncSelected(obj);if(studioTransform){studioTransform.detach();studioTransform.visible=false}if(obj){const root=getRootForObject(obj);editor.selectedMesh=root;if(root&&studioTransform&&editor.tool!=='select'){studioTransform.attach(root);studioTransform.visible=true}if(focus&&studioOrbit&&root){studioOrbit.target.copy(root.position);studioOrbit.update()}}}
-function setEditorTool(tool){editor.tool=tool;ui.toolSelect?.classList.toggle('active',tool==='select');ui.toolMove?.classList.toggle('active',tool==='move');ui.toolScale?.classList.toggle('active',tool==='scale');if(studioTransform){studioTransform.detach();studioTransform.visible=false;if(editor.selectedMesh&&tool!=='select'){studioTransform.setMode(tool==='scale'?'scale':'translate');studioTransform.attach(editor.selectedMesh);studioTransform.visible=true}}studioStatus(tool==='select'?'SELECT TOOL • Click an object to select it':tool==='move'?'MOVE TOOL • Drag the colored arrows to move':'SCALE TOOL • Drag the boxes to resize')}
-function setupStudioCamera(){
-  if(studioOrbit)studioOrbit.dispose();
-  studioOrbit=new OrbitControls(camera,renderer.domElement);
-  studioOrbit.enableDamping=true; studioOrbit.dampingFactor=.10;
-  studioOrbit.screenSpacePanning=true; studioOrbit.minDistance=3; studioOrbit.maxDistance=140;
-  studioOrbit.maxPolarAngle=Math.PI-.05;
-  studioOrbit.mouseButtons.LEFT=THREE.MOUSE.ROTATE;
-  studioOrbit.mouseButtons.RIGHT=THREE.MOUSE.ROTATE;
-  studioOrbit.mouseButtons.MIDDLE=THREE.MOUSE.PAN;
-  studioOrbit.target.set(0,2,-18); camera.position.set(0,18,28); studioOrbit.update();
-  if(!studioTransform){
-    try {
-      const dom = renderer && renderer.domElement ? renderer.domElement : ui.game;
-      if(!dom) throw new Error('Studio canvas not available');
-      studioTransform=new TransformControls(camera,dom);
-      studioTransform.setSpace('world');
-      studioTransform.setTranslationSnap(editor.snapSize);
-      studioTransform.setScaleSnap(editor.snapSize/2);
-      studioTransform.addEventListener('dragging-changed',e=>{if(studioOrbit)studioOrbit.enabled=!e.value});
-      studioTransform.addEventListener('objectChange',()=>{
-        const o=editor.selected,m=editor.selectedMesh;if(!o||!m)return;
-        o.x=snap(m.position.x); o.y=snap(m.position.y); o.z=snap(m.position.z);
-        if(editor.tool==='scale' && (o.type==='platform'||o.type==='wall'||o.type==='door'||o.type==='hazard')){
-          o.w=Math.max(.25,snap(o.w*m.scale.x)); o.h=Math.max(.25,snap(o.h*m.scale.y)); o.d=Math.max(.25,snap(o.d*m.scale.z));
-          m.scale.set(1,1,1);
-        }
-        m.position.set(o.x,o.y,o.z); syncSelected(o); updateStudioOutline();
-      });
-      scene.add(studioTransform);
-    } catch(err) {
-      console.warn('Transform gizmo disabled:', err);
-      studioTransform=null;
+function addPlatformDressing(o) {
+  const seed = Math.abs(Math.round(o.x * 17 + o.z * 13));
+  for (let i = 0; i < 5; i++) {
+    const a = ((seed + i * 71) % 360) * Math.PI / 180;
+    const x = o.x + Math.cos(a) * Math.max(1.2, o.w * 0.35);
+    const z = o.z + Math.sin(a) * Math.max(1.2, o.d * 0.35);
+    const rock = addMesh(world, GEO.octahedron(0.32 + ((seed + i) % 4) * 0.06), MAT.ruin, [x, o.y + o.h / 2 + 0.25, z]);
+    rock.scale.y = 0.65;
+    rock.rotation.set(i * 0.2, a, i * 0.1);
+  }
+  if (o.label.includes('SUMMIT') || o.label.includes('GATE')) {
+    for (const side of [-1, 1]) {
+      const beacon = new THREE.Group();
+      beacon.position.set(o.x + side * Math.min(o.w * 0.32, 4.5), o.y + o.h / 2, o.z - o.d * 0.22);
+      addMesh(beacon, GEO.cylinder(0.25, 0.36, 1.8, 6), MAT.ruin, [0, 0.9, 0]);
+      const crystal = addMesh(beacon, GEO.octahedron(0.26), MAT.cyan, [0, 1.95, 0]);
+      crystal.rotation.z = Math.PI / 4;
+      dynamic.add(beacon);
     }
   }
-  if(!studioGrid){studioGrid=new THREE.GridHelper(160,160,0x3e6477,0x183245);studioGrid.position.y=0;scene.add(studioGrid);}
-  setEditorTool(editor.tool); updateStudioOutline();
 }
-function teardownStudioHelpers(){
-  if(studioOrbit){studioOrbit.dispose();studioOrbit=null;}
-  if(studioTransform){studioTransform.detach();studioTransform.visible=false;}
-  if(studioGrid){scene.remove(studioGrid);studioGrid=null;}
-  if(studioOutline){scene.remove(studioOutline);studioOutline.geometry?.dispose?.();studioOutline.material?.dispose?.();studioOutline=null;}
+function platform(o) {
+  const h = o.h ?? 1;
+  const material = o.type === 'wall' ? MAT.ruin : MAT.rune;
+  const mesh = addBox(world, material, [o.x, o.y, o.z], [o.w || 4, h, o.d || 4]);
+  const top = o.y + h / 2;
+  if (o.type === 'platform') {
+    addIslandUnderside(o);
+    addPlatformDressing(o);
+  }
+  platforms.push({ x: o.x, z: o.z, y: top, w: o.w || 4, d: o.d || 4, h, mesh, label: o.label || '' });
+  markEditorObject(mesh, o);
 }
-function updateStudioOutline(){
-  if(state.mode!=='studio'){if(studioOutline)studioOutline.visible=false;return;}
-  if(!editor.selectedMesh){if(studioOutline)studioOutline.visible=false;return;}
-  if(!studioOutline){studioOutline=new THREE.BoxHelper(editor.selectedMesh,0x42e6ff);scene.add(studioOutline);}else{studioOutline.visible=true;studioOutline.setFromObject(editor.selectedMesh);studioOutline.material.color.set(0x42e6ff);}
+function shard(o) {
+  const group = new THREE.Group();
+  group.position.set(o.x, o.y, o.z);
+  const crystal = addMesh(group, GEO.octahedron(0.48), MAT.shard, [0, 0.45, 0]);
+  crystal.scale.y = 1.45;
+  const ring = addMesh(group, GEO.torus(0.56, 0.026, 8, 28), MAT.cyan, [0, 0.45, 0]);
+  ring.rotation.x = Math.PI / 2;
+  const glow = makeGlow(0x70eaff, 1.9, 0.6);
+  glow.position.y = 0.45;
+  group.add(glow);
+  dynamic.add(group);
+  markEditorObject(group, o);
+  collectibles.push({ kind: 'shard', group, baseY: o.y, phase: Math.random() * Math.PI * 2, got: false, label: o.label || 'SKY SHARD', value: 100 });
 }
-function updateStudioCamera(dt){
-  if(state.mode!=='studio'||!studioOrbit)return;
-  const speed=(editor.fast?18:9)*dt;
-  const forward=new THREE.Vector3(); camera.getWorldDirection(forward); forward.y=0; if(forward.lengthSq()<1e-6)forward.set(0,0,-1); else forward.normalize();
-  const right=new THREE.Vector3(forward.z,0,-forward.x);
-  if(editor.moveForward)studioOrbit.target.addScaledVector(forward,speed),camera.position.addScaledVector(forward,speed);
-  if(editor.moveBack)studioOrbit.target.addScaledVector(forward,-speed),camera.position.addScaledVector(forward,-speed);
-  if(editor.moveRight)studioOrbit.target.addScaledVector(right,speed),camera.position.addScaledVector(right,speed);
-  if(editor.moveLeft)studioOrbit.target.addScaledVector(right,-speed),camera.position.addScaledVector(right,-speed);
-  if(editor.moveUp)studioOrbit.target.y+=speed,camera.position.y+=speed;
-  if(editor.moveDown)studioOrbit.target.y-=speed,camera.position.y-=speed;
+function key(o) {
+  const group = new THREE.Group();
+  group.position.set(o.x, o.y, o.z);
+  const stem = addBox(group, MAT.gold, [0, 0.15, 0], [0.22, 0.82, 0.22]);
+  stem.rotation.z = 0.34;
+  const ring = addMesh(group, GEO.torus(0.32, 0.105, 8, 20), MAT.gold, [0, 0.52, 0]);
+  ring.rotation.x = Math.PI / 2;
+  const halo = addMesh(group, GEO.torus(0.58, 0.018, 8, 28), MAT.gateGold, [0, 0.28, 0]);
+  halo.rotation.x = Math.PI / 2;
+  const glow = makeGlow(0xffd66f, 1.8, 0.5);
+  glow.position.y = 0.25;
+  group.add(glow);
+  dynamic.add(group);
+  markEditorObject(group, o);
+  collectibles.push({ kind: 'key', group, baseY: o.y, phase: Math.random() * Math.PI * 2, got: false, label: o.label || 'KEY', value: 250 });
 }
-function addObject(type,x=0,z=-6){let y=0;if(type==='platform'||type==='wall')y=.5;else if(type==='key')y=2.3;else if(type==='checkpoint')y=.5;else if(type==='enemy')y=1;else if(type==='hazard')y=0;else if(type==='door')y=2.5;else if(type==='goal')y=2.5;const defaults={platform:{w:6,h:1,d:6},wall:{w:6,h:4,d:.8},key:{w:.25,h:.75,d:.25},checkpoint:{w:1.35,h:.25,d:1.35},enemy:{w:1,h:1,d:1},hazard:{w:2,h:.18,d:2},door:{w:6,h:5,d:.8},goal:{w:4,h:4,d:1}};const s=defaults[type]||defaults.platform;const o={type,x:snap(x),y:snap(y),z:snap(z),w:s.w,h:s.h,d:s.d,label:type.toUpperCase()+'-'+(level.objects.length+1)};level.objects.push(o);buildLevel(level);selectObject(o,true);studioStatus(`${type.toUpperCase()} added • use MOVE (2) to position it`)}
-function selectedChanged(){if(!editor.selected)return;const idx=level.objects.indexOf(editor.selected);if(idx<0)return;const o=editor.selected;o.x=snap(Number(ui.selX.value)||0);o.y=snap(Number(ui.selY.value)||0);o.z=snap(Number(ui.selZ.value)||0);o.w=Math.max(.1,Number(ui.selW.value)||1);o.h=Math.max(.1,Number(ui.selH.value)||1);o.d=Math.max(.1,Number(ui.selD.value)||1);o.label=ui.selLabel.value;buildLevel(level);selectObject(level.objects[idx],true)}
-function duplicateSelected(){if(!editor.selected)return;const i=level.objects.indexOf(editor.selected);if(i<0)return;const c={...editor.selected,x:snap(editor.selected.x+editor.snapSize),z:snap(editor.selected.z+editor.snapSize),label:(editor.selected.label||editor.selected.type)+' COPY'};level.objects.splice(i+1,0,c);buildLevel(level);selectObject(c,true);studioStatus('Duplicated object • drag the gizmo to position it')}
-function exportData(){level.name=ui.levelName.value.trim()||'Untitled Level';ui.jsonBox.value=JSON.stringify({version:1,name:level.name,spawn:level.spawn,objects:level.objects},null,2);ui.jsonBox.select();navigator.clipboard?.writeText(ui.jsonBox.value).then(()=>studioStatus('JSON copied. Share it or paste it into LOAD JSON.')).catch(()=>studioStatus('JSON selected — press Ctrl+C.'))}
-function downloadData(){exportData();const blob=new Blob([ui.jsonBox.value],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(level.name.replace(/[^a-z0-9]+/gi,'_')||'skybound_level')+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),500)}
-function loadData(){try{const data=JSON.parse(ui.jsonBox.value);level=normalizeLevel(data);ui.levelName.value=level.name;buildLevel(level);selectObject(null);studioStatus(`Loaded ${level.name} • ${level.objects.length} objects`)}catch(e){studioStatus('Invalid JSON: '+e.message)}}
-function newLevel(){level={name:'New Skybound Level',spawn:{x:0,y:1.1,z:8},objects:[{type:'platform',x:0,y:0,z:0,w:18,h:1,d:18,label:'START'}]};ui.levelName.value=level.name;buildLevel(level);selectObject(null);studioStatus('New level created')}
-function setSpawnHere(){const o=editor.selected;if(o){level.spawn={x:snap(o.x),y:1.1,z:snap(o.z+Math.max(2,(o.d||4)/2+2))}}else if(studioOrbit){level.spawn={x:snap(studioOrbit.target.x),y:1.1,z:snap(studioOrbit.target.z+3)}}studioStatus(`Spawn set to ${level.spawn.x}, ${level.spawn.y}, ${level.spawn.z}`)}
-function enterStudio(){document.exitPointerLock?.();state.mode='studio';ui.menu.classList.add('hidden');ui.hud.classList.add('hidden');ui.pause.classList.add('hidden');ui.gameOver.classList.add('hidden');ui.victory.classList.add('hidden');ui.studio.classList.remove('hidden');ui.studio.style.display='flex';buildLevel(level);ui.levelName.value=level.name;setupStudioCamera();buildEditorIndex();selectObject(null);studioStatus('Roblox-style editor ready • 1 Select • 2 Move • 3 Scale • Ctrl+D Duplicate')}
-function exitStudio(){document.exitPointerLock?.();teardownStudioHelpers();setMode('menu');ui.studio.style.display='none'}
+function checkpoint(o) {
+  const group = new THREE.Group();
+  group.position.set(o.x, o.y, o.z);
+  addMesh(group, GEO.cylinder(0.9, 1.08, 0.22, 12), MAT.ruin, [0, 0.08, 0]);
+  const ring = addMesh(group, GEO.torus(0.72, 0.07, 8, 28), MAT.cyan, [0, 0.28, 0]);
+  ring.rotation.x = Math.PI / 2;
+  const spire = addMesh(group, GEO.octahedron(0.22), MAT.cyan, [0, 1.15, 0]);
+  spire.scale.y = 2.1;
+  dynamic.add(group);
+  markEditorObject(group, o);
+  checkpoints.push({ group, x: o.x, y: o.y, z: o.z, label: o.label || 'CHECKPOINT', active: false, ring, spire });
+}
+function enemy(o) {
+  const group = new THREE.Group();
+  group.position.set(o.x, o.y + 0.62, o.z);
+  const body = addMesh(group, GEO.sphere(0.56, 18, 12), MAT.enemy, [0, 0, 0]);
+  body.scale.set(1.22, 0.76, 1);
+  addMesh(group, GEO.sphere(0.15, 10, 8), MAT.enemyEye, [0, 0.02, 0.5]);
+  for (const side of [-1, 1]) {
+    const fin = addMesh(group, GEO.box(0.42, 0.08, 0.32), MAT.enemy, [side * 0.65, 0, 0]);
+    fin.rotation.z = side * 0.45;
+  }
+  const glow = makeGlow(0xff5268, 1.3, 0.42);
+  glow.position.z = 0.28;
+  group.add(glow);
+  dynamic.add(group);
+  markEditorObject(group, o);
+  enemies.push({ group, originX: o.x, originZ: o.z, baseY: o.y + 0.62, path: 1.8, phase: Math.random() * Math.PI * 2, dead: false, label: o.label || 'SENTINEL' });
+}
+function hazard(o) {
+  const group = new THREE.Group();
+  group.position.set(o.x, o.y, o.z);
+  const plate = addBox(group, MAT.hazard, [0, 0.1, 0], [o.w || 2, o.h || 0.18, o.d || 2], { castShadow: false });
+  const ring = addMesh(group, GEO.torus(Math.min(o.w || 2, o.d || 2) * 0.27, 0.04, 8, 24), MAT.cyan, [0, 0.22, 0]);
+  ring.rotation.x = Math.PI / 2;
+  world.add(group);
+  markEditorObject(group, o);
+  hazards.push({ x: o.x, y: o.y + 0.22, z: o.z, w: o.w || 2, d: o.d || 2, mesh: group, ring, phase: Math.random() * 4 });
+}
+function door(o) {
+  const group = new THREE.Group();
+  group.position.set(o.x, o.y, o.z);
+  const width = o.w || 8, height = o.h || 5, depth = o.d || 0.8;
+  const slab = addBox(group, new THREE.MeshBasicMaterial({ transparent: true, opacity: 0 }), [0, 0, 0], [width, height, depth], { castShadow: false, receiveShadow: false });
+  const fieldMaterial = MAT.gate.clone();
+  fieldMaterial.transparent = true;
+  fieldMaterial.opacity = 0.62;
+  fieldMaterial.depthWrite = false;
+  const field = addMesh(group, new THREE.PlaneGeometry(width - 0.72, height - 0.55), fieldMaterial, [0, 0, depth / 2 + 0.012]);
+  addBox(group, MAT.gateGold, [-width / 2 + 0.22, 0, depth / 2], [0.44, height, 0.22]);
+  addBox(group, MAT.gateGold, [width / 2 - 0.22, 0, depth / 2], [0.44, height, 0.22]);
+  addBox(group, MAT.gateGold, [0, height / 2 - 0.18, depth / 2], [width, 0.28, 0.22]);
+  const sigil = addMesh(group, GEO.octahedron(0.38), MAT.gold, [0, 0.2, 0.46]);
+  const ring = addMesh(group, GEO.torus(0.72, 0.045, 8, 24), MAT.gateGold, [0, 0.2, 0.46]);
+  ring.rotation.x = Math.PI / 2;
+  dynamic.add(group);
+  markEditorObject(group, o);
+  const requiredKey = Number(o.label?.match(/(\d+)/)?.[1] || 1);
+  doors.push({ group, slab, requiredKey, label: o.label || 'GATE', baseY: o.y, open: false, w: o.w || 8, h: o.h || 5, d: o.d || 0.8 });
+}
+function goal(o) {
+  const group = new THREE.Group();
+  group.position.set(o.x, o.y, o.z);
+  const ring = addMesh(group, GEO.torus(2.05, 0.20, 12, 40), MAT.cyan, [0, 0, 0]);
+  ring.rotation.x = Math.PI / 2;
+  const inner = addMesh(group, new THREE.CircleGeometry(1.82, 40), new THREE.MeshBasicMaterial({ color: 0x8af4ff, transparent: true, opacity: 0.22, side: THREE.DoubleSide }), [0, 0, 0]);
+  inner.rotation.x = -Math.PI / 2;
+  const crown = addMesh(group, GEO.octahedron(0.38), MAT.gold, [0, 2.2, 0]);
+  const glow = makeGlow(0x9ff6ff, 5.4, 0.44);
+  glow.position.y = 0.2;
+  group.add(glow);
+  dynamic.add(group);
+  markEditorObject(group, o);
+  goals.push({ x: o.x, y: o.y, z: o.z, group, ring });
+}
 
-ui.play.onclick=()=>startGame();ui.dev.onclick=e=>{e.preventDefault();enterStudio()};ui.howBtn.onclick=()=>ui.how.classList.toggle('hidden');ui.closeHow.onclick=()=>ui.how.classList.add('hidden');ui.resume.onclick=()=>setMode('playing');ui.restartPause.onclick=restartGame;ui.homePause.onclick=goHome;ui.retry.onclick=restartGame;ui.homeGameOver.onclick=goHome;ui.victoryRetry.onclick=restartGame;ui.victoryHome.onclick=goHome;
-ui.studioBack.onclick=exitStudio;ui.studioPlay.onclick=()=>{teardownStudioHelpers();startGame();};ui.newLevel.onclick=newLevel;ui.exportJson.onclick=exportData;ui.downloadJson.onclick=downloadData;ui.loadJson.onclick=loadData;ui.deleteSelected.onclick=()=>{if(!editor.selected)return;const i=level.objects.indexOf(editor.selected);if(i>=0){level.objects.splice(i,1);buildLevel(level);selectObject(null);studioStatus('Object deleted')}};ui.levelName.onchange=()=>{level.name=ui.levelName.value};
-for(const k of ['selX','selY','selZ','selW','selH','selD','selLabel'])ui[k].onchange=selectedChanged;
-for(const b of document.querySelectorAll('[data-add]'))b.onclick=()=>{const t=studioOrbit?.target||new THREE.Vector3(0,0,-6);addObject(b.dataset.add,t.x,t.z)};
-ui.studioResetCam.onclick=setupStudioCamera;ui.studioTestSpawn.onclick=setSpawnHere;ui.toolSelect.onclick=()=>setEditorTool('select');ui.toolMove.onclick=()=>setEditorTool('move');ui.toolScale.onclick=()=>setEditorTool('scale');ui.duplicateSelected.onclick=duplicateSelected;ui.focusSelected.onclick=()=>{if(editor.selectedMesh&&studioOrbit){studioOrbit.target.copy(editor.selectedMesh.position);studioOrbit.update()}};ui.snapToggle.onchange=()=>{editor.snap=ui.snapToggle.checked;if(studioTransform){studioTransform.setTranslationSnap(editor.snap?editor.snapSize:null);studioTransform.setScaleSnap(editor.snap?editor.snapSize/2:null)}studioStatus(editor.snap?`Snap ON • ${editor.snapSize} stud grid`:'Snap OFF')};ui.snapSize.onchange=()=>{editor.snapSize=Math.max(.25,Number(ui.snapSize.value)||1);ui.snapSize.value=editor.snapSize;if(studioTransform){studioTransform.setTranslationSnap(editor.snap?editor.snapSize:null);studioTransform.setScaleSnap(editor.snap?editor.snapSize/2:null)}};
-ui.game.addEventListener('pointerdown',e=>{if(state.mode!=='studio'||e.button!==0)return;const hit=objectAt(e.clientX,e.clientY);if(hit){selectObject(hit,true)}else if(editor.tool==='select'){const r=ui.game.getBoundingClientRect();studioMouse.x=((e.clientX-r.left)/r.width)*2-1;studioMouse.y=-((e.clientY-r.top)/r.height)*2+1;studioRay.setFromCamera(studioMouse,camera);const p=new THREE.Vector3();const plane=new THREE.Plane(new THREE.Vector3(0,1,0),0);if(studioRay.ray.intersectPlane(plane,p))addObject('platform',p.x,p.z)}});
-window.addEventListener('keydown',e=>{if(state.mode!=='studio')return;if(['INPUT','TEXTAREA'].includes(document.activeElement?.tagName))return;const k=e.key.toLowerCase();if((e.ctrlKey||e.metaKey)&&k==='d'){e.preventDefault();duplicateSelected();return;}if(e.key==='Delete'||e.key==='Backspace'){e.preventDefault();if(editor.selected)ui.deleteSelected.click();return;}if(k==='1')return setEditorTool('select');if(k==='2')return setEditorTool('move');if(k==='3')return setEditorTool('scale');if(k==='f')return ui.focusSelected.click();if(k==='r'&&editor.selected)return selectObject(editor.selected,true);if(k==='w')editor.moveForward=true;else if(k==='s')editor.moveBack=true;else if(k==='a')editor.moveLeft=true;else if(k==='d')editor.moveRight=true;else if(k==='q')editor.moveDown=true;else if(k==='e')editor.moveUp=true;else if(k==='shift')editor.fast=true;});
-window.addEventListener('keyup',e=>{if(state.mode!=='studio')return;const k=e.key.toLowerCase();if(k==='w')editor.moveForward=false;else if(k==='s')editor.moveBack=false;else if(k==='a')editor.moveLeft=false;else if(k==='d')editor.moveRight=false;else if(k==='q')editor.moveDown=false;else if(k==='e')editor.moveUp=false;else if(k==='shift')editor.fast=false;});
+function normalizeLevel(data) {
+  const safe = data && Array.isArray(data.objects) ? data : defaultLevel();
+  const validTypes = new Set(['platform', 'wall', 'shard', 'key', 'checkpoint', 'enemy', 'hazard', 'door', 'goal']);
+  return {
+    name: String(safe.name || 'Untitled Level'),
+    spawn: { x: Number(safe.spawn?.x) || 0, y: Number(safe.spawn?.y) || 1.1, z: Number(safe.spawn?.z) || 8 },
+    objects: safe.objects.filter((object) => validTypes.has(String(object.type || 'platform'))).map((object) => ({
+      type: String(object.type || 'platform'), x: Number(object.x) || 0, y: Number(object.y) || 0, z: Number(object.z) || 0,
+      w: object.w == null ? 4 : Number(object.w), h: object.h == null ? 1 : Number(object.h), d: object.d == null ? 4 : Number(object.d), label: String(object.label || '')
+    }))
+  };
+}
+function buildAtmosphere() {
+  const sky = addMesh(atmosphere, GEO.sphere(180, 24, 14), new THREE.MeshBasicMaterial({ color: 0x83d9ef, side: THREE.BackSide }), [0, 25, -28]);
+  sky.scale.y = 0.6;
+  const cloudMaterial = MAT.cloud.clone();
+  for (let i = 0; i < 26; i++) {
+    const cloud = new THREE.Group();
+    const angle = i * 2.4;
+    const radius = 58 + (i % 6) * 13;
+    cloud.position.set(Math.sin(angle) * radius, 17 + (i % 5) * 5, -28 + Math.cos(angle) * radius);
+    for (let puff = 0; puff < 3; puff++) {
+      const part = addMesh(cloud, GEO.sphere(1, 12, 8), cloudMaterial, [(puff - 1) * 1.35, (puff % 2) * 0.22, 0]);
+      part.scale.set(2.4 + (i % 3), 0.65 + ((i + puff) % 3) * 0.15, 0.8);
+      part.castShadow = false;
+      part.receiveShadow = false;
+    }
+    cloud.userData.speed = 0.08 + (i % 4) * 0.012;
+    atmosphere.add(cloud);
+  }
+  const starGeometry = new THREE.BufferGeometry();
+  const count = 280;
+  const points = new Float32Array(count * 3);
+  for (let i = 0; i < count; i++) {
+    points[i * 3] = (Math.sin(i * 87.1) * 0.5 + 0.5) * 170 - 85;
+    points[i * 3 + 1] = 9 + ((i * 29) % 45);
+    points[i * 3 + 2] = -100 + ((i * 53) % 110);
+  }
+  starGeometry.setAttribute('position', new THREE.BufferAttribute(points, 3));
+  const dust = new THREE.Points(starGeometry, new THREE.PointsMaterial({ color: 0xd6fbff, size: 0.07, transparent: true, opacity: 0.46 }));
+  atmosphere.add(dust);
+}
+function buildLevel(data) {
+  clearWorld();
+  level = normalizeLevel(data);
+  buildAtmosphere();
+  for (const object of level.objects) {
+    if (object.type === 'platform' || object.type === 'wall') platform(object);
+    else if (object.type === 'shard') shard(object);
+    else if (object.type === 'key') key(object);
+    else if (object.type === 'checkpoint') checkpoint(object);
+    else if (object.type === 'enemy') enemy(object);
+    else if (object.type === 'hazard') hazard(object);
+    else if (object.type === 'door') door(object);
+    else if (object.type === 'goal') goal(object);
+  }
+  setInitialRespawn();
+  if (typeof buildEditorIndex === 'function') buildEditorIndex();
+}
 
-function resize(){const w=innerWidth,h=innerHeight;camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setPixelRatio(Math.min(devicePixelRatio,1.15));renderer.setSize(w,h)}addEventListener('resize',resize);
+const player = new THREE.Group();
+world.add(player);
+const body = addBox(player, MAT.player, [0, 0.74, 0], [0.74, 1.12, 0.58]);
+const chest = addBox(player, MAT.playerAccent, [0, 0.85, 0.31], [0.34, 0.36, 0.1]);
+const head = addMesh(player, GEO.sphere(0.43, 16, 12), MAT.playerAccent, [0, 1.58, 0]);
+const visor = addBox(player, MAT.visor, [0, 1.61, 0.36], [0.52, 0.16, 0.1]);
+const pack = addBox(player, MAT.visor, [0, 0.78, -0.35], [0.42, 0.62, 0.16]);
+const trail = new THREE.PointLight(0x5ceaff, 2.1, 5);
+trail.position.set(0, 0.85, -0.75);
+player.add(trail);
 
-buildLevel(level);
-let last=performance.now();function animate(now){const dt=Math.min(.033,(now-last)/1000||.016);last=now;state.time+=dt;if(state.mode==='playing')state.runTime+=dt;updateWorld(dt);updateEffects(dt);if(state.mode==='playing')updatePlayer(dt);if(state.mode==='studio'){updateStudioCamera(dt);if(studioOrbit)studioOrbit.update();updateStudioOutline();}else updateCamera(dt);renderer.render(scene,camera);requestAnimationFrame(animate)}
-(async()=>{for(let i=0;i<=100;i+=20){await new Promise(r=>setTimeout(r,40));ui.loadingBar.style.width=i+'%';ui.loadingText.textContent=['BUILDING THE SKY...','LOADING LEVEL DATA...','CHARGING KEYS...','OPENING DEV STUDIO...','READY'][i/20]}await new Promise(r=>setTimeout(r,220));ui.loading.classList.add('done');setMode('menu');requestAnimationFrame(animate)})();
+const pstate = {
+  vel: new THREE.Vector3(), respawn: new THREE.Vector3(0, 1.06, 8), grounded: false, coyote: 0, jumpBuffer: 0, invuln: 0,
+  radius: 0.4, dashCooldown: 0, dashHeld: false
+};
+const cameraRig = { yaw: 0, pitch: 0.22, distance: 8.6, height: 3.65 };
+const keysDown = {};
+let mouseDX = 0, mouseDY = 0, pointerLocked = false;
+
+function halfHeight() { return 0.56; }
+function groundBelow(x, z, ceiling = Infinity) {
+  let best = null;
+  for (const platformData of platforms) {
+    const inside = x >= platformData.x - platformData.w / 2 && x <= platformData.x + platformData.w / 2 && z >= platformData.z - platformData.d / 2 && z <= platformData.z + platformData.d / 2;
+    if (inside && platformData.y <= ceiling && (!best || platformData.y > best.y)) best = platformData;
+  }
+  return best;
+}
+function setInitialRespawn() {
+  const floor = groundBelow(level.spawn.x, level.spawn.z);
+  pstate.respawn.set(level.spawn.x, floor ? floor.y + halfHeight() + 0.02 : Math.max(1.1, level.spawn.y), level.spawn.z);
+}
+function resetPlayer() {
+  player.position.copy(pstate.respawn);
+  pstate.vel.set(0, 0, 0);
+  pstate.grounded = false;
+  pstate.coyote = 0;
+  pstate.jumpBuffer = 0;
+  pstate.invuln = 0.8;
+  cameraRig.yaw = 0;
+  cameraRig.pitch = 0.22;
+}
+function toast(message, duration = 1350) {
+  ui.toast.textContent = message;
+  ui.toast.classList.add('show');
+  clearTimeout(toast.timer);
+  toast.timer = setTimeout(() => ui.toast.classList.remove('show'), duration);
+}
+function flash() {
+  ui.flash.style.opacity = '0.22';
+  clearTimeout(flash.timer);
+  flash.timer = setTimeout(() => { ui.flash.style.opacity = '0'; }, 115);
+}
+function setMode(mode) {
+  state.mode = mode;
+  ui.menu.classList.toggle('hidden', mode !== 'menu');
+  ui.hud.classList.toggle('hidden', !['playing', 'paused'].includes(mode));
+  ui.pause.classList.toggle('hidden', mode !== 'paused');
+  ui.gameOver.classList.toggle('hidden', mode !== 'gameover');
+  ui.victory.classList.toggle('hidden', mode !== 'victory');
+  ui.studio.classList.toggle('hidden', mode !== 'studio');
+}
+function objectiveText() {
+  const closed = doors.filter((gate) => !gate.open).sort((a, b) => a.requiredKey - b.requiredKey)[0];
+  if (closed) {
+    if (state.keys < closed.requiredKey) return `FIND THE KEY FOR ${closed.label}`;
+    return `PASS THROUGH ${closed.label}`;
+  }
+  return 'REACH THE FIRST LIGHT PORTAL';
+}
+function updateHud() {
+  ui.shards.textContent = `${state.shards} / ${collectibles.filter((item) => item.kind === 'shard').length}`;
+  ui.keys.textContent = `${state.keys} / ${collectibles.filter((item) => item.kind === 'key').length}`;
+  ui.score.textContent = state.score;
+  ui.best.textContent = state.best;
+  ui.healthBar.style.width = `${state.health}%`;
+  ui.healthText.textContent = `${Math.round(state.health)}%`;
+  ui.checkpoint.textContent = state.checkpoint;
+  ui.objective.textContent = objectiveText();
+  if (state.score > state.best) {
+    state.best = state.score;
+    localStorage.setItem('skybound_best', state.best);
+    ui.best.textContent = state.best;
+    ui.bestMenu.textContent = state.best;
+  }
+}
+function startGame() {
+  state.score = 0;
+  state.shards = 0;
+  state.keys = 0;
+  state.health = 100;
+  state.checkpoint = 'START';
+  state.runTime = 0;
+  collectibles.forEach((item) => { item.got = false; item.group.visible = true; });
+  checkpoints.forEach((checkpointData) => {
+    checkpointData.active = false;
+    checkpointData.ring.material = MAT.cyan;
+  });
+  enemies.forEach((enemyData) => { enemyData.dead = false; enemyData.group.visible = true; });
+  doors.forEach((gate) => { gate.open = false; gate.group.position.y = gate.baseY; gate.group.visible = true; });
+  setInitialRespawn();
+  resetPlayer();
+  setMode('playing');
+  toast(`LEVEL STARTED • ${level.name}`, 1700);
+  updateHud();
+}
+function restartGame() { startGame(); }
+function continueFromCheckpoint() {
+  state.health = 100;
+  resetPlayer();
+  setMode('playing');
+  toast(`REDEPLOYED • ${state.checkpoint}`, 1400);
+  updateHud();
+}
+function goHome() {
+  setMode('menu');
+  document.exitPointerLock?.();
+  resetPlayer();
+}
+function togglePause() {
+  if (state.mode === 'playing') {
+    document.exitPointerLock?.();
+    setMode('paused');
+  } else if (state.mode === 'paused') setMode('playing');
+}
+function gameOver(title, message) {
+  setMode('gameover');
+  ui.goTitle.textContent = title;
+  ui.goText.textContent = message;
+  ui.goScore.textContent = state.score;
+  ui.goShards.textContent = state.shards;
+}
+function victory() {
+  if (state.mode !== 'playing') return;
+  state.score += 600;
+  updateHud();
+  setMode('victory');
+  ui.vScore.textContent = state.score;
+  ui.vShards.textContent = state.shards;
+  ui.vText.textContent = `${level.name} complete — the First Light is restored.`;
+}
+function respawn(reason = 'SKYLINE RECOVERY') {
+  resetPlayer();
+  toast(`${reason} • ${state.checkpoint}`, 1200);
+}
+function damage(amount, message) {
+  if (pstate.invuln > 0 || state.mode !== 'playing') return;
+  state.health = Math.max(0, state.health - amount);
+  pstate.invuln = 0.85;
+  flash();
+  burst(player.position, 0xff6479);
+  toast(message);
+  if (state.health <= 0) gameOver('SUIT OFFLINE', `Your recovery beacon is active at ${state.checkpoint}.`);
+  updateHud();
+}
+function collect(item) {
+  if (item.got) return;
+  item.got = true;
+  item.group.visible = false;
+  if (item.kind === 'shard') {
+    state.shards += 1;
+    state.score += item.value;
+    state.health = Math.min(100, state.health + 4);
+    toast(`SKY SHARD SECURED +${item.value}`, 1150);
+    burst(item.group.position, 0x74efff);
+  } else {
+    state.keys += 1;
+    state.score += item.value;
+    toast(`AETHER KEY ACQUIRED • ${state.keys}`, 1250);
+    burst(item.group.position, 0xffd66f);
+  }
+  updateHud();
+}
+function activate(checkpointData) {
+  if (checkpointData.active) return;
+  checkpointData.active = true;
+  state.checkpoint = checkpointData.label;
+  const floor = groundBelow(checkpointData.x, checkpointData.z);
+  pstate.respawn.set(checkpointData.x, floor ? floor.y + halfHeight() + 0.02 : checkpointData.y + halfHeight(), checkpointData.z + 1.25);
+  checkpointData.ring.material = MAT.gold;
+  state.score += 125;
+  state.health = Math.min(100, state.health + 20);
+  toast(`CHECKPOINT SYNCHRONIZED • ${checkpointData.label}`, 1650);
+  burst(checkpointData.group.position, 0x86f5ff);
+  updateHud();
+}
+function killEnemy(enemyData) {
+  if (enemyData.dead) return;
+  enemyData.dead = true;
+  enemyData.group.visible = false;
+  state.score += 300;
+  toast('SENTINEL DISABLED +300', 1000);
+  burst(enemyData.group.position, 0xff6077);
+  updateHud();
+}
+function burst(position, color = 0x8ff3ff) {
+  const group = new THREE.Group();
+  for (let i = 0; i < 11; i++) {
+    const piece = addMesh(group, GEO.sphere(0.045, 6, 4), new THREE.MeshBasicMaterial({ color, transparent: true }), [0, 0, 0]);
+    piece.position.copy(position);
+    piece.userData.velocity = new THREE.Vector3((Math.random() - 0.5) * 4, Math.random() * 3.3, (Math.random() - 0.5) * 4);
+  }
+  group.userData.age = 0;
+  group.userData.max = 0.68;
+  effects.add(group);
+}
+function updateEffects(dt) {
+  for (let i = effects.children.length - 1; i >= 0; i--) {
+    const group = effects.children[i];
+    group.userData.age += dt;
+    for (const piece of group.children) {
+      piece.position.addScaledVector(piece.userData.velocity, dt);
+      piece.userData.velocity.y -= 5.4 * dt;
+      piece.material.opacity = Math.max(0, 1 - group.userData.age / group.userData.max);
+    }
+    if (group.userData.age > group.userData.max) effects.remove(group);
+  }
+}
+
+function processInteractions() {
+  for (const item of collectibles) if (!item.got && player.position.distanceTo(item.group.position) < 1.35) collect(item);
+  for (const checkpointData of checkpoints) if (!checkpointData.active && Math.hypot(player.position.x - checkpointData.x, player.position.z - checkpointData.z) < 1.8 && player.position.y > checkpointData.y - 0.7) activate(checkpointData);
+  for (const gate of doors) {
+    if (!gate.open && state.keys >= gate.requiredKey) {
+      gate.open = true;
+      toast(`${gate.label} UNLOCKED`, 1250);
+      burst(gate.group.position, 0xb68aff);
+      updateHud();
+    }
+  }
+  for (const goalData of goals) if (Math.hypot(player.position.x - goalData.x, player.position.z - goalData.z) < 2.5 && Math.abs(player.position.y - goalData.y) < 3.1) victory();
+}
+function updatePlayer(dt) {
+  pstate.invuln = Math.max(0, pstate.invuln - dt);
+  pstate.coyote = Math.max(0, pstate.coyote - dt);
+  pstate.jumpBuffer = Math.max(0, pstate.jumpBuffer - dt);
+  pstate.dashCooldown = Math.max(0, pstate.dashCooldown - dt);
+  const forwardKey = Boolean(keysDown.KeyW || keysDown.ArrowUp);
+  const backKey = Boolean(keysDown.KeyS || keysDown.ArrowDown);
+  const leftKey = Boolean(keysDown.KeyA || keysDown.ArrowLeft);
+  const rightKey = Boolean(keysDown.KeyD || keysDown.ArrowRight);
+  let inputX = (rightKey ? 1 : 0) - (leftKey ? 1 : 0);
+  let inputZ = (forwardKey ? 1 : 0) - (backKey ? 1 : 0);
+  const inputLength = Math.hypot(inputX, inputZ);
+  if (inputLength) { inputX /= inputLength; inputZ /= inputLength; }
+  const forward = new THREE.Vector3(-Math.sin(cameraRig.yaw), 0, -Math.cos(cameraRig.yaw));
+  const right = new THREE.Vector3(Math.cos(cameraRig.yaw), 0, -Math.sin(cameraRig.yaw));
+  let moveX = right.x * inputX + forward.x * inputZ;
+  let moveZ = right.z * inputX + forward.z * inputZ;
+  const moveLength = Math.hypot(moveX, moveZ);
+  if (moveLength > 0.0001) { moveX /= moveLength; moveZ /= moveLength; }
+  const sprint = Boolean(keysDown.ShiftLeft || keysDown.ShiftRight);
+  const speed = sprint ? 8.8 : 5.9;
+  const acceleration = pstate.grounded ? 25 : 12;
+  const blend = 1 - Math.exp(-acceleration * dt);
+  pstate.vel.x += (moveX * speed - pstate.vel.x) * blend;
+  pstate.vel.z += (moveZ * speed - pstate.vel.z) * blend;
+  if (!inputLength) { pstate.vel.x *= 1 - Math.min(1, dt * 7); pstate.vel.z *= 1 - Math.min(1, dt * 7); }
+  if (inputLength) {
+    const desired = Math.atan2(moveX, moveZ);
+    let delta = desired - player.rotation.y;
+    while (delta > Math.PI) delta -= Math.PI * 2;
+    while (delta < -Math.PI) delta += Math.PI * 2;
+    player.rotation.y += delta * (1 - Math.exp(-18 * dt));
+  }
+  if (sprint && inputLength && !pstate.dashHeld && pstate.dashCooldown <= 0) {
+    pstate.vel.x = moveX * 13;
+    pstate.vel.z = moveZ * 13;
+    pstate.dashCooldown = 0.82;
+    pstate.dashHeld = true;
+    trail.intensity = 5.5;
+    burst(player.position, 0x7af1ff);
+  } else if (!sprint) pstate.dashHeld = false;
+  if (keysDown.Space || keysDown.Numpad0) pstate.jumpBuffer = 0.14;
+  if (pstate.jumpBuffer > 0 && (pstate.grounded || pstate.coyote > 0)) {
+    pstate.vel.y = 11.4;
+    pstate.grounded = false;
+    pstate.coyote = 0;
+    pstate.jumpBuffer = 0;
+    keysDown.Space = false;
+    keysDown.Numpad0 = false;
+    burst(player.position, 0x92f6ff);
+  }
+  pstate.vel.y -= 27 * dt;
+  const radius = pstate.radius;
+  const hh = halfHeight();
+  const px = player.position.x, py = player.position.y, pz = player.position.z;
+  const solids = [
+    ...platforms.map((item) => ({ x: item.x, z: item.z, y: item.y, w: item.w, h: item.h, d: item.d })),
+    ...doors.filter((gate) => !gate.open).map((gate) => ({ x: gate.group.position.x, z: gate.group.position.z, y: gate.group.position.y + gate.h / 2, w: gate.w, h: gate.h, d: gate.d }))
+  ];
+  let nx = px + pstate.vel.x * dt;
+  for (const solid of solids) {
+    const vertical = py - hh < solid.y && py + hh > solid.y - solid.h;
+    const overlap = nx + radius > solid.x - solid.w / 2 && nx - radius < solid.x + solid.w / 2 && pz + radius > solid.z - solid.d / 2 && pz - radius < solid.z + solid.d / 2;
+    if (vertical && overlap) { nx = px; pstate.vel.x = 0; break; }
+  }
+  let nz = pz + pstate.vel.z * dt;
+  for (const solid of solids) {
+    const vertical = py - hh < solid.y && py + hh > solid.y - solid.h;
+    const overlap = nx + radius > solid.x - solid.w / 2 && nx - radius < solid.x + solid.w / 2 && nz + radius > solid.z - solid.d / 2 && nz - radius < solid.z + solid.d / 2;
+    if (vertical && overlap) { nz = pz; pstate.vel.z = 0; break; }
+  }
+  player.position.x = nx;
+  player.position.z = nz;
+  const newY = py + pstate.vel.y * dt;
+  let landing = null;
+  let top = -Infinity;
+  if (pstate.vel.y <= 0) {
+    for (const solid of solids) {
+      const overlap = player.position.x + radius > solid.x - solid.w / 2 && player.position.x - radius < solid.x + solid.w / 2 && player.position.z + radius > solid.z - solid.d / 2 && player.position.z - radius < solid.z + solid.d / 2;
+      const oldFoot = py - hh;
+      const newFoot = newY - hh;
+      if (overlap && oldFoot >= solid.y - 0.08 && newFoot <= solid.y && solid.y > top) { top = solid.y; landing = solid; }
+    }
+  }
+  if (landing) {
+    player.position.y = landing.y + hh;
+    pstate.vel.y = 0;
+    pstate.grounded = true;
+    pstate.coyote = 0.12;
+  } else {
+    player.position.y = newY;
+    pstate.grounded = false;
+  }
+  if (player.position.y < -22) { respawn('FALL RECOVERED'); return; }
+  for (const hazardData of hazards) if (Math.abs(player.position.x - hazardData.x) < hazardData.w * 0.56 && Math.abs(player.position.z - hazardData.z) < hazardData.d * 0.56 && Math.abs(player.position.y - hazardData.y) < 1.05) damage(22, 'RUNE SURGE');
+  for (const enemyData of enemies) {
+    if (enemyData.dead) continue;
+    const distance = Math.hypot(player.position.x - enemyData.group.position.x, player.position.z - enemyData.group.position.z);
+    if (distance < 1.05 && Math.abs(player.position.y - enemyData.group.position.y) < 1.55) {
+      if (pstate.vel.y < 0 && player.position.y > enemyData.group.position.y + 0.48) { killEnemy(enemyData); pstate.vel.y = 9.4; }
+      else damage(24, 'SENTINEL STRIKE');
+    }
+  }
+  processInteractions();
+  body.rotation.x = clamp(-pstate.vel.y * 0.02, -0.18, 0.18);
+  body.position.y = 0.74 + (pstate.grounded ? Math.sin(state.time * 11) * Math.min(0.035, Math.hypot(pstate.vel.x, pstate.vel.z) * 0.003) : 0);
+  trail.intensity += (1.8 - trail.intensity) * Math.min(1, dt * 8);
+}
+
+let demoIndex = 0;
+const demoRoute = [
+  new THREE.Vector3(-4.5, 1.08, 6), new THREE.Vector3(-1.5, 3.18, -6.5), new THREE.Vector3(2, 4.98, -19), new THREE.Vector3(-2, 6.78, -33), new THREE.Vector3(0, 8.58, -50)
+];
+function updateDemo(dt) {
+  const target = demoRoute[demoIndex];
+  const direction = target.clone().sub(player.position);
+  direction.y = 0;
+  if (direction.lengthSq() > 0.04) {
+    player.position.addScaledVector(direction.normalize(), dt * 4.2);
+    player.position.y += (target.y - player.position.y) * Math.min(1, dt * 2.4);
+    player.rotation.y = Math.atan2(direction.x, direction.z);
+  } else demoIndex = (demoIndex + 1) % demoRoute.length;
+  processInteractions();
+}
+function updateWorld(dt) {
+  for (const item of collectibles) {
+    if (item.got) continue;
+    item.group.rotation.y += dt * (item.kind === 'shard' ? 1.9 : 1.35);
+    item.group.position.y = item.baseY + Math.sin(state.time * 2.4 + item.phase) * 0.18;
+  }
+  for (const checkpointData of checkpoints) {
+    checkpointData.spire.rotation.y += dt * 1.4;
+    checkpointData.spire.position.y = 1.15 + Math.sin(state.time * 2.2) * 0.06;
+  }
+  for (const enemyData of enemies) {
+    if (enemyData.dead) continue;
+    const phase = state.time * 0.9 + enemyData.phase;
+    enemyData.group.position.x = enemyData.originX + Math.sin(phase) * enemyData.path;
+    enemyData.group.position.y = enemyData.baseY + Math.sin(phase * 1.7) * 0.18;
+    enemyData.group.rotation.y = Math.sin(phase) * 0.6;
+  }
+  for (const hazardData of hazards) {
+    const pulse = 0.65 + Math.sin(state.time * 5 + hazardData.phase) * 0.35;
+    hazardData.ring.scale.setScalar(0.86 + pulse * 0.16);
+    hazardData.ring.material.emissiveIntensity = 0.75 + pulse;
+  }
+  for (const gate of doors) {
+    if (gate.open) {
+      gate.group.position.y += (gate.baseY + 7 - gate.group.position.y) * Math.min(1, dt * 3.2);
+      if (gate.group.position.y > gate.baseY + 6.7) gate.group.visible = false;
+    }
+  }
+  for (const goalData of goals) {
+    goalData.group.rotation.y += dt * 0.42;
+    goalData.ring.rotation.z += dt * 0.34;
+  }
+  atmosphere.rotation.y += dt * 0.0025;
+  for (const cloud of atmosphere.children) if (cloud.userData.speed) cloud.position.x += Math.sin(state.time * cloud.userData.speed) * dt * 0.28;
+}
+function updateCamera(dt) {
+  if (state.mode === 'menu') {
+    cameraRig.yaw += dt * 0.055;
+    const focus = new THREE.Vector3(0, 3.7, -17);
+    const offset = new THREE.Vector3(Math.sin(cameraRig.yaw) * 16, 7.3, Math.cos(cameraRig.yaw) * 16);
+    camera.position.lerp(focus.clone().add(offset), 1 - Math.exp(-2 * dt));
+    camera.lookAt(focus);
+    return;
+  }
+  if (state.mode === 'studio') return;
+  cameraRig.yaw -= mouseDX * 0.0025;
+  cameraRig.pitch = clamp(cameraRig.pitch - mouseDY * 0.0017, -0.04, 0.58);
+  mouseDX = 0;
+  mouseDY = 0;
+  const offset = new THREE.Vector3(
+    Math.sin(cameraRig.yaw) * cameraRig.distance,
+    Math.sin(cameraRig.pitch) * cameraRig.distance * 0.7 + cameraRig.height,
+    Math.cos(cameraRig.yaw) * cameraRig.distance
+  );
+  camera.position.lerp(player.position.clone().add(offset), 1 - Math.exp(-7 * dt));
+  camera.lookAt(player.position.clone().add(new THREE.Vector3(0, 1.12, 0)));
+}
+
+const editor = { selected: null, selectedMesh: null, tool: 'select', snap: true, snapSize: 1, moveForward: false, moveBack: false, moveLeft: false, moveRight: false, moveUp: false, moveDown: false, fast: false };
+let studioOrbit = null, studioTransform = null, studioGrid = null, studioOutline = null;
+const studioRay = new THREE.Raycaster();
+const studioMouse = new THREE.Vector2();
+function studioStatus(text) { ui.studioStatus.textContent = text; }
+function escapeHtml(value) { return String(value).replace(/[&<>'"]/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[character])); }
+function snap(value) { return editor.snap ? Math.round(value / editor.snapSize) * editor.snapSize : value; }
+function markEditorObject(root, object) { root.traverse((node) => { if (node.isMesh || node.isGroup) node.userData.levelObject = object; }); }
+function buildEditorIndex() { /* Entities mark their meshes during construction; this preserves selection after every rebuild. */ }
+function refreshExplorer() {
+  ui.explorer.innerHTML = '';
+  level.objects.forEach((object) => {
+    const row = document.createElement('button');
+    row.className = `explorer-item${editor.selected === object ? ' selected' : ''}`;
+    const icon = { platform: '▰', wall: '▤', shard: '◇', key: '◆', checkpoint: '◉', enemy: '●', hazard: '▲', door: '▥', goal: '✦' }[object.type] || '•';
+    row.innerHTML = `<span class="explorer-icon">${icon}</span><span class="explorer-name">${escapeHtml(object.label || object.type)}</span><span class="explorer-type">${object.type}</span>`;
+    row.onclick = () => selectObject(object, true);
+    ui.explorer.appendChild(row);
+  });
+}
+function studioSelectableRoots() {
+  return [...platforms.map((item) => item.mesh), ...collectibles.map((item) => item.group), ...checkpoints.map((item) => item.group), ...enemies.map((item) => item.group), ...hazards.map((item) => item.mesh), ...doors.map((item) => item.group), ...goals.map((item) => item.group)];
+}
+function objectAt(clientX, clientY) {
+  const rect = ui.game.getBoundingClientRect();
+  studioMouse.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+  studioMouse.y = -((clientY - rect.top) / rect.height) * 2 + 1;
+  studioRay.setFromCamera(studioMouse, camera);
+  const hit = studioRay.intersectObjects(studioSelectableRoots(), true)[0];
+  if (!hit) return null;
+  let node = hit.object;
+  while (node && node.parent && !node.userData.levelObject) node = node.parent;
+  return node?.userData?.levelObject || null;
+}
+function getRootForObject(object) {
+  return studioSelectableRoots().find((root) => root.userData.levelObject === object) || null;
+}
+function syncSelected(object) {
+  editor.selected = object || null;
+  if (!object) {
+    ui.selNone.classList.remove('hidden');
+    ui.selPanel.classList.add('hidden');
+    refreshExplorer();
+    return;
+  }
+  ui.selNone.classList.add('hidden');
+  ui.selPanel.classList.remove('hidden');
+  ui.selType.value = object.type;
+  ui.selX.value = object.x;
+  ui.selY.value = object.y;
+  ui.selZ.value = object.z;
+  ui.selW.value = object.w ?? 4;
+  ui.selH.value = object.h ?? 1;
+  ui.selD.value = object.d ?? 4;
+  ui.selLabel.value = object.label || '';
+  refreshExplorer();
+}
+function selectObject(object, focus = false) {
+  editor.selected = object || null;
+  editor.selectedMesh = null;
+  syncSelected(object);
+  if (studioTransform) { studioTransform.detach(); studioTransform.visible = false; }
+  if (object) {
+    const root = getRootForObject(object);
+    editor.selectedMesh = root;
+    if (root && studioTransform && editor.tool !== 'select') {
+      studioTransform.attach(root);
+      studioTransform.visible = true;
+    }
+    if (focus && studioOrbit && root) { studioOrbit.target.copy(root.position); studioOrbit.update(); }
+  }
+}
+function setEditorTool(tool) {
+  editor.tool = tool;
+  ui.toolSelect.classList.toggle('active', tool === 'select');
+  ui.toolMove.classList.toggle('active', tool === 'move');
+  ui.toolScale.classList.toggle('active', tool === 'scale');
+  if (studioTransform) {
+    studioTransform.detach();
+    studioTransform.visible = false;
+    if (editor.selectedMesh && tool !== 'select') {
+      studioTransform.setMode(tool === 'scale' ? 'scale' : 'translate');
+      studioTransform.attach(editor.selectedMesh);
+      studioTransform.visible = true;
+    }
+  }
+  studioStatus(tool === 'select' ? 'SELECT TOOL • Click an object to select it' : tool === 'move' ? 'MOVE TOOL • Drag the colored arrows to move' : 'SCALE TOOL • Drag the boxes to resize');
+}
+function setupStudioCamera() {
+  studioOrbit?.dispose();
+  studioOrbit = new OrbitControls(camera, renderer.domElement);
+  studioOrbit.enableDamping = true;
+  studioOrbit.dampingFactor = 0.1;
+  studioOrbit.screenSpacePanning = true;
+  studioOrbit.minDistance = 3;
+  studioOrbit.maxDistance = 140;
+  studioOrbit.maxPolarAngle = Math.PI - 0.05;
+  studioOrbit.mouseButtons.LEFT = THREE.MOUSE.ROTATE;
+  studioOrbit.mouseButtons.RIGHT = THREE.MOUSE.PAN;
+  studioOrbit.mouseButtons.MIDDLE = THREE.MOUSE.DOLLY;
+  studioOrbit.target.set(0, 3, -22);
+  camera.position.set(0, 19, 30);
+  studioOrbit.update();
+  if (!studioTransform) {
+    studioTransform = new TransformControls(camera, renderer.domElement);
+    studioTransform.setSpace('world');
+    studioTransform.setTranslationSnap(editor.snapSize);
+    studioTransform.setScaleSnap(editor.snapSize / 2);
+    studioTransform.addEventListener('dragging-changed', (event) => { if (studioOrbit) studioOrbit.enabled = !event.value; });
+    studioTransform.addEventListener('objectChange', () => {
+      const object = editor.selected;
+      const mesh = editor.selectedMesh;
+      if (!object || !mesh) return;
+      object.x = snap(mesh.position.x);
+      object.y = snap(mesh.position.y);
+      object.z = snap(mesh.position.z);
+      if (editor.tool === 'scale' && ['platform', 'wall', 'door', 'hazard'].includes(object.type)) {
+        object.w = Math.max(0.25, snap(object.w * mesh.scale.x));
+        object.h = Math.max(0.25, snap(object.h * mesh.scale.y));
+        object.d = Math.max(0.25, snap(object.d * mesh.scale.z));
+        mesh.scale.set(1, 1, 1);
+      }
+      mesh.position.set(object.x, object.y, object.z);
+      syncSelected(object);
+      updateStudioOutline();
+    });
+    scene.add(studioTransform);
+  }
+  if (!studioGrid) { studioGrid = new THREE.GridHelper(160, 160, 0x4d7b8d, 0x244452); scene.add(studioGrid); }
+  setEditorTool(editor.tool);
+  updateStudioOutline();
+}
+function teardownStudioHelpers() {
+  if (studioOrbit) { studioOrbit.dispose(); studioOrbit = null; }
+  if (studioTransform) { studioTransform.detach(); studioTransform.visible = false; }
+  if (studioGrid) { scene.remove(studioGrid); studioGrid = null; }
+  if (studioOutline) { scene.remove(studioOutline); studioOutline.geometry.dispose(); studioOutline.material.dispose(); studioOutline = null; }
+}
+function updateStudioOutline() {
+  if (state.mode !== 'studio' || !editor.selectedMesh) { if (studioOutline) studioOutline.visible = false; return; }
+  if (!studioOutline) { studioOutline = new THREE.BoxHelper(editor.selectedMesh, 0x59efff); scene.add(studioOutline); }
+  else { studioOutline.visible = true; studioOutline.setFromObject(editor.selectedMesh); }
+}
+function updateStudioCamera(dt) {
+  if (state.mode !== 'studio' || !studioOrbit) return;
+  const speed = (editor.fast ? 18 : 9) * dt;
+  const forward = new THREE.Vector3();
+  camera.getWorldDirection(forward);
+  forward.y = 0;
+  if (forward.lengthSq() < 1e-6) forward.set(0, 0, -1); else forward.normalize();
+  const right = new THREE.Vector3(forward.z, 0, -forward.x);
+  if (editor.moveForward) { studioOrbit.target.addScaledVector(forward, speed); camera.position.addScaledVector(forward, speed); }
+  if (editor.moveBack) { studioOrbit.target.addScaledVector(forward, -speed); camera.position.addScaledVector(forward, -speed); }
+  if (editor.moveRight) { studioOrbit.target.addScaledVector(right, speed); camera.position.addScaledVector(right, speed); }
+  if (editor.moveLeft) { studioOrbit.target.addScaledVector(right, -speed); camera.position.addScaledVector(right, -speed); }
+  if (editor.moveUp) { studioOrbit.target.y += speed; camera.position.y += speed; }
+  if (editor.moveDown) { studioOrbit.target.y -= speed; camera.position.y -= speed; }
+}
+function addObject(type, x = 0, z = -6) {
+  const y = { platform: 0.5, wall: 2, shard: 2.2, key: 2.3, checkpoint: 0.5, enemy: 1, hazard: 0, door: 3, goal: 2.5 }[type] ?? 0.5;
+  const defaults = { platform: [6, 1, 6], wall: [6, 4, 0.8], shard: [1, 1, 1], key: [0.25, 0.75, 0.25], checkpoint: [1.35, 0.25, 1.35], enemy: [1, 1, 1], hazard: [2, 0.18, 2], door: [6, 5, 0.8], goal: [4, 4, 1] };
+  const [w, h, d] = defaults[type] || defaults.platform;
+  const object = { type, x: snap(x), y: snap(y), z: snap(z), w, h, d, label: `${type.toUpperCase()}-${level.objects.length + 1}` };
+  level.objects.push(object);
+  buildLevel(level);
+  selectObject(object, true);
+  studioStatus(`${type.toUpperCase()} added • use MOVE (2) to position it`);
+}
+function selectedChanged() {
+  if (!editor.selected) return;
+  const index = level.objects.indexOf(editor.selected);
+  if (index < 0) return;
+  const object = editor.selected;
+  object.x = snap(Number(ui.selX.value) || 0);
+  object.y = snap(Number(ui.selY.value) || 0);
+  object.z = snap(Number(ui.selZ.value) || 0);
+  object.w = Math.max(0.1, Number(ui.selW.value) || 1);
+  object.h = Math.max(0.1, Number(ui.selH.value) || 1);
+  object.d = Math.max(0.1, Number(ui.selD.value) || 1);
+  object.label = ui.selLabel.value;
+  buildLevel(level);
+  selectObject(level.objects[index], true);
+}
+function duplicateSelected() {
+  if (!editor.selected) return;
+  const index = level.objects.indexOf(editor.selected);
+  if (index < 0) return;
+  const copy = { ...editor.selected, x: snap(editor.selected.x + editor.snapSize), z: snap(editor.selected.z + editor.snapSize), label: `${editor.selected.label || editor.selected.type} COPY` };
+  level.objects.splice(index + 1, 0, copy);
+  buildLevel(level);
+  selectObject(copy, true);
+  studioStatus('Duplicated object • drag the gizmo to position it');
+}
+function exportData() {
+  level.name = ui.levelName.value.trim() || 'Untitled Level';
+  ui.jsonBox.value = JSON.stringify({ version: 2, name: level.name, spawn: level.spawn, objects: level.objects }, null, 2);
+  ui.jsonBox.select();
+  navigator.clipboard?.writeText(ui.jsonBox.value).then(() => studioStatus('JSON copied. Share it or paste it into LOAD JSON.')).catch(() => studioStatus('JSON selected — press Ctrl+C.'));
+}
+function downloadData() {
+  exportData();
+  const blob = new Blob([ui.jsonBox.value], { type: 'application/json' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = `${level.name.replace(/[^a-z0-9]+/gi, '_') || 'skybound_level'}.json`;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(link.href), 500);
+}
+function loadData() {
+  try {
+    const data = JSON.parse(ui.jsonBox.value);
+    buildLevel(data);
+    ui.levelName.value = level.name;
+    selectObject(null);
+    studioStatus(`Loaded ${level.name} • ${level.objects.length} objects`);
+  } catch (error) { studioStatus(`Invalid JSON: ${error.message}`); }
+}
+function newLevel() {
+  buildLevel({ name: 'New Skybound Level', spawn: { x: 0, y: 1.1, z: 8 }, objects: [{ type: 'platform', x: 0, y: 0, z: 0, w: 18, h: 1, d: 18, label: 'START' }] });
+  ui.levelName.value = level.name;
+  selectObject(null);
+  studioStatus('New level created');
+}
+function setSpawnHere() {
+  const object = editor.selected;
+  if (object) level.spawn = { x: snap(object.x), y: 1.1, z: snap(object.z + Math.max(2, (object.d || 4) / 2 + 2)) };
+  else if (studioOrbit) level.spawn = { x: snap(studioOrbit.target.x), y: 1.1, z: snap(studioOrbit.target.z + 3) };
+  setInitialRespawn();
+  studioStatus(`Spawn set to ${level.spawn.x}, ${level.spawn.y}, ${level.spawn.z}`);
+}
+function enterStudio() {
+  document.exitPointerLock?.();
+  state.mode = 'studio';
+  ui.menu.classList.add('hidden');
+  ui.hud.classList.add('hidden');
+  ui.pause.classList.add('hidden');
+  ui.gameOver.classList.add('hidden');
+  ui.victory.classList.add('hidden');
+  ui.studio.classList.remove('hidden');
+  ui.studio.style.display = 'flex';
+  buildLevel(level);
+  ui.levelName.value = level.name;
+  setupStudioCamera();
+  selectObject(null);
+  studioStatus('DEV STUDIO READY • 1 Select • 2 Move • 3 Scale • Ctrl+D Duplicate');
+}
+function exitStudio() {
+  document.exitPointerLock?.();
+  teardownStudioHelpers();
+  setMode('menu');
+  ui.studio.style.display = 'none';
+}
+
+addEventListener('keydown', (event) => {
+  keysDown[event.code] = true;
+  if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(event.code)) event.preventDefault();
+  if (event.code === 'Escape' && (state.mode === 'playing' || state.mode === 'paused')) togglePause();
+  if (event.code === 'KeyR' && (state.mode === 'playing' || state.mode === 'paused')) restartGame();
+});
+addEventListener('keyup', (event) => { keysDown[event.code] = false; });
+addEventListener('mousemove', (event) => { if (pointerLocked && state.mode === 'playing') { mouseDX += event.movementX; mouseDY += event.movementY; } });
+ui.game.addEventListener('click', () => { if (state.mode === 'playing' && !pointerLocked && !demoMode) ui.game.requestPointerLock?.(); });
+document.addEventListener('pointerlockchange', () => { pointerLocked = document.pointerLockElement === ui.game; });
+
+ui.play.onclick = startGame;
+ui.dev.onclick = (event) => { event.preventDefault(); enterStudio(); };
+ui.howBtn.onclick = () => ui.how.classList.toggle('hidden');
+ui.closeHow.onclick = () => ui.how.classList.add('hidden');
+ui.resume.onclick = () => setMode('playing');
+ui.restartPause.onclick = restartGame;
+ui.homePause.onclick = goHome;
+ui.retry.onclick = continueFromCheckpoint;
+ui.homeGameOver.onclick = goHome;
+ui.victoryRetry.onclick = restartGame;
+ui.victoryHome.onclick = goHome;
+ui.studioBack.onclick = exitStudio;
+ui.studioPlay.onclick = () => { teardownStudioHelpers(); startGame(); };
+ui.newLevel.onclick = newLevel;
+ui.exportJson.onclick = exportData;
+ui.downloadJson.onclick = downloadData;
+ui.loadJson.onclick = loadData;
+ui.deleteSelected.onclick = () => {
+  if (!editor.selected) return;
+  const index = level.objects.indexOf(editor.selected);
+  if (index >= 0) { level.objects.splice(index, 1); buildLevel(level); selectObject(null); studioStatus('Object deleted'); }
+};
+for (const field of ['selX', 'selY', 'selZ', 'selW', 'selH', 'selD', 'selLabel']) ui[field].onchange = selectedChanged;
+for (const button of document.querySelectorAll('[data-add]')) button.onclick = () => { const target = studioOrbit?.target || new THREE.Vector3(0, 0, -6); addObject(button.dataset.add, target.x, target.z); };
+ui.studioResetCam.onclick = setupStudioCamera;
+ui.studioTestSpawn.onclick = setSpawnHere;
+ui.toolSelect.onclick = () => setEditorTool('select');
+ui.toolMove.onclick = () => setEditorTool('move');
+ui.toolScale.onclick = () => setEditorTool('scale');
+ui.duplicateSelected.onclick = duplicateSelected;
+ui.focusSelected.onclick = () => { if (editor.selectedMesh && studioOrbit) { studioOrbit.target.copy(editor.selectedMesh.position); studioOrbit.update(); } };
+ui.snapToggle.onchange = () => {
+  editor.snap = ui.snapToggle.checked;
+  studioTransform?.setTranslationSnap(editor.snap ? editor.snapSize : null);
+  studioTransform?.setScaleSnap(editor.snap ? editor.snapSize / 2 : null);
+  studioStatus(editor.snap ? `Snap ON • ${editor.snapSize} stud grid` : 'Snap OFF');
+};
+ui.snapSize.onchange = () => {
+  editor.snapSize = Math.max(0.25, Number(ui.snapSize.value) || 1);
+  ui.snapSize.value = editor.snapSize;
+  studioTransform?.setTranslationSnap(editor.snap ? editor.snapSize : null);
+  studioTransform?.setScaleSnap(editor.snap ? editor.snapSize / 2 : null);
+};
+ui.game.addEventListener('pointerdown', (event) => {
+  if (state.mode !== 'studio' || event.button !== 0) return;
+  const hit = objectAt(event.clientX, event.clientY);
+  if (hit) selectObject(hit, true);
+  else if (editor.tool === 'select') {
+    const rect = ui.game.getBoundingClientRect();
+    studioMouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+    studioMouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+    studioRay.setFromCamera(studioMouse, camera);
+    const point = new THREE.Vector3();
+    if (studioRay.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), point)) addObject('platform', point.x, point.z);
+  }
+});
+window.addEventListener('keydown', (event) => {
+  if (state.mode !== 'studio' || ['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)) return;
+  const key = event.key.toLowerCase();
+  if ((event.ctrlKey || event.metaKey) && key === 'd') { event.preventDefault(); duplicateSelected(); return; }
+  if (event.key === 'Delete' || event.key === 'Backspace') { event.preventDefault(); ui.deleteSelected.click(); return; }
+  if (key === '1') return setEditorTool('select');
+  if (key === '2') return setEditorTool('move');
+  if (key === '3') return setEditorTool('scale');
+  if (key === 'f') return ui.focusSelected.click();
+  if (key === 'w') editor.moveForward = true;
+  else if (key === 's') editor.moveBack = true;
+  else if (key === 'a') editor.moveLeft = true;
+  else if (key === 'd') editor.moveRight = true;
+  else if (key === 'q') editor.moveDown = true;
+  else if (key === 'e') editor.moveUp = true;
+  else if (key === 'shift') editor.fast = true;
+});
+window.addEventListener('keyup', (event) => {
+  if (state.mode !== 'studio') return;
+  const key = event.key.toLowerCase();
+  if (key === 'w') editor.moveForward = false;
+  else if (key === 's') editor.moveBack = false;
+  else if (key === 'a') editor.moveLeft = false;
+  else if (key === 'd') editor.moveRight = false;
+  else if (key === 'q') editor.moveDown = false;
+  else if (key === 'e') editor.moveUp = false;
+  else if (key === 'shift') editor.fast = false;
+});
+
+function resize() {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
+  renderer.setSize(innerWidth, innerHeight);
+}
+addEventListener('resize', resize);
+
+buildLevel(defaultLevel());
+let last = performance.now();
+function animate(now) {
+  const dt = Math.min(0.033, (now - last) / 1000 || 0.016);
+  last = now;
+  state.time += dt;
+  if (state.mode === 'playing') state.runTime += dt;
+  updateWorld(dt);
+  updateEffects(dt);
+  if (state.mode === 'playing') {
+    if (demoMode) updateDemo(dt);
+    else updatePlayer(dt);
+  }
+  if (state.mode === 'studio') {
+    updateStudioCamera(dt);
+    studioOrbit?.update();
+    updateStudioOutline();
+  } else updateCamera(dt);
+  renderer.render(scene, camera);
+  requestAnimationFrame(animate);
+}
+(async () => {
+  for (let progress = 0; progress <= 100; progress += 20) {
+    await new Promise((resolve) => setTimeout(resolve, 55));
+    ui.loadingBar.style.width = `${progress}%`;
+    ui.loadingText.textContent = ['SCANNING THE HORIZON...', 'FORMING SKY ISLANDS...', 'TUNING THE AETHER...', 'ARMING RECOVERY BEACONS...', 'READY'][progress / 20];
+  }
+  await new Promise((resolve) => setTimeout(resolve, 180));
+  ui.loading.classList.add('done');
+  setMode('menu');
+  if (demoMode) startGame();
+  requestAnimationFrame(animate);
+})();
