@@ -1134,14 +1134,13 @@ ui.snapSize.onchange = () => {
 let studioPointer = null;
 ui.game.addEventListener('pointerdown', (event) => {
   if (state.mode !== 'studio' || event.button !== 0) return;
+  // In transform modes, TransformControls owns the entire pointer stream.
+  // Do not raycast, capture, or reattach the gizmo from this handler.
+  if (editor.tool !== 'select') return;
   const hit = objectAt(event.clientX, event.clientY);
   // Select immediately so a visible object is never lost to a competing
   // camera/transform pointer handler. The same gesture may still orbit.
   if (hit) selectObject(hit, false);
-  // TransformControls must receive the original pointer stream untouched;
-  // custom pointer capture here prevents its arrow/scale handles from seeing
-  // the drag. In Move/Scale mode, only use this event for selecting a part.
-  if (editor.tool !== 'select') return;
   studioPointer = { x: event.clientX, y: event.clientY, moved: false };
   studioOrbitInput.active = true;
   studioOrbitInput.lastX = event.clientX;
