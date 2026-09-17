@@ -378,11 +378,12 @@ trail.position.set(0, 0.85, -0.75);
 player.add(trail);
 
 const pstate = {
-  vel: new THREE.Vector3(), respawn: new THREE.Vector3(0, 1.06, 8), grounded: false, coyote: 0, jumpBuffer: 0, invuln: 0,
+  vel: new THREE.Vector3(), respawn: new THREE.Vector3(0, 1.06, 8), grounded: false, coyote: 0, jumpBuffer: 0, jumpsAvailable: 2, invuln: 0.8,
   radius: 0.4, dashCooldown: 0, dashHeld: false
 };
 const cameraRig = { yaw: 0, pitch: 0.22, distance: 8.6, height: 3.65 };
 const keysDown = {};
+let jumpQueued = false;
 let mouseDX = 0, mouseDY = 0, pointerLocked = false;
 
 function halfHeight() { return 0.56; }
@@ -404,6 +405,7 @@ function resetPlayer() {
   pstate.grounded = false;
   pstate.coyote = 0;
   pstate.jumpBuffer = 0;
+  pstate.jumpsAvailable = 2;
   pstate.invuln = 0.8;
   cameraRig.yaw = 0;
   cameraRig.pitch = 0.22;
@@ -619,11 +621,16 @@ function updatePlayer(dt) {
   if (moveLength > 0.0001) { moveX /= moveLength; moveZ /= moveLength; }
   const sprint = Boolean(keysDown.ShiftLeft || keysDown.ShiftRight);
   const speed = sprint ? 8.8 : 5.9;
-  const acceleration = pstate.grounded ? 25 : 12;
+  const acceleration = pstate.grounded ? 28 : 17;
   const blend = 1 - Math.exp(-acceleration * dt);
   pstate.vel.x += (moveX * speed - pstate.vel.x) * blend;
   pstate.vel.z += (moveZ * speed - pstate.vel.z) * blend;
-  if (!inputLength) { pstate.vel.x *= 1 - Math.min(1, dt * 7); pstate.vel.z *= 1 - Math.min(1, dt * 7); }
+  if (!inputLength) {
+    const braking = pstate.grounded ? 11 : 4.5;
+    const brake = Math.exp(-braking * dt);
+    pstate.vel.x *= brake;
+    pstate.vel.z *= brake;
+  }
   if (inputLength) {
     const desired = Math.atan2(moveX, moveZ);
     let delta = desired - player.rotation.y;
@@ -639,17 +646,18 @@ function updatePlayer(dt) {
     trail.intensity = 5.5;
     burst(player.position, 0x7af1ff);
   } else if (!sprint) pstate.dashHeld = false;
-  if (keysDown.Space || keysDown.Numpad0) pstate.jumpBuffer = 0.14;
-  if (pstate.jumpBuffer > 0 && (pstate.grounded || pstate.coyote > 0)) {
+  if (jumpQueued) pstate.jumpBuffer = 0.14;
+  if (pstate.jumpBuffer > 0 && (pstate.grounded || pstate.coyote > 0 || pstate.jumpsAvailable > 0)) {
     pstate.vel.y = 11.4;
     pstate.grounded = false;
     pstate.coyote = 0;
     pstate.jumpBuffer = 0;
-    keysDown.Space = false;
-    keysDown.Numpad0 = false;
-    burst(player.position, 0x92f6ff);
+    pstate.jumpsAvailable = Math.max(0, pstate.jumpsAvailable - 1);
+    jumpQueued = false;
+    burst(player.position, pstate.jumpsAvailable === 1 ? 0x92f6ff : 0xffd66f);
   }
-  pstate.vel.y -= 27 * dt;
+  jumpQueued = false;
+  pstate.vel.y = Math.max(-34, pstate.vel.y - 27 * dt);
   const radius = pstate.radius;
   const hh = halfHeight();
   const px = player.position.x, py = player.position.y, pz = player.position.z;
@@ -687,6 +695,7 @@ function updatePlayer(dt) {
     pstate.vel.y = 0;
     pstate.grounded = true;
     pstate.coyote = 0.12;
+    pstate.jumpsAvailable = 2;
   } else {
     player.position.y = newY;
     pstate.grounded = false;
@@ -1035,6 +1044,7 @@ function exitStudio() {
 
 addEventListener('keydown', (event) => {
   keysDown[event.code] = true;
+  if (event.code === 'Space' || event.code === 'Numpad0') jumpQueued = true;
   if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(event.code)) event.preventDefault();
   if (event.code === 'Escape' && (state.mode === 'playing' || state.mode === 'paused')) togglePause();
   if (event.code === 'KeyR' && (state.mode === 'playing' || state.mode === 'paused')) restartGame();
@@ -1087,11 +1097,23 @@ ui.snapSize.onchange = () => {
   studioTransform?.setTranslationSnap(editor.snap ? editor.snapSize : null);
   studioTransform?.setScaleSnap(editor.snap ? editor.snapSize / 2 : null);
 };
+let studioPointer = null;
 ui.game.addEventListener('pointerdown', (event) => {
   if (state.mode !== 'studio' || event.button !== 0) return;
+  studioPointer = { x: event.clientX, y: event.clientY, moved: false };
+});
+ui.game.addEventListener('pointermove', (event) => {
+  if (!studioPointer) return;
+  if (Math.hypot(event.clientX - studioPointer.x, event.clientY - studioPointer.y) > 5) studioPointer.moved = true;
+});
+ui.game.addEventListener('pointerup', (event) => {
+  if (state.mode !== 'studio' || event.button !== 0 || !studioPointer) return;
+  const click = !studioPointer.moved;
+  studioPointer = null;
+  if (!click || editor.tool !== 'select') return;
   const hit = objectAt(event.clientX, event.clientY);
   if (hit) selectObject(hit, true);
-  else if (editor.tool === 'select') {
+  else {
     const rect = ui.game.getBoundingClientRect();
     studioMouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
     studioMouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
@@ -1100,6 +1122,7 @@ ui.game.addEventListener('pointerdown', (event) => {
     if (studioRay.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), point)) addObject('platform', point.x, point.z);
   }
 });
+ui.game.addEventListener('pointercancel', () => { studioPointer = null; });
 window.addEventListener('keydown', (event) => {
   if (state.mode !== 'studio' || ['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)) return;
   const key = event.key.toLowerCase();

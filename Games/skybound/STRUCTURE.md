@@ -7,10 +7,12 @@ Skybound is a self-contained static Three.js game. `index.html` owns the canvas 
 | Renderer and scene | `game.js` scene setup | Lighting, sky, fog, camera, and world groups |
 | Authored level | `defaultLevel()` | The production sky-island route, spawn, gates, checkpoints, encounters, and goal |
 | Runtime entities | `platforms`, `hazards`, `collectibles`, `checkpoints`, `enemies`, `doors`, `goals` | Collision, visibility, animation, and interaction state |
-| Player | `player` and `pstate` | Movement, coyote time, jump buffer, sprint dash, health, and respawn state |
+| Player | `player` and `pstate` | Camera-relative movement, coyote time, jump buffer, double jump, sprint dash, health, and respawn state |
 | Progression | `state` and entity interaction functions | Shards, keys, score, gate unlocks, objective text, and checkpoint recovery |
 | User interface | `ui` plus `updateHud()` | Menu, HUD, overlays, toasts, objective, and status feedback |
 | Dev Studio | `editor`, Studio helpers | Level selection, transforms, serialization, import/export, and testing |
+
+The Studio viewport uses `OrbitControls` with left-button orbit. Selection is deferred until pointer-up when the pointer has not moved, so a click selects an object while a held left drag rotates the camera without stealing the gesture.
 
 ## Level Object Contract
 
