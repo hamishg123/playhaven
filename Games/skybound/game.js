@@ -1005,27 +1005,33 @@ function ensureDomGizmo() {
       handle.setPointerCapture?.(event.pointerId);
       studioStatus(`${editor.tool === 'scale' ? 'SCALING' : 'MOVING'} ${name.toUpperCase()} • Release mouse to commit`);
     });
-    handle.addEventListener('pointermove', (event) => {
-      if (!studioDomDrag) return;
-      event.preventDefault(); event.stopPropagation();
-      const drag = studioDomDrag; const dx = event.clientX - drag.x; const dy = event.clientY - drag.y; const object = drag.object;
-      if (drag.tool === 'move') {
-        if (drag.axis.includes('x') || drag.axis === 'nw' || drag.axis === 'sw') object.x = snap(object.x + dx * 0.025);
-        if (drag.axis.includes('y') || drag.axis === 'nw' || drag.axis === 'ne') object.y = snap(object.y - dy * 0.025);
-        if (drag.axis === 'z') object.z = snap(object.z + dx * 0.025);
-      } else {
-        const factor = clamp(1 + (dx - dy) * 0.004, 0.1, 4);
-        object.w = Math.max(0.25, snap((object.w || 1) * factor)); object.h = Math.max(0.25, snap((object.h || 1) * factor)); object.d = Math.max(0.25, snap((object.d || 1) * factor));
-      }
-      drag.x = event.clientX; drag.y = event.clientY; buildLevel(level); selectObject(object, false);
-    });
-    handle.addEventListener('pointerup', (event) => { if (studioDomDrag) { event.preventDefault(); event.stopPropagation(); studioDomDrag = null; studioStatus(editor.tool === 'scale' ? 'SCALE TOOL • Drag the colored boxes to resize' : 'MOVE TOOL • Drag the colored arrows to move'); } });
     studioDomGizmo.append(handle);
   }
   document.querySelector('.studio-main').append(studioDomGizmo);
+  window.addEventListener('pointermove', (event) => {
+    if (!studioDomDrag) return;
+    event.preventDefault();
+    const drag = studioDomDrag; const dx = event.clientX - drag.x; const dy = event.clientY - drag.y; const object = drag.object;
+    if (drag.tool === 'move') {
+      if (drag.axis.includes('x') || drag.axis === 'nw' || drag.axis === 'sw') object.x = snap(object.x + dx * 0.025);
+      if (drag.axis.includes('y') || drag.axis === 'nw' || drag.axis === 'ne') object.y = snap(object.y - dy * 0.025);
+      if (drag.axis === 'z') object.z = snap(object.z + dx * 0.025);
+    } else {
+      const factor = clamp(1 + (dx - dy) * 0.004, 0.1, 4);
+      object.w = Math.max(0.25, snap((object.w || 1) * factor)); object.h = Math.max(0.25, snap((object.h || 1) * factor)); object.d = Math.max(0.25, snap((object.d || 1) * factor));
+    }
+    drag.x = event.clientX; drag.y = event.clientY;
+    buildLevel(level); selectObject(object, false);
+  }, { capture: true });
+  window.addEventListener('pointerup', (event) => {
+    if (!studioDomDrag) return;
+    event.preventDefault(); studioDomDrag = null;
+    studioStatus(editor.tool === 'scale' ? 'SCALE TOOL • Drag the colored boxes to resize' : 'MOVE TOOL • Drag the colored arrows to move');
+  }, { capture: true });
 }
 function updateDomGizmo() {
   if (!studioDomGizmo || state.mode !== 'studio' || !editor.selectedMesh || editor.tool === 'select') { if (studioDomGizmo) studioDomGizmo.style.display = 'none'; return; }
+  if (studioDomDrag) return;
   studioDomGizmo.style.display = 'block';
   const rect = ui.game.getBoundingClientRect(); const main = document.querySelector('.studio-main').getBoundingClientRect();
   const p = editor.selectedMesh.position.clone().project(camera); const x = rect.left + (p.x + 1) * rect.width / 2 - main.left; const y = rect.top + (1 - p.y) * rect.height / 2 - main.top;
