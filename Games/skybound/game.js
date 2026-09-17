@@ -800,7 +800,7 @@ function updateCamera(dt) {
 }
 
 const editor = { selected: null, selectedMesh: null, tool: 'select', snap: true, snapSize: 1, moveForward: false, moveBack: false, moveLeft: false, moveRight: false, moveUp: false, moveDown: false, fast: false };
-let studioOrbit = null, studioTransform = null, studioGrid = null, studioOutline = null;
+let studioOrbit = null, studioTransform = null, studioTransformHelper = null, studioGrid = null, studioOutline = null;
 const studioRay = new THREE.Raycaster();
 const studioMouse = new THREE.Vector2();
 const studioOrbitInput = { active: false, lastX: 0, lastY: 0 };
@@ -867,12 +867,14 @@ function selectObject(object, focus = false) {
   editor.selectedMesh = null;
   syncSelected(object);
   if (studioTransform) { studioTransform.detach(); studioTransform.visible = false; }
+  if (studioTransformHelper) studioTransformHelper.visible = false;
   if (object) {
     const root = getRootForObject(object);
     editor.selectedMesh = root;
     if (root && studioTransform && editor.tool !== 'select') {
       studioTransform.attach(root);
       studioTransform.visible = true;
+      if (studioTransformHelper) studioTransformHelper.visible = true;
     }
     if (focus && studioOrbit && root) { studioOrbit.target.copy(root.position); studioOrbit.update(); }
   }
@@ -885,10 +887,12 @@ function setEditorTool(tool) {
   if (studioTransform) {
     studioTransform.detach();
     studioTransform.visible = false;
+    if (studioTransformHelper) studioTransformHelper.visible = false;
     if (editor.selectedMesh && tool !== 'select') {
       studioTransform.setMode(tool === 'scale' ? 'scale' : 'translate');
       studioTransform.attach(editor.selectedMesh);
       studioTransform.visible = true;
+      if (studioTransformHelper) studioTransformHelper.visible = true;
     }
   }
   studioStatus(tool === 'select' ? 'SELECT TOOL • Click an object to select it' : tool === 'move' ? 'MOVE TOOL • Drag the colored arrows to move' : 'SCALE TOOL • Drag the boxes to resize');
@@ -913,10 +917,16 @@ function setupStudioCamera() {
   if (!studioTransform) {
     studioTransform = new TransformControls(camera, renderer.domElement);
     studioTransform.setSpace('world');
+    studioTransform.setSize(1.25);
+    studioTransform.enabled = true;
+    studioTransform.showX = true;
+    studioTransform.showY = true;
+    studioTransform.showZ = true;
     studioTransform.setTranslationSnap(editor.snapSize);
     studioTransform.setScaleSnap(editor.snapSize / 2);
     studioTransform.addEventListener('dragging-changed', (event) => {
       studioTransform.userData.dragging = event.value;
+      studioStatus(event.value ? `${editor.tool === 'scale' ? 'SCALING' : 'MOVING'} • Release mouse to commit` : editor.tool === 'scale' ? 'SCALE TOOL • Drag the colored boxes to resize' : 'MOVE TOOL • Drag the colored arrows to move');
       if (event.value && editor.tool === 'scale' && editor.selected) {
         studioTransform.userData.scaleBase = { w: editor.selected.w ?? 1, h: editor.selected.h ?? 1, d: editor.selected.d ?? 1 };
       }
@@ -949,6 +959,9 @@ function setupStudioCamera() {
       syncSelected(object);
       updateStudioOutline();
     });
+    // This CDN build renders TransformControls directly as an Object3D;
+    // mounting a separate helper is not available in every release.
+    studioTransformHelper = studioTransform;
     scene.add(studioTransform);
   }
   if (!studioGrid) { studioGrid = new THREE.GridHelper(160, 160, 0x4d7b8d, 0x244452); scene.add(studioGrid); }
@@ -958,6 +971,7 @@ function setupStudioCamera() {
 function teardownStudioHelpers() {
   if (studioOrbit) { studioOrbit.dispose(); studioOrbit = null; }
   if (studioTransform) { studioTransform.detach(); studioTransform.visible = false; }
+  if (studioTransformHelper) { scene.remove(studioTransformHelper); studioTransformHelper = null; }
   if (studioGrid) { scene.remove(studioGrid); studioGrid = null; }
   if (studioOutline) { scene.remove(studioOutline); studioOutline.geometry.dispose(); studioOutline.material.dispose(); studioOutline = null; }
 }
@@ -965,6 +979,11 @@ function updateStudioOutline() {
   if (state.mode !== 'studio' || !editor.selectedMesh) { if (studioOutline) studioOutline.visible = false; return; }
   if (!studioOutline) { studioOutline = new THREE.BoxHelper(editor.selectedMesh, 0x59efff); scene.add(studioOutline); }
   else { studioOutline.visible = true; studioOutline.setFromObject(editor.selectedMesh); }
+  studioOutline.material.color.setHex(editor.tool === 'select' ? 0x59efff : editor.tool === 'scale' ? 0xffc857 : 0x62ff9a);
+  studioOutline.material.transparent = true;
+  studioOutline.material.opacity = 0.95;
+  studioOutline.material.depthTest = false;
+  studioOutline.renderOrder = 20;
 }
 function updateStudioCamera(dt) {
   if (state.mode !== 'studio' || !studioOrbit) return;
