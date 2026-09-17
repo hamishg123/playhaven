@@ -194,6 +194,11 @@ function platform(o) {
   const mesh = addBox(world, material, [o.x, o.y, o.z], [o.w || 4, h, o.d || 4]);
   const top = o.y + h / 2;
   if (o.type === 'platform') {
+    const rimMaterial = (o.label || '').includes('SUMMIT') ? MAT.gold : MAT.moss;
+    addBox(world, rimMaterial, [o.x, top + 0.035, o.z - (o.d || 4) / 2 + 0.12], [o.w || 4, 0.07, 0.22], { castShadow: false });
+    addBox(world, rimMaterial, [o.x, top + 0.035, o.z + (o.d || 4) / 2 - 0.12], [o.w || 4, 0.07, 0.22], { castShadow: false });
+    addBox(world, rimMaterial, [o.x - (o.w || 4) / 2 + 0.12, top + 0.035, o.z], [0.22, 0.07, (o.d || 4) - 0.44], { castShadow: false });
+    addBox(world, rimMaterial, [o.x + (o.w || 4) / 2 - 0.12, top + 0.035, o.z], [0.22, 0.07, (o.d || 4) - 0.44], { castShadow: false });
     addIslandUnderside(o);
     addPlatformDressing(o);
   }
@@ -687,7 +692,9 @@ function updatePlayer(dt) {
       const overlap = player.position.x + radius > solid.x - solid.w / 2 && player.position.x - radius < solid.x + solid.w / 2 && player.position.z + radius > solid.z - solid.d / 2 && player.position.z - radius < solid.z + solid.d / 2;
       const oldFoot = py - hh;
       const newFoot = newY - hh;
-      if (overlap && oldFoot >= solid.y - 0.08 && newFoot <= solid.y && solid.y > top) { top = solid.y; landing = solid; }
+      // Use a small downward sweep tolerance so a fast fall cannot tunnel through
+      // a platform edge between animation frames, especially on the upper route.
+      if (overlap && oldFoot >= solid.y - 0.42 && newFoot <= solid.y && solid.y > top) { top = solid.y; landing = solid; }
     }
   }
   if (landing) {
@@ -793,6 +800,7 @@ const editor = { selected: null, selectedMesh: null, tool: 'select', snap: true,
 let studioOrbit = null, studioTransform = null, studioGrid = null, studioOutline = null;
 const studioRay = new THREE.Raycaster();
 const studioMouse = new THREE.Vector2();
+const studioOrbitInput = { active: false, lastX: 0, lastY: 0 };
 function studioStatus(text) { ui.studioStatus.textContent = text; }
 function escapeHtml(value) { return String(value).replace(/[&<>'"]/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[character])); }
 function snap(value) { return editor.snap ? Math.round(value / editor.snapSize) * editor.snapSize : value; }
@@ -886,7 +894,9 @@ function setupStudioCamera() {
   studioOrbit.minDistance = 3;
   studioOrbit.maxDistance = 140;
   studioOrbit.maxPolarAngle = Math.PI - 0.05;
-  studioOrbit.mouseButtons.LEFT = THREE.MOUSE.ROTATE;
+  // Left drag is handled below so selection can use a true click without
+  // competing with OrbitControls' pointer handler.
+  studioOrbit.mouseButtons.LEFT = null;
   studioOrbit.mouseButtons.RIGHT = THREE.MOUSE.PAN;
   studioOrbit.mouseButtons.MIDDLE = THREE.MOUSE.DOLLY;
   studioOrbit.target.set(0, 3, -22);
@@ -1101,15 +1111,32 @@ let studioPointer = null;
 ui.game.addEventListener('pointerdown', (event) => {
   if (state.mode !== 'studio' || event.button !== 0) return;
   studioPointer = { x: event.clientX, y: event.clientY, moved: false };
+  studioOrbitInput.active = true;
+  studioOrbitInput.lastX = event.clientX;
+  studioOrbitInput.lastY = event.clientY;
+  ui.game.setPointerCapture?.(event.pointerId);
 });
 ui.game.addEventListener('pointermove', (event) => {
-  if (!studioPointer) return;
+  if (state.mode !== 'studio' || !studioPointer) return;
+  if (studioOrbitInput.active) {
+    const dx = event.clientX - studioOrbitInput.lastX;
+    const dy = event.clientY - studioOrbitInput.lastY;
+    if (Math.abs(dx) + Math.abs(dy) > 0) {
+      studioOrbit.rotateLeft(dx * 0.008);
+      studioOrbit.rotateUp(dy * 0.008);
+      studioOrbit.update();
+      studioOrbitInput.lastX = event.clientX;
+      studioOrbitInput.lastY = event.clientY;
+    }
+  }
   if (Math.hypot(event.clientX - studioPointer.x, event.clientY - studioPointer.y) > 5) studioPointer.moved = true;
 });
 ui.game.addEventListener('pointerup', (event) => {
   if (state.mode !== 'studio' || event.button !== 0 || !studioPointer) return;
   const click = !studioPointer.moved;
   studioPointer = null;
+  studioOrbitInput.active = false;
+  ui.game.releasePointerCapture?.(event.pointerId);
   if (!click || editor.tool !== 'select') return;
   const hit = objectAt(event.clientX, event.clientY);
   if (hit) selectObject(hit, true);
@@ -1122,7 +1149,7 @@ ui.game.addEventListener('pointerup', (event) => {
     if (studioRay.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), point)) addObject('platform', point.x, point.z);
   }
 });
-ui.game.addEventListener('pointercancel', () => { studioPointer = null; });
+ui.game.addEventListener('pointercancel', () => { studioPointer = null; studioOrbitInput.active = false; });
 window.addEventListener('keydown', (event) => {
   if (state.mode !== 'studio' || ['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)) return;
   const key = event.key.toLowerCase();
