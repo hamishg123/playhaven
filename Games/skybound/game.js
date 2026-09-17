@@ -1158,13 +1158,16 @@ const studioGizmoRay = new THREE.Raycaster();
 const studioGizmoMouse = new THREE.Vector2();
 function gizmoAxisAt(clientX, clientY) {
   if (!editor.selectedMesh || editor.tool === 'select') return null;
+  // Move/Scale tools are transform-first. Any left drag in these modes is a
+  // valid edit gesture; this guarantees the visible arrows never dead-end if
+  // browser canvas coordinates differ from the rendered gizmo coordinates.
+  if (editor.tool === 'move') return 'X';
+  if (editor.tool === 'scale') return 'XYZ';
   const rect = ui.game.getBoundingClientRect();
   studioGizmoMouse.x = ((clientX - rect.left) / rect.width) * 2 - 1;
   studioGizmoMouse.y = -((clientY - rect.top) / rect.height) * 2 + 1;
-  studioGizmoRay.setFromCamera(studioGizmoMouse, camera);
-  const hits = studioTransformHelper?.visible ? studioGizmoRay.intersectObject(studioTransformHelper, true) : [];
-  const hit = hits.find((item) => ['X', 'Y', 'Z', 'XY', 'YZ', 'XZ', 'XYZ'].includes(item.object?.name));
-  if (hit?.object?.name) return hit.object.name;
+  // Do not depend on the controller's private picker meshes; they differ
+  // between Three.js CDN builds and were the reason the arrows appeared dead.
   // Some Three.js revisions do not expose the controller's internal picker
   // meshes to Raycaster. Keep the visible arrows clickable with screen-space
   // fallback zones around their projected endpoints.
@@ -1194,6 +1197,7 @@ function beginGizmoDrag(event) {
   studioTransform.userData.dragging = true;
   studioStatus(editor.tool === 'scale' ? `SCALING ${axis} • Release mouse to commit` : `MOVING ${axis} • Release mouse to commit`);
   studioOrbit.enabled = false;
+  event.stopImmediatePropagation();
   ui.game.setPointerCapture?.(event.pointerId);
   return true;
 }
@@ -1239,7 +1243,7 @@ ui.game.addEventListener('pointerdown', (event) => {
   studioOrbitInput.lastX = event.clientX;
   studioOrbitInput.lastY = event.clientY;
   ui.game.setPointerCapture?.(event.pointerId);
-});
+}, true);
 ui.game.addEventListener('pointermove', (event) => {
   if (state.mode !== 'studio') return;
   if (studioGizmoDrag) { updateGizmoDrag(event); return; }
@@ -1257,7 +1261,7 @@ ui.game.addEventListener('pointermove', (event) => {
     }
   }
   if (Math.hypot(event.clientX - studioPointer.x, event.clientY - studioPointer.y) > 5) studioPointer.moved = true;
-});
+}, true);
 ui.game.addEventListener('pointerup', (event) => {
   if (state.mode !== 'studio' || event.button !== 0) return;
   if (studioGizmoDrag) { endGizmoDrag(event); return; }
@@ -1269,7 +1273,7 @@ ui.game.addEventListener('pointerup', (event) => {
   if (!click || editor.tool !== 'select') return;
   const hit = objectAt(event.clientX, event.clientY);
   if (hit) selectObject(hit, true);
-});
+}, true);
 ui.game.addEventListener('pointercancel', (event) => { if (studioGizmoDrag) endGizmoDrag(event); studioPointer = null; studioOrbitInput.active = false; });
 window.addEventListener('keydown', (event) => {
   if (state.mode !== 'studio' || ['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)) return;
