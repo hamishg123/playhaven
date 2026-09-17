@@ -1232,7 +1232,18 @@ function endGizmoDrag(event) {
   studioStatus(editor.tool === 'scale' ? 'SCALE TOOL • Drag the colored boxes to resize' : 'MOVE TOOL • Drag the colored arrows to move');
 }
 ui.game.addEventListener('pointerdown', (event) => {
-  if (state.mode !== 'studio' || event.button !== 0) return;
+  if (state.mode !== 'studio' || ![0, 2].includes(event.button)) return;
+  // Roblox-style camera control: right-drag always orbits, regardless of
+  // the active editing tool. Left-drag is reserved for selection/transforms.
+  if (event.button === 2) {
+    event.preventDefault();
+    studioPointer = { x: event.clientX, y: event.clientY, moved: false, camera: true };
+    studioOrbitInput.active = true;
+    studioOrbitInput.lastX = event.clientX;
+    studioOrbitInput.lastY = event.clientY;
+    ui.game.setPointerCapture?.(event.pointerId);
+    return;
+  }
   if (beginGizmoDrag(event)) return;
   const hit = objectAt(event.clientX, event.clientY);
   // Select immediately so a visible object is never lost to a competing
@@ -1263,18 +1274,19 @@ ui.game.addEventListener('pointermove', (event) => {
   if (Math.hypot(event.clientX - studioPointer.x, event.clientY - studioPointer.y) > 5) studioPointer.moved = true;
 }, true);
 ui.game.addEventListener('pointerup', (event) => {
-  if (state.mode !== 'studio' || event.button !== 0) return;
+  if (state.mode !== 'studio' || ![0, 2].includes(event.button)) return;
   if (studioGizmoDrag) { endGizmoDrag(event); return; }
   if (!studioPointer) return;
   const click = !studioPointer.moved;
   studioPointer = null;
   studioOrbitInput.active = false;
   ui.game.releasePointerCapture?.(event.pointerId);
-  if (!click || editor.tool !== 'select') return;
+  if (studioPointer.camera || !click || editor.tool !== 'select') return;
   const hit = objectAt(event.clientX, event.clientY);
   if (hit) selectObject(hit, true);
 }, true);
 ui.game.addEventListener('pointercancel', (event) => { if (studioGizmoDrag) endGizmoDrag(event); studioPointer = null; studioOrbitInput.active = false; });
+ui.game.addEventListener('contextmenu', (event) => { if (state.mode === 'studio') event.preventDefault(); });
 window.addEventListener('keydown', (event) => {
   if (state.mode !== 'studio' || ['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)) return;
   const key = event.key.toLowerCase();
