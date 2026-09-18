@@ -7,7 +7,7 @@ const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 const ui = {
   menu: $('menu'), hud: $('hud'), pause: $('pauseScreen'), gameOver: $('gameOverScreen'), victory: $('victoryScreen'), how: $('howPanel'), loading: $('loading'), loadingBar: $('loadingBar'), loadingText: $('loadingText'), studio: $('studio'), game: $('game'), flash: $('flash'),
   play: $('playBtn'), dev: $('devBtn'), howBtn: $('howBtn'), closeHow: $('closeHow'), resume: $('resumeBtn'), restartPause: $('restartPauseBtn'), homePause: $('homePauseBtn'), retry: $('retryBtn'), homeGameOver: $('homeGameOverBtn'), victoryRetry: $('victoryRetryBtn'), victoryHome: $('victoryHomeBtn'),
-  shards: $('shardsHud'), keys: $('keysHud'), score: $('scoreHud'), best: $('bestHud'), bestMenu: $('bestScoreMenu'), healthBar: $('healthBar'), healthText: $('healthText'), checkpoint: $('checkpointHud'), objective: $('objectiveHud'), toast: $('messageToast'),
+  shards: $('shardsHud'), keys: $('keysHud'), score: $('scoreHud'), best: $('bestHud'), bestMenu: $('bestScoreMenu'), healthBar: $('healthBar'), healthText: $('healthText'), dashBar: $('dashBar'), dashText: $('dashText'), checkpoint: $('checkpointHud'), objective: $('objectiveHud'), toast: $('messageToast'),
   goScore: $('gameOverScore'), goShards: $('gameOverShards'), goTitle: $('gameOverTitle'), goText: $('gameOverText'), vScore: $('victoryScore'), vShards: $('victoryShards'), vText: $('victoryText'),
   explorer: $('explorer'), toolSelect: $('toolSelect'), toolMove: $('toolMove'), toolScale: $('toolScale'), snapToggle: $('snapToggle'), snapSize: $('snapSize'), duplicateSelected: $('duplicateSelected'), focusSelected: $('focusSelected'),
   levelName: $('levelName'), selNone: $('selectedNone'), selPanel: $('selectedPanel'), selType: $('selType'), selX: $('selX'), selY: $('selY'), selZ: $('selZ'), selW: $('selW'), selH: $('selH'), selD: $('selD'), selLabel: $('selLabel'), deleteSelected: $('deleteSelected'),
@@ -387,7 +387,7 @@ player.add(trail);
 
 const pstate = {
   vel: new THREE.Vector3(), respawn: new THREE.Vector3(0, 1.06, 8), grounded: false, coyote: 0, jumpBuffer: 0, jumpsAvailable: 2, invuln: 0.8,
-  radius: 0.4, dashCooldown: 0, dashHeld: false
+  radius: 0.4, dashCooldown: 0, dashHeld: false, wasGrounded: false, landingPulse: 0
 };
 const cameraRig = { yaw: 0, pitch: 0.22, distance: 8.6, height: 3.65 };
 const keysDown = {};
@@ -414,6 +414,8 @@ function resetPlayer() {
   pstate.coyote = 0;
   pstate.jumpBuffer = 0;
   pstate.jumpsAvailable = 2;
+  pstate.wasGrounded = false;
+  pstate.landingPulse = 0;
   pstate.invuln = 0.8;
   cameraRig.yaw = 0;
   cameraRig.pitch = 0.22;
@@ -453,6 +455,9 @@ function updateHud() {
   ui.best.textContent = state.best;
   ui.healthBar.style.width = `${state.health}%`;
   ui.healthText.textContent = `${Math.round(state.health)}%`;
+  const dashReady = clamp(1 - pstate.dashCooldown / 0.82, 0, 1);
+  ui.dashBar.style.width = `${dashReady * 100}%`;
+  ui.dashText.textContent = dashReady >= 0.99 ? 'READY' : `${(dashReady * 100).toFixed(0)}%`;
   ui.checkpoint.textContent = state.checkpoint;
   ui.objective.textContent = objectiveText();
   if (state.score > state.best) {
@@ -628,13 +633,13 @@ function updatePlayer(dt) {
   const moveLength = Math.hypot(moveX, moveZ);
   if (moveLength > 0.0001) { moveX /= moveLength; moveZ /= moveLength; }
   const sprint = Boolean(keysDown.ShiftLeft || keysDown.ShiftRight);
-  const speed = sprint ? 8.8 : 5.9;
-  const acceleration = pstate.grounded ? 28 : 17;
+  const speed = sprint ? 8.8 : 6.4;
+  const acceleration = pstate.grounded ? 32 : 22;
   const blend = 1 - Math.exp(-acceleration * dt);
   pstate.vel.x += (moveX * speed - pstate.vel.x) * blend;
   pstate.vel.z += (moveZ * speed - pstate.vel.z) * blend;
   if (!inputLength) {
-    const braking = pstate.grounded ? 11 : 4.5;
+    const braking = pstate.grounded ? 15 : 6.2;
     const brake = Math.exp(-braking * dt);
     pstate.vel.x *= brake;
     pstate.vel.z *= brake;
@@ -701,11 +706,16 @@ function updatePlayer(dt) {
     }
   }
   if (landing) {
+    const impact = Math.abs(pstate.vel.y);
     player.position.y = landing.y + hh;
     pstate.vel.y = 0;
     pstate.grounded = true;
     pstate.coyote = 0.12;
     pstate.jumpsAvailable = 2;
+    if (!pstate.wasGrounded && impact > 5) {
+      pstate.landingPulse = Math.min(1, impact / 18);
+      burst(player.position.clone().setY(landing.y + 0.06), 0x72eaff);
+    }
   } else {
     player.position.y = newY;
     pstate.grounded = false;
@@ -716,14 +726,20 @@ function updatePlayer(dt) {
     if (enemyData.dead) continue;
     const distance = Math.hypot(player.position.x - enemyData.group.position.x, player.position.z - enemyData.group.position.z);
     if (distance < 1.05 && Math.abs(player.position.y - enemyData.group.position.y) < 1.55) {
-      if (pstate.vel.y < 0 && player.position.y > enemyData.group.position.y + 0.48) { killEnemy(enemyData); pstate.vel.y = 9.4; }
+      if (pstate.vel.y < 0 && player.position.y > enemyData.group.position.y + 0.48) { killEnemy(enemyData); pstate.vel.y = 10.8; pstate.grounded = false; pstate.jumpsAvailable = 1; }
       else damage(24, 'SENTINEL STRIKE');
     }
   }
   processInteractions();
   body.rotation.x = clamp(-pstate.vel.y * 0.02, -0.18, 0.18);
-  body.position.y = 0.74 + (pstate.grounded ? Math.sin(state.time * 11) * Math.min(0.035, Math.hypot(pstate.vel.x, pstate.vel.z) * 0.003) : 0);
+  const runSpeed = Math.hypot(pstate.vel.x, pstate.vel.z);
+  body.position.y = 0.74 + (pstate.grounded ? Math.sin(state.time * 11) * Math.min(0.05, runSpeed * 0.004) : 0);
+  body.rotation.z = clamp(-moveX * runSpeed * 0.012, -0.14, 0.14);
+  player.scale.y += ((1 - pstate.landingPulse * 0.16) - player.scale.y) * Math.min(1, dt * 18);
+  pstate.landingPulse = Math.max(0, pstate.landingPulse - dt * 4.5);
+  pstate.wasGrounded = pstate.grounded;
   trail.intensity += (1.8 - trail.intensity) * Math.min(1, dt * 8);
+  updateHud();
 }
 
 let demoIndex = 0;
