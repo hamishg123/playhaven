@@ -1230,6 +1230,32 @@ ui.deleteSelected.onclick = () => {
   const index = level.objects.indexOf(editor.selected);
   if (index >= 0) { level.objects.splice(index, 1); buildLevel(level); selectObject(null); studioStatus('Object deleted'); }
 };
+function applyTransformStrip(action, axis, direction) {
+  const object = editor.selected;
+  if (!object) return;
+  const step = editor.snap ? editor.snapSize : 0.25;
+  if (action === 'move') object[axis] = snap((object[axis] || 0) + direction * step);
+  else {
+    const field = axis === 'x' ? 'w' : axis === 'y' ? 'h' : 'd';
+    object[field] = Math.max(0.25, snap((object[field] || 1) + direction * step));
+  }
+  buildLevel(level);
+  selectObject(object, false);
+  studioStatus(`${action === 'move' ? 'MOVED' : 'SCALED'} ${axis.toUpperCase()} AXIS • Selection locked`);
+}
+for (const button of document.querySelectorAll('[data-transform]')) {
+  let repeatTimer = null;
+  const apply = () => applyTransformStrip(button.dataset.transform, button.dataset.axis, Number(button.dataset.dir));
+  button.addEventListener('click', apply);
+  button.addEventListener('pointerdown', (event) => {
+    event.preventDefault();
+    repeatTimer = setInterval(apply, 110);
+  });
+  const stopRepeat = () => { if (repeatTimer) { clearInterval(repeatTimer); repeatTimer = null; } };
+  button.addEventListener('pointerup', stopRepeat);
+  button.addEventListener('pointercancel', stopRepeat);
+  button.addEventListener('pointerleave', stopRepeat);
+}
 for (const field of ['selX', 'selY', 'selZ', 'selW', 'selH', 'selD', 'selLabel']) ui[field].onchange = selectedChanged;
 for (const button of document.querySelectorAll('[data-add]')) button.onclick = () => { const target = studioOrbit?.target || new THREE.Vector3(0, 0, -6); addObject(button.dataset.add, target.x, target.z); };
 ui.studioResetCam.onclick = setupStudioCamera;
