@@ -1040,7 +1040,10 @@ function ensureDomGizmo() {
       if (drag.axis === 'z') object.z = snap(object.z + dx * 0.025);
     } else {
       const factor = clamp(1 + (dx - dy) * 0.004, 0.1, 4);
-      object.w = Math.max(0.25, snap((object.w || 1) * factor)); object.h = Math.max(0.25, snap((object.h || 1) * factor)); object.d = Math.max(0.25, snap((object.d || 1) * factor));
+      const scaleAxis = drag.axis === 'x' || drag.axis === 'nw' || drag.axis === 'sw' ? 'x' : drag.axis === 'y' || drag.axis === 'ne' || drag.axis === 'se' ? 'y' : 'z';
+      if (scaleAxis === 'x') object.w = Math.max(0.25, snap((object.w || 1) * factor));
+      if (scaleAxis === 'y') object.h = Math.max(0.25, snap((object.h || 1) * factor));
+      if (scaleAxis === 'z') object.d = Math.max(0.25, snap((object.d || 1) * factor));
     }
     drag.x = event.clientX; drag.y = event.clientY;
     buildLevel(level); selectObject(object, false);
@@ -1060,7 +1063,10 @@ function ensureDomGizmo() {
       if (drag.axis === 'z') object.z = snap(object.z + dx * 0.025);
     } else {
       const factor = clamp(1 + (dx - dy) * 0.004, 0.1, 4);
-      object.w = Math.max(0.25, snap((object.w || 1) * factor)); object.h = Math.max(0.25, snap((object.h || 1) * factor)); object.d = Math.max(0.25, snap((object.d || 1) * factor));
+      const scaleAxis = drag.axis === 'x' || drag.axis === 'nw' || drag.axis === 'sw' ? 'x' : drag.axis === 'y' || drag.axis === 'ne' || drag.axis === 'se' ? 'y' : 'z';
+      if (scaleAxis === 'x') object.w = Math.max(0.25, snap((object.w || 1) * factor));
+      if (scaleAxis === 'y') object.h = Math.max(0.25, snap((object.h || 1) * factor));
+      if (scaleAxis === 'z') object.d = Math.max(0.25, snap((object.d || 1) * factor));
     }
     drag.x = synthetic.clientX; drag.y = synthetic.clientY; buildLevel(level); selectObject(object, false);
   }, { capture: true });
@@ -1371,10 +1377,11 @@ ui.game.addEventListener('pointerup', (event) => {
   if (studioGizmoDrag) { endGizmoDrag(event); return; }
   if (!studioPointer) return;
   const click = !studioPointer.moved;
+  const cameraDrag = studioPointer.camera;
   studioPointer = null;
   studioOrbitInput.active = false;
   ui.game.releasePointerCapture?.(event.pointerId);
-  if (studioPointer.camera || !click || editor.tool !== 'select') return;
+  if (cameraDrag || !click || editor.tool !== 'select') return;
   const hit = objectAt(event.clientX, event.clientY);
   if (hit) selectObject(hit, true);
 }, true);
@@ -1382,19 +1389,21 @@ ui.game.addEventListener('pointercancel', (event) => { if (studioGizmoDrag) endG
 ui.game.addEventListener('contextmenu', (event) => { if (state.mode === 'studio') event.preventDefault(); });
 window.addEventListener('keydown', (event) => {
   if (state.mode !== 'studio' || ['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)) return;
-  if (editor.selected && ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.code)) {
+  if (editor.selected && ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'KeyZ', 'KeyX'].includes(event.code)) {
     event.preventDefault();
     const amount = event.shiftKey ? 0.25 : 1;
     if (editor.tool === 'scale') {
-      const factor = event.code === 'ArrowLeft' || event.code === 'ArrowDown' ? 1 - amount * 0.05 : 1 + amount * 0.05;
-      editor.selected.w = Math.max(0.25, snap(editor.selected.w * factor));
-      editor.selected.h = Math.max(0.25, snap(editor.selected.h * factor));
-      editor.selected.d = Math.max(0.25, snap(editor.selected.d * factor));
+      const factor = event.code === 'ArrowLeft' || event.code === 'ArrowDown' || event.code === 'KeyX' ? 1 - amount * 0.05 : 1 + amount * 0.05;
+      if (event.code === 'ArrowLeft' || event.code === 'ArrowRight') editor.selected.w = Math.max(0.25, snap(editor.selected.w * factor));
+      else if (event.code === 'ArrowUp' || event.code === 'ArrowDown') editor.selected.h = Math.max(0.25, snap(editor.selected.h * factor));
+      else editor.selected.d = Math.max(0.25, snap(editor.selected.d * factor));
     } else if (editor.tool === 'move') {
       if (event.code === 'ArrowLeft') editor.selected.x = snap(editor.selected.x - amount);
       if (event.code === 'ArrowRight') editor.selected.x = snap(editor.selected.x + amount);
       if (event.code === 'ArrowUp') editor.selected.y = snap(editor.selected.y + amount);
       if (event.code === 'ArrowDown') editor.selected.y = snap(editor.selected.y - amount);
+      if (event.code === 'KeyZ') editor.selected.z = snap(editor.selected.z - amount);
+      if (event.code === 'KeyX') editor.selected.z = snap(editor.selected.z + amount);
     }
     buildLevel(level); selectObject(editor.selected, false);
     studioStatus(editor.tool === 'scale' ? 'SCALE TOOL • Arrow keys resize selected part' : 'MOVE TOOL • Arrow keys move selected part');
