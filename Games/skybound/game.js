@@ -5,13 +5,13 @@ import { TransformControls } from 'https://cdn.jsdelivr.net/npm/three@0.162.0/ex
 const $ = (id) => document.getElementById(id);
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 const ui = {
-  menu: $('menu'), hud: $('hud'), pause: $('pauseScreen'), gameOver: $('gameOverScreen'), victory: $('victoryScreen'), how: $('howPanel'), loading: $('loading'), loadingBar: $('loadingBar'), loadingText: $('loadingText'), studio: $('studio'), game: $('game'), flash: $('flash'),
-  play: $('playBtn'), dev: $('devBtn'), howBtn: $('howBtn'), closeHow: $('closeHow'), resume: $('resumeBtn'), restartPause: $('restartPauseBtn'), homePause: $('homePauseBtn'), retry: $('retryBtn'), homeGameOver: $('homeGameOverBtn'), victoryRetry: $('victoryRetryBtn'), victoryHome: $('victoryHomeBtn'),
-  shards: $('shardsHud'), keys: $('keysHud'), score: $('scoreHud'), best: $('bestHud'), bestMenu: $('bestScoreMenu'), healthBar: $('healthBar'), healthText: $('healthText'), dashBar: $('dashBar'), dashText: $('dashText'), checkpoint: $('checkpointHud'), objective: $('objectiveHud'), toast: $('messageToast'),
+  menu: $('menu'), levelSelect: $('levelSelect'), levelGrid: $('levelGrid'), campaignTab: $('campaignTab'), myLevelsTab: $('myLevelsTab'), closeLevels: $('closeLevels'), hud: $('hud'), pause: $('pauseScreen'), gameOver: $('gameOverScreen'), victory: $('victoryScreen'), how: $('howPanel'), loading: $('loading'), loadingBar: $('loadingBar'), loadingText: $('loadingText'), studio: $('studio'), game: $('game'), flash: $('flash'),
+  play: $('playBtn'), levels: $('levelsBtn'), dev: $('devBtn'), howBtn: $('howBtn'), closeHow: $('closeHow'), resume: $('resumeBtn'), restartPause: $('restartPauseBtn'), homePause: $('homePauseBtn'), retry: $('retryBtn'), homeGameOver: $('homeGameOverBtn'), nextLevel: $('nextLevelBtn'), victoryRetry: $('victoryRetryBtn'), victoryHome: $('victoryHomeBtn'),
+  shards: $('shardsHud'), keys: $('keysHud'), score: $('scoreHud'), best: $('bestHud'), bestMenu: $('bestScoreMenu'), levelTitle: $('levelTitleHud'), healthBar: $('healthBar'), healthText: $('healthText'), dashBar: $('dashBar'), dashText: $('dashText'), checkpoint: $('checkpointHud'), objective: $('objectiveHud'), toast: $('messageToast'),
   goScore: $('gameOverScore'), goShards: $('gameOverShards'), goTitle: $('gameOverTitle'), goText: $('gameOverText'), vScore: $('victoryScore'), vShards: $('victoryShards'), vText: $('victoryText'),
   explorer: $('explorer'), toolSelect: $('toolSelect'), toolMove: $('toolMove'), toolScale: $('toolScale'), snapToggle: $('snapToggle'), snapSize: $('snapSize'), duplicateSelected: $('duplicateSelected'), focusSelected: $('focusSelected'),
   levelName: $('levelName'), selNone: $('selectedNone'), selPanel: $('selectedPanel'), selType: $('selType'), selX: $('selX'), selY: $('selY'), selZ: $('selZ'), selW: $('selW'), selH: $('selH'), selD: $('selD'), selLabel: $('selLabel'), deleteSelected: $('deleteSelected'),
-  newLevel: $('newLevel'), exportJson: $('exportJson'), downloadJson: $('downloadJson'), jsonBox: $('jsonBox'), loadJson: $('loadJson'), studioStatus: $('studioStatus'), studioPlay: $('studioPlay'), studioBack: $('studioBack'), studioResetCam: $('studioResetCam'), studioTestSpawn: $('studioTestSpawn')
+  newLevel: $('newLevel'), saveMyLevel: $('saveMyLevel'), exportJson: $('exportJson'), downloadJson: $('downloadJson'), jsonBox: $('jsonBox'), loadJson: $('loadJson'), studioStatus: $('studioStatus'), studioPlay: $('studioPlay'), studioBack: $('studioBack'), studioResetCam: $('studioResetCam'), studioTestSpawn: $('studioTestSpawn')
 };
 
 const demoMode = new URLSearchParams(location.search).has('demo');
@@ -19,6 +19,11 @@ const state = {
   mode: 'menu', score: 0, shards: 0, keys: 0, health: 100,
   best: Number(localStorage.getItem('skybound_best') || 0), checkpoint: 'START', time: 0, runTime: 0
 };
+let selectedCampaignIndex = 0;
+let activeCampaignIndex = 0;
+let activeLevelKind = 'campaign';
+let levelMenuTab = 'campaign';
+let maxUnlockedCampaign = Math.max(0, Number(localStorage.getItem('skybound_unlocked_level') || 0));
 ui.best.textContent = state.best;
 ui.bestMenu.textContent = state.best;
 
@@ -125,6 +130,67 @@ function defaultLevel() {
     ]
   };
 }
+
+function campaignLevels() {
+  const cloudbreak = {
+    name: 'Skybound: Cloudbreak Run', spawn: { x: 0, y: 1.1, z: 8 }, objects: [
+      { type: 'platform', x: 0, y: 0, z: 8, w: 18, h: 1, d: 18, label: 'WINDWARD DOCK' },
+      { type: 'platform', x: -3, y: 2.1, z: -6, w: 11, h: 1, d: 10, label: 'CLOUDSTEP' },
+      { type: 'platform', x: 3, y: 4.2, z: -19, w: 10, h: 1, d: 10, label: 'WINDMILL RIDGE' },
+      { type: 'platform', x: -2, y: 6.3, z: -32, w: 11, h: 1, d: 11, label: 'AERIE CAMP' },
+      { type: 'platform', x: 2, y: 8.4, z: -45, w: 11, h: 1, d: 10, label: 'CLOUD BREAK' },
+      { type: 'platform', x: 0, y: 10.5, z: -59, w: 18, h: 1, d: 16, label: 'SUNRISE DECK' },
+      { type: 'shard', x: -4, y: 1.4, z: 7, label: 'WIND SHARD 1' },
+      { type: 'shard', x: -5, y: 3.5, z: -5, label: 'WIND SHARD 2' },
+      { type: 'shard', x: 5, y: 5.6, z: -19, label: 'WIND SHARD 3' },
+      { type: 'shard', x: 1, y: 7.7, z: -32, label: 'WIND SHARD 4' },
+      { type: 'shard', x: 5, y: 9.8, z: -45, label: 'WIND SHARD 5' },
+      { type: 'shard', x: -4, y: 11.9, z: -59, label: 'WIND SHARD 6' },
+      { type: 'key', x: -5, y: 3.5, z: -6, label: 'KEY-1' },
+      { type: 'key', x: -4, y: 7.7, z: -32, label: 'KEY-2' },
+      { type: 'checkpoint', x: 3, y: 4.7, z: -19, label: 'WINDMILL BEACON' },
+      { type: 'checkpoint', x: 2, y: 8.9, z: -45, label: 'CLOUD BREAK BEACON' },
+      { type: 'hazard', x: 3, y: 4.75, z: -21.5, w: 2, h: 0.18, d: 2, label: 'CROSSWIND' },
+      { type: 'enemy', x: -4.2, y: 7.05, z: -32, label: 'WIND SENTINEL' },
+      { type: 'door', x: 0, y: 3.7, z: -12.2, w: 8.5, h: 5.2, d: 0.8, label: 'GATE-1' },
+      { type: 'door', x: 0, y: 8.0, z: -38.5, w: 8.5, h: 5.2, d: 0.8, label: 'GATE-2' },
+      { type: 'goal', x: 0, y: 12.8, z: -60, label: 'CLOUDBREAK PORTAL' }
+    ]
+  };
+  const storm = {
+    name: 'Skybound: Storm Crown', spawn: { x: 0, y: 1.1, z: 8 }, objects: [
+      { type: 'platform', x: 0, y: 0, z: 8, w: 18, h: 1, d: 18, label: 'THUNDER DOCK' },
+      { type: 'platform', x: 4, y: 2, z: -7, w: 10, h: 1, d: 10, label: 'STATIC SPIRE' },
+      { type: 'platform', x: -3, y: 4, z: -22, w: 10, h: 1, d: 10, label: 'LIGHTNING LEDGE' },
+      { type: 'platform', x: 3, y: 6, z: -37, w: 10, h: 1, d: 10, label: 'RAINWATCH' },
+      { type: 'platform', x: -4, y: 8, z: -52, w: 11, h: 1, d: 11, label: 'STORM EYE' },
+      { type: 'platform', x: 0, y: 10, z: -68, w: 18, h: 1, d: 17, label: 'CROWN OF SKY' },
+      { type: 'shard', x: -4, y: 1.4, z: 7, label: 'STORM SHARD 1' },
+      { type: 'shard', x: 6, y: 3.4, z: -7, label: 'STORM SHARD 2' },
+      { type: 'shard', x: -5, y: 5.4, z: -22, label: 'STORM SHARD 3' },
+      { type: 'shard', x: 5, y: 7.4, z: -37, label: 'STORM SHARD 4' },
+      { type: 'shard', x: -6, y: 9.4, z: -52, label: 'STORM SHARD 5' },
+      { type: 'shard', x: 4, y: 11.4, z: -68, label: 'STORM SHARD 6' },
+      { type: 'key', x: 6, y: 3.4, z: -7, label: 'KEY-1' },
+      { type: 'key', x: -6, y: 9.4, z: -52, label: 'KEY-2' },
+      { type: 'checkpoint', x: -3, y: 4.5, z: -22, label: 'LIGHTNING BEACON' },
+      { type: 'checkpoint', x: -4, y: 8.5, z: -52, label: 'STORM EYE BEACON' },
+      { type: 'hazard', x: 4, y: 2.5, z: -9.2, w: 2.6, h: 0.18, d: 2.4, label: 'STATIC BURST' },
+      { type: 'hazard', x: 3, y: 6.5, z: -39, w: 2.2, h: 0.18, d: 2.2, label: 'LIGHTNING STRIKE' },
+      { type: 'enemy', x: -3, y: 4.6, z: -22, label: 'STORM SENTINEL' },
+      { type: 'enemy', x: 3, y: 6.6, z: -37, label: 'CLOUD STALKER' },
+      { type: 'door', x: 0, y: 3.5, z: -14, w: 8.5, h: 5, d: 0.8, label: 'GATE-1' },
+      { type: 'door', x: 0, y: 9.5, z: -60.5, w: 8.5, h: 5, d: 0.8, label: 'GATE-2' },
+      { type: 'goal', x: 0, y: 12.3, z: -68, label: 'STORM CROWN PORTAL' }
+    ]
+  };
+  return [defaultLevel(), cloudbreak, storm];
+}
+
+const campaignCatalog = campaignLevels();
+maxUnlockedCampaign = clamp(maxUnlockedCampaign, 0, campaignCatalog.length - 1);
+const cloneLevelData = (data) => JSON.parse(JSON.stringify(data));
+let activeLevelData = cloneLevelData(campaignCatalog[0]);
 
 function emptyGroup(group) {
   while (group.children.length) group.remove(group.children[0]);
@@ -434,11 +500,80 @@ function flash() {
 function setMode(mode) {
   state.mode = mode;
   ui.menu.classList.toggle('hidden', mode !== 'menu');
+  ui.levelSelect.classList.toggle('hidden', mode !== 'levels');
   ui.hud.classList.toggle('hidden', !['playing', 'paused'].includes(mode));
   ui.pause.classList.toggle('hidden', mode !== 'paused');
   ui.gameOver.classList.toggle('hidden', mode !== 'gameover');
   ui.victory.classList.toggle('hidden', mode !== 'victory');
   ui.studio.classList.toggle('hidden', mode !== 'studio');
+}
+function getCustomLevels() {
+  try {
+    const stored = JSON.parse(localStorage.getItem('skybound_custom_levels') || '[]');
+    return Array.isArray(stored) ? stored.filter((item) => item && item.id && Array.isArray(item.objects)) : [];
+  } catch { return []; }
+}
+function renderLevelSelect() {
+  ui.campaignTab.classList.toggle('active', levelMenuTab === 'campaign');
+  ui.myLevelsTab.classList.toggle('active', levelMenuTab === 'custom');
+  if (levelMenuTab === 'campaign') {
+    ui.levelGrid.innerHTML = campaignCatalog.map((entry, index) => {
+      const locked = index > maxUnlockedCampaign;
+      const complete = index < maxUnlockedCampaign;
+      return `<button class="level-card" data-campaign="${index}" ${locked ? 'disabled' : ''}><span class="level-number">CAMPAIGN ${String(index + 1).padStart(2, '0')}</span><strong>${escapeHtml(entry.name.replace(/^Skybound:\s*/, ''))}</strong><small>${index === 0 ? 'A first ascent through the ancient sky islands.' : index === 1 ? 'A wind-tossed route above the cloudline.' : 'A final climb through the storm crown.'}</small><span class="level-state">${locked ? 'LOCKED' : complete ? 'CLEARED' : 'AVAILABLE'}</span></button>`;
+    }).join('');
+    ui.levelGrid.querySelectorAll('[data-campaign]').forEach((card) => card.addEventListener('click', () => launchCampaignLevel(Number(card.dataset.campaign))));
+    return;
+  }
+  const customLevels = getCustomLevels();
+  if (!customLevels.length) {
+    ui.levelGrid.innerHTML = '<div class="level-empty">No saved levels yet.<br>Open the Dev Studio, build a route, then choose <b>SAVE TO MY LEVELS</b>.</div>';
+    return;
+  }
+  ui.levelGrid.innerHTML = customLevels.map((entry) => `<article class="level-card" data-custom-card="${escapeHtml(entry.id)}"><span class="level-number">YOUR LEVEL · ${entry.objects.length} OBJECTS</span><strong>${escapeHtml(entry.name || 'Untitled Level')}</strong><small>Saved in this browser. Select to play or remove it from your library.</small><button class="delete-level" data-delete-custom="${escapeHtml(entry.id)}">REMOVE</button></article>`).join('');
+  ui.levelGrid.querySelectorAll('[data-custom-card]').forEach((card) => card.addEventListener('click', (event) => {
+    if (event.target.closest('[data-delete-custom]')) return;
+    launchCustomLevel(getCustomLevels().find((entry) => entry.id === card.dataset.customCard));
+  }));
+  ui.levelGrid.querySelectorAll('[data-delete-custom]').forEach((button) => button.addEventListener('click', (event) => {
+    event.stopPropagation();
+    localStorage.setItem('skybound_custom_levels', JSON.stringify(getCustomLevels().filter((entry) => entry.id !== button.dataset.deleteCustom)));
+    renderLevelSelect();
+  }));
+}
+function openLevelSelect(tab = 'campaign') {
+  levelMenuTab = tab;
+  renderLevelSelect();
+  setMode('levels');
+}
+function launchCampaignLevel(index) {
+  if (index < 0 || index > maxUnlockedCampaign || !campaignCatalog[index]) return;
+  activeCampaignIndex = index;
+  selectedCampaignIndex = index;
+  activeLevelKind = 'campaign';
+  activeLevelData = cloneLevelData(campaignCatalog[index]);
+  buildLevel(activeLevelData);
+  startGame();
+}
+function launchCustomLevel(entry) {
+  if (!entry) return;
+  activeCampaignIndex = -1;
+  activeLevelKind = 'custom';
+  activeLevelData = normalizeLevel(entry);
+  buildLevel(activeLevelData);
+  startGame();
+}
+function saveMyLevel() {
+  level.name = ui.levelName.value.trim() || level.name || 'Untitled Level';
+  const levels = getCustomLevels();
+  const existing = levels.find((item) => item.name.toLowerCase() === level.name.toLowerCase());
+  const saved = { id: existing?.id || `custom-${Date.now()}`, name: level.name, spawn: { ...level.spawn }, objects: cloneLevelData(level).objects };
+  const next = existing ? levels.map((item) => item.id === existing.id ? saved : item) : [...levels, saved];
+  localStorage.setItem('skybound_custom_levels', JSON.stringify(next));
+  activeLevelData = cloneLevelData(saved);
+  activeCampaignIndex = -1;
+  activeLevelKind = 'custom';
+  studioStatus(`Saved “${saved.name}” to My Levels`);
 }
 function objectiveText() {
   const closed = doors.filter((gate) => !gate.open).sort((a, b) => a.requiredKey - b.requiredKey)[0];
@@ -468,6 +603,8 @@ function updateHud() {
   }
 }
 function startGame() {
+  buildLevel(activeLevelData);
+  ui.levelTitle.textContent = level.name.replace(/^Skybound:\s*/i, '').toUpperCase();
   state.score = 0;
   state.shards = 0;
   state.keys = 0;
@@ -515,9 +652,14 @@ function gameOver(title, message) {
 }
 function victory() {
   if (state.mode !== 'playing') return;
+  if (activeLevelKind === 'campaign' && activeCampaignIndex >= 0) {
+    maxUnlockedCampaign = Math.max(maxUnlockedCampaign, Math.min(campaignCatalog.length - 1, activeCampaignIndex + 1));
+    localStorage.setItem('skybound_unlocked_level', String(maxUnlockedCampaign));
+  }
   state.score += 600;
   updateHud();
   setMode('victory');
+  ui.nextLevel.classList.toggle('hidden', activeLevelKind !== 'campaign' || activeCampaignIndex >= campaignCatalog.length - 1);
   ui.vScore.textContent = state.score;
   ui.vShards.textContent = state.shards;
   ui.vText.textContent = `${level.name} complete — the First Light is restored.`;
@@ -680,13 +822,15 @@ function updatePlayer(dt) {
   ];
   let nx = px + pstate.vel.x * dt;
   for (const solid of solids) {
-    const vertical = py - hh < solid.y && py + hh > solid.y - solid.h;
+    // Don't treat a player standing on a platform top as intersecting its side.
+    // The small tolerance also prevents floating-point drift from pinning movement.
+    const vertical = py - hh < solid.y - 0.08 && py + hh > solid.y - solid.h + 0.02;
     const overlap = nx + radius > solid.x - solid.w / 2 && nx - radius < solid.x + solid.w / 2 && pz + radius > solid.z - solid.d / 2 && pz - radius < solid.z + solid.d / 2;
     if (vertical && overlap) { nx = px; pstate.vel.x = 0; break; }
   }
   let nz = pz + pstate.vel.z * dt;
   for (const solid of solids) {
-    const vertical = py - hh < solid.y && py + hh > solid.y - solid.h;
+    const vertical = py - hh < solid.y - 0.08 && py + hh > solid.y - solid.h + 0.02;
     const overlap = nx + radius > solid.x - solid.w / 2 && nx - radius < solid.x + solid.w / 2 && nz + radius > solid.z - solid.d / 2 && nz - radius < solid.z + solid.d / 2;
     if (vertical && overlap) { nz = pz; pstate.vel.z = 0; break; }
   }
@@ -1192,6 +1336,9 @@ function enterStudio() {
 function exitStudio() {
   document.exitPointerLock?.();
   teardownStudioHelpers();
+  activeLevelData = normalizeLevel(level);
+  activeCampaignIndex = -1;
+  activeLevelKind = 'custom';
   setMode('menu');
   ui.studio.style.display = 'none';
 }
@@ -1209,6 +1356,10 @@ ui.game.addEventListener('click', () => { if (state.mode === 'playing' && !point
 document.addEventListener('pointerlockchange', () => { pointerLocked = document.pointerLockElement === ui.game; });
 
 ui.play.onclick = startGame;
+ui.levels.onclick = () => openLevelSelect('campaign');
+ui.campaignTab.onclick = () => openLevelSelect('campaign');
+ui.myLevelsTab.onclick = () => openLevelSelect('custom');
+ui.closeLevels.onclick = () => setMode('menu');
 ui.dev.onclick = (event) => { event.preventDefault(); enterStudio(); };
 ui.howBtn.onclick = () => ui.how.classList.toggle('hidden');
 ui.closeHow.onclick = () => ui.how.classList.add('hidden');
@@ -1219,9 +1370,11 @@ ui.retry.onclick = continueFromCheckpoint;
 ui.homeGameOver.onclick = goHome;
 ui.victoryRetry.onclick = restartGame;
 ui.victoryHome.onclick = goHome;
+ui.nextLevel.onclick = () => launchCampaignLevel(activeCampaignIndex + 1);
 ui.studioBack.onclick = exitStudio;
-ui.studioPlay.onclick = () => { teardownStudioHelpers(); startGame(); };
+ui.studioPlay.onclick = () => { activeLevelData = normalizeLevel(level); activeLevelKind = 'custom'; activeCampaignIndex = -1; teardownStudioHelpers(); startGame(); };
 ui.newLevel.onclick = newLevel;
+ui.saveMyLevel.onclick = saveMyLevel;
 ui.exportJson.onclick = exportData;
 ui.downloadJson.onclick = downloadData;
 ui.loadJson.onclick = loadData;
