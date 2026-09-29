@@ -6,7 +6,7 @@ const $ = (id) => document.getElementById(id);
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 const ui = {
   menu: $('menu'), levelSelect: $('levelSelect'), levelGrid: $('levelGrid'), campaignTab: $('campaignTab'), myLevelsTab: $('myLevelsTab'), closeLevels: $('closeLevels'), hud: $('hud'), pause: $('pauseScreen'), gameOver: $('gameOverScreen'), victory: $('victoryScreen'), how: $('howPanel'), loading: $('loading'), loadingBar: $('loadingBar'), loadingText: $('loadingText'), studio: $('studio'), game: $('game'), flash: $('flash'),
-  play: $('playBtn'), levels: $('levelsBtn'), dev: $('devBtn'), howBtn: $('howBtn'), closeHow: $('closeHow'), resume: $('resumeBtn'), restartPause: $('restartPauseBtn'), homePause: $('homePauseBtn'), retry: $('retryBtn'), homeGameOver: $('homeGameOverBtn'), nextLevel: $('nextLevelBtn'), victoryRetry: $('victoryRetryBtn'), victoryHome: $('victoryHomeBtn'),
+  play: $('playBtn'), levels: $('levelsBtn'), dev: $('devBtn'), howBtn: $('howBtn'), closeHow: $('closeHow'), resume: $('resumeBtn'), restartPause: $('restartPauseBtn'), pauseLevels: $('pauseLevelsBtn'), homePause: $('homePauseBtn'), retry: $('retryBtn'), gameOverLevels: $('gameOverLevelsBtn'), homeGameOver: $('homeGameOverBtn'), nextLevel: $('nextLevelBtn'), victoryRetry: $('victoryRetryBtn'), victoryLevels: $('victoryLevelsBtn'), victoryHome: $('victoryHomeBtn'),
   shards: $('shardsHud'), keys: $('keysHud'), score: $('scoreHud'), best: $('bestHud'), bestMenu: $('bestScoreMenu'), levelTitle: $('levelTitleHud'), healthBar: $('healthBar'), healthText: $('healthText'), dashBar: $('dashBar'), dashText: $('dashText'), checkpoint: $('checkpointHud'), objective: $('objectiveHud'), toast: $('messageToast'),
   goScore: $('gameOverScore'), goShards: $('gameOverShards'), goTitle: $('gameOverTitle'), goText: $('gameOverText'), vScore: $('victoryScore'), vShards: $('victoryShards'), vText: $('victoryText'),
   explorer: $('explorer'), toolSelect: $('toolSelect'), toolMove: $('toolMove'), toolScale: $('toolScale'), snapToggle: $('snapToggle'), snapSize: $('snapSize'), duplicateSelected: $('duplicateSelected'), focusSelected: $('focusSelected'),
@@ -24,6 +24,12 @@ let activeCampaignIndex = 0;
 let activeLevelKind = 'campaign';
 let levelMenuTab = 'campaign';
 let maxUnlockedCampaign = Math.max(0, Number(localStorage.getItem('skybound_unlocked_level') || 0));
+const completedCampaignIds = (() => {
+  try {
+    const saved = JSON.parse(localStorage.getItem('skybound_completed_levels') || '[]');
+    return new Set(Array.isArray(saved) ? saved.filter((id) => typeof id === 'string') : []);
+  } catch { return new Set(); }
+})();
 ui.best.textContent = state.best;
 ui.bestMenu.textContent = state.best;
 
@@ -184,11 +190,56 @@ function campaignLevels() {
       { type: 'goal', x: 0, y: 12.3, z: -68, label: 'STORM CROWN PORTAL' }
     ]
   };
-  return [defaultLevel(), cloudbreak, storm];
+  function makeLateCampaignLevel(name, prefix, route) {
+    const objects = [];
+    route.forEach((step, index) => {
+      const last = index === route.length - 1;
+      const width = index === 0 || last ? 17 : 10;
+      const depth = index === 0 || last ? 16 : 10;
+      const label = `${prefix} ${String(index + 1).padStart(2, '0')}`;
+      objects.push({ type: 'platform', x: step.x, y: step.y, z: step.z, w: width, h: 1, d: depth, label });
+      objects.push({ type: 'shard', x: step.x + (index % 2 ? 3.2 : -3.2), y: step.y + 1.55, z: step.z, label: `${prefix} SHARD ${index + 1}` });
+      if (index === 1 || index === route.length - 2) objects.push({ type: 'key', x: step.x, y: step.y + 1.6, z: step.z, label: `KEY-${index === 1 ? 1 : 2}` });
+      if (index === 2 || index === route.length - 2) objects.push({ type: 'checkpoint', x: step.x, y: step.y + 0.5, z: step.z + 1.2, label: `${prefix} BEACON ${index}` });
+      if (index === 2 || index === 3) {
+        objects.push({ type: 'hazard', x: step.x + (index % 2 ? -2.5 : 2.5), y: step.y + 0.6, z: step.z, w: 2, h: 0.18, d: 2, label: `${prefix} SURGE ${index}` });
+        objects.push({ type: 'enemy', x: step.x, y: step.y + 0.5, z: step.z - 2, label: `${prefix} SENTINEL ${index}` });
+      }
+      if ((index === 1 || index === route.length - 2) && !last) {
+        objects.push({ type: 'door', x: (step.x + route[index + 1].x) / 2, y: step.y + 3, z: step.z - depth / 2 - 0.9, w: 8.5, h: 5.2, d: 0.8, label: `GATE-${index === 1 ? 1 : 2}` });
+      }
+    });
+    const summit = route[route.length - 1];
+    objects.push({ type: 'goal', x: summit.x, y: summit.y + 2.3, z: summit.z - 1.6, label: `${prefix} PORTAL` });
+    return { name, spawn: { x: route[0].x, y: 1.1, z: route[0].z }, objects };
+  }
+  const eclipse = makeLateCampaignLevel('Skybound: Eclipse Spires', 'ECLIPSE', [
+    { x: 0, y: 0, z: 8 }, { x: -4, y: 2, z: -7 }, { x: 4, y: 4, z: -22 },
+    { x: -4, y: 6, z: -37 }, { x: 4, y: 8, z: -52 }, { x: 0, y: 10, z: -68 }
+  ]);
+  const aetherlight = makeLateCampaignLevel('Skybound: Aetherlight Summit', 'AETHERLIGHT', [
+    { x: 0, y: 0, z: 8 }, { x: 4, y: 2, z: -7 }, { x: -4, y: 4, z: -22 },
+    { x: 4, y: 6, z: -37 }, { x: -4, y: 8, z: -52 }, { x: 4, y: 10, z: -67 },
+    { x: 0, y: 12, z: -82 }
+  ]);
+  return [defaultLevel(), cloudbreak, storm, eclipse, aetherlight];
 }
 
-const campaignCatalog = campaignLevels();
+const campaignLevelIds = ['first-light', 'cloudbreak-run', 'storm-crown', 'eclipse-spires', 'aetherlight-summit'];
+const campaignSummaries = [
+  'A first ascent through the ancient sky islands.',
+  'A wind-tossed route above the cloudline.',
+  'Climb the storm-battered spires at the heart of the squall.',
+  'Thread the eclipse spires and their shifting gates.',
+  'Make the last climb to the Aetherlight summit.'
+];
+const campaignCatalog = campaignLevels().map((entry, index) => ({ ...entry, id: campaignLevelIds[index] }));
+for (let index = 0; index < campaignCatalog.length; index++) {
+  if (completedCampaignIds.has(campaignCatalog[index].id)) maxUnlockedCampaign = Math.max(maxUnlockedCampaign, index + 1);
+}
+for (let index = 0; index < Math.min(maxUnlockedCampaign, campaignCatalog.length); index++) completedCampaignIds.add(campaignCatalog[index].id);
 maxUnlockedCampaign = clamp(maxUnlockedCampaign, 0, campaignCatalog.length - 1);
+localStorage.setItem('skybound_completed_levels', JSON.stringify([...completedCampaignIds]));
 const cloneLevelData = (data) => JSON.parse(JSON.stringify(data));
 let activeLevelData = cloneLevelData(campaignCatalog[0]);
 
@@ -519,8 +570,8 @@ function renderLevelSelect() {
   if (levelMenuTab === 'campaign') {
     ui.levelGrid.innerHTML = campaignCatalog.map((entry, index) => {
       const locked = index > maxUnlockedCampaign;
-      const complete = index < maxUnlockedCampaign;
-      return `<button class="level-card" data-campaign="${index}" ${locked ? 'disabled' : ''}><span class="level-number">CAMPAIGN ${String(index + 1).padStart(2, '0')}</span><strong>${escapeHtml(entry.name.replace(/^Skybound:\s*/, ''))}</strong><small>${index === 0 ? 'A first ascent through the ancient sky islands.' : index === 1 ? 'A wind-tossed route above the cloudline.' : 'A final climb through the storm crown.'}</small><span class="level-state">${locked ? 'LOCKED' : complete ? 'CLEARED' : 'AVAILABLE'}</span></button>`;
+      const complete = completedCampaignIds.has(entry.id);
+      return `<button class="level-card" data-campaign="${index}" ${locked ? 'disabled' : ''}><span class="level-number">CAMPAIGN ${String(index + 1).padStart(2, '0')}</span><strong>${escapeHtml(entry.name.replace(/^Skybound:\s*/, ''))}</strong><small>${campaignSummaries[index] || 'A new sky-island route awaits.'}</small><span class="level-state">${locked ? 'LOCKED' : complete ? 'CLEARED' : 'AVAILABLE'}</span></button>`;
     }).join('');
     ui.levelGrid.querySelectorAll('[data-campaign]').forEach((card) => card.addEventListener('click', () => launchCampaignLevel(Number(card.dataset.campaign))));
     return;
@@ -530,10 +581,16 @@ function renderLevelSelect() {
     ui.levelGrid.innerHTML = '<div class="level-empty">No saved levels yet.<br>Open the Dev Studio, build a route, then choose <b>SAVE TO MY LEVELS</b>.</div>';
     return;
   }
-  ui.levelGrid.innerHTML = customLevels.map((entry) => `<article class="level-card" data-custom-card="${escapeHtml(entry.id)}"><span class="level-number">YOUR LEVEL · ${entry.objects.length} OBJECTS</span><strong>${escapeHtml(entry.name || 'Untitled Level')}</strong><small>Saved in this browser. Select to play or remove it from your library.</small><button class="delete-level" data-delete-custom="${escapeHtml(entry.id)}">REMOVE</button></article>`).join('');
+  ui.levelGrid.innerHTML = customLevels.map((entry) => `<article class="level-card" data-custom-card="${escapeHtml(entry.id)}" role="button" tabindex="0"><span class="level-number">YOUR LEVEL · ${entry.objects.length} OBJECTS</span><strong>${escapeHtml(entry.name || 'Untitled Level')}</strong><small>Saved in this browser. Select to play or remove it from your library.</small><button class="delete-level" data-delete-custom="${escapeHtml(entry.id)}">REMOVE</button></article>`).join('');
   ui.levelGrid.querySelectorAll('[data-custom-card]').forEach((card) => card.addEventListener('click', (event) => {
     if (event.target.closest('[data-delete-custom]')) return;
     launchCustomLevel(getCustomLevels().find((entry) => entry.id === card.dataset.customCard));
+  }));
+  ui.levelGrid.querySelectorAll('[data-custom-card]').forEach((card) => card.addEventListener('keydown', (event) => {
+    if (['Enter', ' '].includes(event.key) && !event.target.closest('[data-delete-custom]')) {
+      event.preventDefault();
+      launchCustomLevel(getCustomLevels().find((entry) => entry.id === card.dataset.customCard));
+    }
   }));
   ui.levelGrid.querySelectorAll('[data-delete-custom]').forEach((button) => button.addEventListener('click', (event) => {
     event.stopPropagation();
@@ -542,6 +599,9 @@ function renderLevelSelect() {
   }));
 }
 function openLevelSelect(tab = 'campaign') {
+  document.exitPointerLock?.();
+  for (const key of Object.keys(keysDown)) keysDown[key] = false;
+  jumpQueued = false;
   levelMenuTab = tab;
   renderLevelSelect();
   setMode('levels');
@@ -552,7 +612,6 @@ function launchCampaignLevel(index) {
   selectedCampaignIndex = index;
   activeLevelKind = 'campaign';
   activeLevelData = cloneLevelData(campaignCatalog[index]);
-  buildLevel(activeLevelData);
   startGame();
 }
 function launchCustomLevel(entry) {
@@ -560,7 +619,6 @@ function launchCustomLevel(entry) {
   activeCampaignIndex = -1;
   activeLevelKind = 'custom';
   activeLevelData = normalizeLevel(entry);
-  buildLevel(activeLevelData);
   startGame();
 }
 function saveMyLevel() {
@@ -644,6 +702,7 @@ function togglePause() {
   } else if (state.mode === 'paused') setMode('playing');
 }
 function gameOver(title, message) {
+  document.exitPointerLock?.();
   setMode('gameover');
   ui.goTitle.textContent = title;
   ui.goText.textContent = message;
@@ -652,7 +711,10 @@ function gameOver(title, message) {
 }
 function victory() {
   if (state.mode !== 'playing') return;
+  document.exitPointerLock?.();
   if (activeLevelKind === 'campaign' && activeCampaignIndex >= 0) {
+    completedCampaignIds.add(campaignCatalog[activeCampaignIndex].id);
+    localStorage.setItem('skybound_completed_levels', JSON.stringify([...completedCampaignIds]));
     maxUnlockedCampaign = Math.max(maxUnlockedCampaign, Math.min(campaignCatalog.length - 1, activeCampaignIndex + 1));
     localStorage.setItem('skybound_unlocked_level', String(maxUnlockedCampaign));
   }
@@ -1347,6 +1409,7 @@ addEventListener('keydown', (event) => {
   keysDown[event.code] = true;
   if (event.code === 'Space' || event.code === 'Numpad0') jumpQueued = true;
   if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(event.code)) event.preventDefault();
+  if (event.code === 'Escape' && state.mode === 'levels') setMode('menu');
   if (event.code === 'Escape' && (state.mode === 'playing' || state.mode === 'paused')) togglePause();
   if (event.code === 'KeyR' && (state.mode === 'playing' || state.mode === 'paused')) restartGame();
 });
@@ -1357,6 +1420,9 @@ document.addEventListener('pointerlockchange', () => { pointerLocked = document.
 
 ui.play.onclick = startGame;
 ui.levels.onclick = () => openLevelSelect('campaign');
+ui.pauseLevels.onclick = () => openLevelSelect('campaign');
+ui.gameOverLevels.onclick = () => openLevelSelect('campaign');
+ui.victoryLevels.onclick = () => openLevelSelect('campaign');
 ui.campaignTab.onclick = () => openLevelSelect('campaign');
 ui.myLevelsTab.onclick = () => openLevelSelect('custom');
 ui.closeLevels.onclick = () => setMode('menu');
