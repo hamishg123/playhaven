@@ -285,8 +285,27 @@ function makeGlow(color, size, opacity = 0.6) {
 function clearWorld() {
   const disposedGeometries = new Set();
   const disposedMaterials = new Set();
+  const clearGroup = (group) => {
+    for (const child of [...group.children]) {
+      child.traverse((node) => {
+        if (node.geometry && !disposedGeometries.has(node.geometry)) {
+          node.geometry.dispose();
+          disposedGeometries.add(node.geometry);
+        }
+        const materials = Array.isArray(node.material) ? node.material : node.material ? [node.material] : [];
+        for (const material of materials) {
+          if (!sharedMaterials.has(material) && !disposedMaterials.has(material)) {
+            material.dispose();
+            disposedMaterials.add(material);
+          }
+        }
+      });
+      group.remove(child);
+    }
+  };
+  const permanentGroups = new Set([dynamic, effects, atmosphere]);
   for (const child of [...world.children]) {
-    if (child === player) continue;
+    if (child === player || permanentGroups.has(child)) continue;
     child.traverse((node) => {
       if (node.geometry && !disposedGeometries.has(node.geometry)) {
         node.geometry.dispose();
@@ -302,6 +321,9 @@ function clearWorld() {
     });
     world.remove(child);
   }
+  clearGroup(dynamic);
+  clearGroup(effects);
+  clearGroup(atmosphere);
   platforms.length = hazards.length = collectibles.length = checkpoints.length = enemies.length = doors.length = 0;
   goals = [];
 }
@@ -1199,10 +1221,10 @@ function setupStudioCamera() {
   studioOrbit.minDistance = 3;
   studioOrbit.maxDistance = 140;
   studioOrbit.maxPolarAngle = Math.PI - 0.05;
-  // Left drag is handled below so selection can use a true click without
-  // competing with OrbitControls' pointer handler.
+  // Left-drag selection/orbit is handled below; OrbitControls owns right-drag
+  // rotation and wheel zoom.
   studioOrbit.mouseButtons.LEFT = null;
-  studioOrbit.mouseButtons.RIGHT = THREE.MOUSE.PAN;
+  studioOrbit.mouseButtons.RIGHT = THREE.MOUSE.ROTATE;
   studioOrbit.mouseButtons.MIDDLE = THREE.MOUSE.DOLLY;
   const surfaces = level.objects.filter((object) => ['platform', 'wall'].includes(object.type));
   if (surfaces.length) {
@@ -1602,20 +1624,33 @@ function applyTransformStrip(action, axis, direction) {
   }
   buildLevel(level);
   selectObject(object, false);
-  studioStatus(`${action === 'move' ? 'MOVED' : 'SCALED'} ${axis.toUpperCase()} AXIS • Selection locked`);
+  studioStatus(`${action === 'move' ? 'MOVED' : 'SCALED'} ${axis.toUpperCase()} AXIS • Selection kept`);
 }
 for (const button of document.querySelectorAll('[data-transform]')) {
-  let repeatTimer = null;
+  let repeatTimer = null, holdTimer = null;
+  const axisLabel = button.dataset.axis.toUpperCase();
+  const directionLabel = Number(button.dataset.dir) < 0 ? 'negative' : 'positive';
+  button.title = button.dataset.transform === 'move'
+    ? `Move selected part in ${axisLabel} ${directionLabel} direction by one grid step; hold to repeat`
+    : `Resize selected part along ${axisLabel} in ${directionLabel} direction; hold to repeat`;
+  button.setAttribute('aria-label', button.title);
   const apply = () => applyTransformStrip(button.dataset.transform, button.dataset.axis, Number(button.dataset.dir));
-  button.addEventListener('click', apply);
+  // A normal click is one step; keyboard activation also uses click.
+  button.addEventListener('click', (event) => { if (event.detail === 0) apply(); });
   button.addEventListener('pointerdown', (event) => {
+    if (event.button !== 0) return;
     event.preventDefault();
-    repeatTimer = setInterval(apply, 110);
+    apply();
+    button.setPointerCapture?.(event.pointerId);
+    holdTimer = setTimeout(() => { repeatTimer = setInterval(apply, 110); }, 320);
   });
-  const stopRepeat = () => { if (repeatTimer) { clearInterval(repeatTimer); repeatTimer = null; } };
+  const stopRepeat = () => {
+    if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; }
+    if (repeatTimer) { clearInterval(repeatTimer); repeatTimer = null; }
+  };
   button.addEventListener('pointerup', stopRepeat);
   button.addEventListener('pointercancel', stopRepeat);
-  button.addEventListener('pointerleave', stopRepeat);
+  button.addEventListener('lostpointercapture', stopRepeat);
 }
 for (const field of ['selX', 'selY', 'selZ', 'selW', 'selH', 'selD', 'selLabel']) ui[field].onchange = selectedChanged;
 for (const button of document.querySelectorAll('[data-add]')) button.onclick = () => { const target = studioOrbit?.target || new THREE.Vector3(0, 0, -6); addObject(button.dataset.add, target.x, target.z); };
@@ -1693,23 +1728,14 @@ function endGizmoDrag(event) {
   studioStatus(editor.tool === 'scale' ? 'SCALE TOOL • Drag the colored boxes to resize' : 'MOVE TOOL • Drag the colored arrows to move');
 }
 ui.game.addEventListener('pointerdown', (event) => {
-  if (state.mode !== 'studio' || ![0, 2].includes(event.button)) return;
-  // Right-drag is delegated to OrbitControls for panning. Left-drag selects
-  // objects and only transforms when it starts on a visible axis handle.
-  if (event.button === 2) {
-    event.preventDefault();
-    studioPointer = { x: event.clientX, y: event.clientY, moved: false, camera: true };
-    studioOrbitInput.active = true;
-    studioOrbitInput.lastX = event.clientX;
-    studioOrbitInput.lastY = event.clientY;
-    ui.game.setPointerCapture?.(event.pointerId);
-    return;
-  }
+  if (state.mode !== 'studio' || event.button !== 0) return;
+  // A left click selects; a left drag edits only when it starts on a visible
+  // handle, otherwise it orbits. Right-drag rotation is handled by OrbitControls.
   const previousSelection = editor.selected;
   const hit = objectAt(event.clientX, event.clientY);
   if (hit && hit !== previousSelection) selectObject(hit, false);
   if ((!hit || hit === previousSelection) && beginGizmoDrag(event)) return;
-  studioPointer = { x: event.clientX, y: event.clientY, moved: false, camera: false };
+  studioPointer = { x: event.clientX, y: event.clientY, moved: false };
   studioOrbitInput.active = true;
   studioOrbitInput.lastX = event.clientX;
   studioOrbitInput.lastY = event.clientY;
@@ -1720,7 +1746,7 @@ ui.game.addEventListener('pointermove', (event) => {
   if (studioGizmoDrag) { updateGizmoDrag(event); return; }
   if (!studioPointer) return;
   if (studioTransform?.userData.dragging) return;
-  if (studioOrbitInput.active && !studioPointer.camera) {
+  if (studioOrbitInput.active) {
     const dx = event.clientX - studioOrbitInput.lastX;
     const dy = event.clientY - studioOrbitInput.lastY;
     if (Math.abs(dx) + Math.abs(dy) > 0) {
@@ -1734,15 +1760,14 @@ ui.game.addEventListener('pointermove', (event) => {
   if (Math.hypot(event.clientX - studioPointer.x, event.clientY - studioPointer.y) > 5) studioPointer.moved = true;
 }, true);
 ui.game.addEventListener('pointerup', (event) => {
-  if (state.mode !== 'studio' || ![0, 2].includes(event.button)) return;
+  if (state.mode !== 'studio' || event.button !== 0) return;
   if (studioGizmoDrag) { endGizmoDrag(event); return; }
   if (!studioPointer) return;
   const click = !studioPointer.moved;
-  const cameraDrag = studioPointer.camera;
   studioPointer = null;
   studioOrbitInput.active = false;
   ui.game.releasePointerCapture?.(event.pointerId);
-  if (cameraDrag || !click || editor.tool !== 'select') return;
+  if (!click || editor.tool !== 'select') return;
   const hit = objectAt(event.clientX, event.clientY);
   if (hit) selectObject(hit, true);
   else selectObject(null);

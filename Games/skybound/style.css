@@ -7,9 +7,10 @@
 @media(max-width:800px){#menu{padding:9vh 7vw 7vh}.menu-card{margin-top:34px}.footer-note{left:7vw;right:7vw;bottom:18px;line-height:1.5}.hud-top{top:16px;left:16px;right:16px}.brand-chip{display:none}.stats-row{width:100%;justify-content:space-between;gap:4px}.stat{padding:6px 8px;min-width:0;flex:1}.stat b{font-size:18px}.objective-chip{top:68px;min-width:82vw}.objective-chip b{font-size:8px}.hud-bottom{left:16px;right:16px;bottom:16px}.checkpoint{font-size:8px}.health-wrap{width:44vw}.toast{max-width:88vw;white-space:normal;text-align:center}.studio-sidebar{width:340px;max-width:86vw}.studio-toolbar span{display:none}.studio-toolbar{right:10px;left:10px}.studio-main{min-width:0}#studioHint{left:10px;bottom:10px;font-size:8px}h1{font-size:clamp(70px,20vw,128px)}}
 
 /* Editor viewport owns mouse gestures; only visible controls intercept input. */
+.studio { pointer-events: none; }
 .studio-main { pointer-events: none; }
 .studio-main .studio-toolbar, .studio-main #studioHint { pointer-events: auto; }
-.studio-sidebar { position: relative; z-index: 5; }
+.studio-sidebar { position: relative; z-index: 5; pointer-events: auto; }
 .studio-main { user-select: none; cursor: grab; }
 .studio-main:active { cursor: grabbing; }
 
