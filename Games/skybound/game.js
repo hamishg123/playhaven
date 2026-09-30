@@ -6,11 +6,11 @@ const $ = (id) => document.getElementById(id);
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 const ui = {
   menu: $('menu'), levelSelect: $('levelSelect'), levelGrid: $('levelGrid'), campaignTab: $('campaignTab'), myLevelsTab: $('myLevelsTab'), closeLevels: $('closeLevels'), hud: $('hud'), pause: $('pauseScreen'), gameOver: $('gameOverScreen'), victory: $('victoryScreen'), how: $('howPanel'), loading: $('loading'), loadingBar: $('loadingBar'), loadingText: $('loadingText'), studio: $('studio'), game: $('game'), flash: $('flash'),
-  play: $('playBtn'), levels: $('levelsBtn'), dev: $('devBtn'), howBtn: $('howBtn'), closeHow: $('closeHow'), resume: $('resumeBtn'), restartPause: $('restartPauseBtn'), pauseLevels: $('pauseLevelsBtn'), homePause: $('homePauseBtn'), retry: $('retryBtn'), gameOverLevels: $('gameOverLevelsBtn'), homeGameOver: $('homeGameOverBtn'), nextLevel: $('nextLevelBtn'), victoryRetry: $('victoryRetryBtn'), victoryLevels: $('victoryLevelsBtn'), victoryHome: $('victoryHomeBtn'),
+  play: $('playBtn'), levels: $('levelsBtn'), dev: $('devBtn'), howBtn: $('howBtn'), closeHow: $('closeHow'), resume: $('resumeBtn'), restartPause: $('restartPauseBtn'), pauseLevels: $('pauseLevelsBtn'), pauseStudio: $('pauseStudioBtn'), homePause: $('homePauseBtn'), retry: $('retryBtn'), gameOverLevels: $('gameOverLevelsBtn'), gameOverStudio: $('gameOverStudioBtn'), homeGameOver: $('homeGameOverBtn'), nextLevel: $('nextLevelBtn'), victoryRetry: $('victoryRetryBtn'), victoryLevels: $('victoryLevelsBtn'), victoryStudio: $('victoryStudioBtn'), victoryHome: $('victoryHomeBtn'),
   shards: $('shardsHud'), keys: $('keysHud'), score: $('scoreHud'), best: $('bestHud'), bestMenu: $('bestScoreMenu'), levelTitle: $('levelTitleHud'), healthBar: $('healthBar'), healthText: $('healthText'), dashBar: $('dashBar'), dashText: $('dashText'), checkpoint: $('checkpointHud'), objective: $('objectiveHud'), toast: $('messageToast'),
   goScore: $('gameOverScore'), goShards: $('gameOverShards'), goTitle: $('gameOverTitle'), goText: $('gameOverText'), vScore: $('victoryScore'), vShards: $('victoryShards'), vText: $('victoryText'),
   explorer: $('explorer'), toolSelect: $('toolSelect'), toolMove: $('toolMove'), toolScale: $('toolScale'), snapToggle: $('snapToggle'), snapSize: $('snapSize'), duplicateSelected: $('duplicateSelected'), focusSelected: $('focusSelected'),
-  levelName: $('levelName'), selNone: $('selectedNone'), selPanel: $('selectedPanel'), selType: $('selType'), selX: $('selX'), selY: $('selY'), selZ: $('selZ'), selW: $('selW'), selH: $('selH'), selD: $('selD'), selLabel: $('selLabel'), deleteSelected: $('deleteSelected'),
+  levelName: $('levelName'), selNone: $('selectedNone'), selPanel: $('selectedPanel'), selType: $('selType'), selX: $('selX'), selY: $('selY'), selZ: $('selZ'), selW: $('selW'), selH: $('selH'), selD: $('selD'), dimensionFields: $('dimensionFields'), dimensionHint: $('dimensionHint'), selLabel: $('selLabel'), deleteSelected: $('deleteSelected'),
   newLevel: $('newLevel'), saveMyLevel: $('saveMyLevel'), exportJson: $('exportJson'), downloadJson: $('downloadJson'), jsonBox: $('jsonBox'), loadJson: $('loadJson'), studioStatus: $('studioStatus'), studioPlay: $('studioPlay'), studioBack: $('studioBack'), studioResetCam: $('studioResetCam'), studioTestSpawn: $('studioTestSpawn')
 };
 
@@ -22,6 +22,7 @@ const state = {
 let selectedCampaignIndex = 0;
 let activeCampaignIndex = 0;
 let activeLevelKind = 'campaign';
+let playtestActive = false;
 let levelMenuTab = 'campaign';
 let maxUnlockedCampaign = Math.max(0, Number(localStorage.getItem('skybound_unlocked_level') || 0));
 const completedCampaignIds = (() => {
@@ -96,6 +97,7 @@ const MAT = {
   gateGold: new THREE.MeshStandardMaterial({ color: 0xd3a84f, emissive: 0x5d3f0a, emissiveIntensity: 0.44, roughness: 0.32, metalness: 0.5 }),
   cloud: new THREE.MeshBasicMaterial({ color: 0xe6fbff, transparent: true, opacity: 0.52, depthWrite: false })
 };
+const sharedMaterials = new Set(Object.values(MAT));
 const GEO = {
   box: (x, y, z) => new THREE.BoxGeometry(x, y, z), sphere: (r, w = 18, h = 12) => new THREE.SphereGeometry(r, w, h),
   cylinder: (top, bottom, height, sides = 16) => new THREE.CylinderGeometry(top, bottom, height, sides),
@@ -166,10 +168,10 @@ function campaignLevels() {
   const storm = {
     name: 'Skybound: Storm Crown', spawn: { x: 0, y: 1.1, z: 8 }, objects: [
       { type: 'platform', x: 0, y: 0, z: 8, w: 18, h: 1, d: 18, label: 'THUNDER DOCK' },
-      { type: 'platform', x: 4, y: 2, z: -7, w: 10, h: 1, d: 10, label: 'STATIC SPIRE' },
-      { type: 'platform', x: -3, y: 4, z: -22, w: 10, h: 1, d: 10, label: 'LIGHTNING LEDGE' },
-      { type: 'platform', x: 3, y: 6, z: -37, w: 10, h: 1, d: 10, label: 'RAINWATCH' },
-      { type: 'platform', x: -4, y: 8, z: -52, w: 11, h: 1, d: 11, label: 'STORM EYE' },
+      { type: 'platform', x: 4, y: 2, z: -7, w: 9, h: 1, d: 9, label: 'STATIC SPIRE' },
+      { type: 'platform', x: -3, y: 4, z: -22, w: 9, h: 1, d: 9, label: 'LIGHTNING LEDGE' },
+      { type: 'platform', x: 3, y: 6, z: -37, w: 8, h: 1, d: 9, label: 'RAINWATCH' },
+      { type: 'platform', x: -4, y: 8, z: -52, w: 8.5, h: 1, d: 9, label: 'STORM EYE' },
       { type: 'platform', x: 0, y: 10, z: -68, w: 18, h: 1, d: 17, label: 'CROWN OF SKY' },
       { type: 'shard', x: -4, y: 1.4, z: 7, label: 'STORM SHARD 1' },
       { type: 'shard', x: 6, y: 3.4, z: -7, label: 'STORM SHARD 2' },
@@ -183,8 +185,10 @@ function campaignLevels() {
       { type: 'checkpoint', x: -4, y: 8.5, z: -52, label: 'STORM EYE BEACON' },
       { type: 'hazard', x: 4, y: 2.5, z: -9.2, w: 2.6, h: 0.18, d: 2.4, label: 'STATIC BURST' },
       { type: 'hazard', x: 3, y: 6.5, z: -39, w: 2.2, h: 0.18, d: 2.2, label: 'LIGHTNING STRIKE' },
+      { type: 'hazard', x: -1.5, y: 8.6, z: -53.8, w: 2.5, h: 0.18, d: 2.2, label: 'STORM EYE SURGE' },
       { type: 'enemy', x: -3, y: 4.6, z: -22, label: 'STORM SENTINEL' },
       { type: 'enemy', x: 3, y: 6.6, z: -37, label: 'CLOUD STALKER' },
+      { type: 'enemy', x: -4, y: 8.6, z: -51, label: 'EYE SENTINEL' },
       { type: 'door', x: 0, y: 3.5, z: -14, w: 8.5, h: 5, d: 0.8, label: 'GATE-1' },
       { type: 'door', x: 0, y: 9.5, z: -60.5, w: 8.5, h: 5, d: 0.8, label: 'GATE-2' },
       { type: 'goal', x: 0, y: 12.3, z: -68, label: 'STORM CROWN PORTAL' }
@@ -194,15 +198,19 @@ function campaignLevels() {
     const objects = [];
     route.forEach((step, index) => {
       const last = index === route.length - 1;
-      const width = index === 0 || last ? 17 : 10;
-      const depth = index === 0 || last ? 16 : 10;
+      const width = step.w ?? (index === 0 || last ? 17 : 10);
+      const depth = step.d ?? (index === 0 || last ? 16 : 10);
       const label = `${prefix} ${String(index + 1).padStart(2, '0')}`;
       objects.push({ type: 'platform', x: step.x, y: step.y, z: step.z, w: width, h: 1, d: depth, label });
       objects.push({ type: 'shard', x: step.x + (index % 2 ? 3.2 : -3.2), y: step.y + 1.55, z: step.z, label: `${prefix} SHARD ${index + 1}` });
       if (index === 1 || index === route.length - 2) objects.push({ type: 'key', x: step.x, y: step.y + 1.6, z: step.z, label: `KEY-${index === 1 ? 1 : 2}` });
       if (index === 2 || index === route.length - 2) objects.push({ type: 'checkpoint', x: step.x, y: step.y + 0.5, z: step.z + 1.2, label: `${prefix} BEACON ${index}` });
-      if (index === 2 || index === 3) {
-        objects.push({ type: 'hazard', x: step.x + (index % 2 ? -2.5 : 2.5), y: step.y + 0.6, z: step.z, w: 2, h: 0.18, d: 2, label: `${prefix} SURGE ${index}` });
+      const hasHazard = step.hazard ?? [2, 4].includes(index);
+      const hasEnemy = step.enemy ?? [3, 5].includes(index);
+      if (hasHazard) {
+        objects.push({ type: 'hazard', x: step.x + (step.hazardOffset ?? (index % 2 ? -2.3 : 2.3)), y: step.y + 0.6, z: step.z + (step.hazardZ || 0), w: step.hazardW || 2, h: 0.18, d: step.hazardD || 2, label: `${prefix} SURGE ${index}` });
+      }
+      if (hasEnemy) {
         objects.push({ type: 'enemy', x: step.x, y: step.y + 0.5, z: step.z - 2, label: `${prefix} SENTINEL ${index}` });
       }
       if ((index === 1 || index === route.length - 2) && !last) {
@@ -214,13 +222,23 @@ function campaignLevels() {
     return { name, spawn: { x: route[0].x, y: 1.1, z: route[0].z }, objects };
   }
   const eclipse = makeLateCampaignLevel('Skybound: Eclipse Spires', 'ECLIPSE', [
-    { x: 0, y: 0, z: 8 }, { x: -4, y: 2, z: -7 }, { x: 4, y: 4, z: -22 },
-    { x: -4, y: 6, z: -37 }, { x: 4, y: 8, z: -52 }, { x: 0, y: 10, z: -68 }
+    { x: 0, y: 0, z: 8, w: 17, d: 16 },
+    { x: -5, y: 2.1, z: -7, w: 8.5, d: 9 },
+    { x: 4.5, y: 4.2, z: -20, w: 7, d: 7, hazard: true },
+    { x: -4, y: 6.3, z: -33, w: 7, d: 7, enemy: true },
+    { x: 4, y: 8.4, z: -46, w: 6.5, d: 6.5, hazard: true, enemy: true, hazardW: 2.4 },
+    { x: -3.5, y: 10.5, z: -60, w: 7, d: 7, enemy: true },
+    { x: 0, y: 12.6, z: -74, w: 17, d: 16, hazard: false }
   ]);
   const aetherlight = makeLateCampaignLevel('Skybound: Aetherlight Summit', 'AETHERLIGHT', [
-    { x: 0, y: 0, z: 8 }, { x: 4, y: 2, z: -7 }, { x: -4, y: 4, z: -22 },
-    { x: 4, y: 6, z: -37 }, { x: -4, y: 8, z: -52 }, { x: 4, y: 10, z: -67 },
-    { x: 0, y: 12, z: -82 }
+    { x: 0, y: 0, z: 8, w: 17, d: 16 },
+    { x: 5, y: 2, z: -7, w: 8, d: 8 },
+    { x: -4, y: 4, z: -20, w: 7, d: 7, hazard: true },
+    { x: 4, y: 6, z: -33, w: 7, d: 6.5, enemy: true },
+    { x: -4, y: 8, z: -46, w: 6.5, d: 6.5, hazard: true, enemy: true },
+    { x: 4, y: 10, z: -59, w: 6.5, d: 6.5, hazard: true, hazardW: 2.4 },
+    { x: -4, y: 12, z: -72, w: 6.5, d: 7, enemy: true, hazard: true },
+    { x: 0, y: 14, z: -86, w: 17, d: 16, hazard: false }
   ]);
   return [defaultLevel(), cloudbreak, storm, eclipse, aetherlight];
 }
@@ -230,8 +248,8 @@ const campaignSummaries = [
   'A first ascent through the ancient sky islands.',
   'A wind-tossed route above the cloudline.',
   'Climb the storm-battered spires at the heart of the squall.',
-  'Thread the eclipse spires and their shifting gates.',
-  'Make the last climb to the Aetherlight summit.'
+  'Thread narrow eclipse ledges, dodge sentinels, and unlock the gates.',
+  'Tight jumps, surges, and sentinels guard the final summit.'
 ];
 const campaignCatalog = campaignLevels().map((entry, index) => ({ ...entry, id: campaignLevelIds[index] }));
 for (let index = 0; index < campaignCatalog.length; index++) {
@@ -265,10 +283,25 @@ function makeGlow(color, size, opacity = 0.6) {
 }
 
 function clearWorld() {
-  emptyGroup(dynamic);
-  emptyGroup(effects);
-  emptyGroup(atmosphere);
-  for (const child of [...world.children]) if (child !== player && child !== dynamic && child !== effects && child !== atmosphere) world.remove(child);
+  const disposedGeometries = new Set();
+  const disposedMaterials = new Set();
+  for (const child of [...world.children]) {
+    if (child === player) continue;
+    child.traverse((node) => {
+      if (node.geometry && !disposedGeometries.has(node.geometry)) {
+        node.geometry.dispose();
+        disposedGeometries.add(node.geometry);
+      }
+      const materials = Array.isArray(node.material) ? node.material : node.material ? [node.material] : [];
+      for (const material of materials) {
+        if (!sharedMaterials.has(material) && !disposedMaterials.has(material)) {
+          material.dispose();
+          disposedMaterials.add(material);
+        }
+      }
+    });
+    world.remove(child);
+  }
   platforms.length = hazards.length = collectibles.length = checkpoints.length = enemies.length = doors.length = 0;
   goals = [];
 }
@@ -434,13 +467,23 @@ function goal(o) {
 function normalizeLevel(data) {
   const safe = data && Array.isArray(data.objects) ? data : defaultLevel();
   const validTypes = new Set(['platform', 'wall', 'shard', 'key', 'checkpoint', 'enemy', 'hazard', 'door', 'goal']);
+  const dimensions = {
+    platform: [4, 1, 4], wall: [4, 4, 0.8], shard: [1, 1, 1], key: [1, 1, 1],
+    checkpoint: [1.35, 0.25, 1.35], enemy: [1, 1, 1], hazard: [2, 0.18, 2], door: [8, 5, 0.8], goal: [4, 4, 1]
+  };
+  const finite = (value, fallback) => Number.isFinite(Number(value)) ? Number(value) : fallback;
   return {
     name: String(safe.name || 'Untitled Level'),
-    spawn: { x: Number(safe.spawn?.x) || 0, y: Number(safe.spawn?.y) || 1.1, z: Number(safe.spawn?.z) || 8 },
-    objects: safe.objects.filter((object) => validTypes.has(String(object.type || 'platform'))).map((object) => ({
-      type: String(object.type || 'platform'), x: Number(object.x) || 0, y: Number(object.y) || 0, z: Number(object.z) || 0,
-      w: object.w == null ? 4 : Number(object.w), h: object.h == null ? 1 : Number(object.h), d: object.d == null ? 4 : Number(object.d), label: String(object.label || '')
-    }))
+    spawn: { x: finite(safe.spawn?.x, 0), y: finite(safe.spawn?.y, 1.1), z: finite(safe.spawn?.z, 8) },
+    objects: safe.objects.filter((object) => object && validTypes.has(String(object.type || 'platform'))).map((object) => {
+      const type = String(object.type || 'platform');
+      const [defaultW, defaultH, defaultD] = dimensions[type];
+      return {
+        type, x: finite(object.x, 0), y: finite(object.y, 0), z: finite(object.z, 0),
+        w: Math.max(0.1, finite(object.w, defaultW)), h: Math.max(0.1, finite(object.h, defaultH)), d: Math.max(0.1, finite(object.d, defaultD)),
+        label: String(object.label || '')
+      };
+    })
   };
 }
 function buildAtmosphere() {
@@ -474,8 +517,19 @@ function buildAtmosphere() {
   atmosphere.add(dust);
 }
 function buildLevel(data) {
+  const preserveObjects = data === level;
+  const existingObjects = preserveObjects ? level.objects.slice() : [];
   clearWorld();
-  level = normalizeLevel(data);
+  const normalized = normalizeLevel(data);
+  if (preserveObjects) {
+    const objects = normalized.objects.map((nextObject, index) => {
+      const existing = existingObjects[index];
+      if (!existing) return nextObject;
+      for (const key of Object.keys(existing)) if (!(key in nextObject)) delete existing[key];
+      return Object.assign(existing, nextObject);
+    });
+    level = { ...normalized, objects };
+  } else level = normalized;
   buildAtmosphere();
   for (const object of level.objects) {
     if (object.type === 'platform' || object.type === 'wall') platform(object);
@@ -550,6 +604,7 @@ function flash() {
 }
 function setMode(mode) {
   state.mode = mode;
+  for (const button of [ui.pauseStudio, ui.gameOverStudio, ui.victoryStudio]) button.classList.toggle('hidden', !playtestActive);
   ui.menu.classList.toggle('hidden', mode !== 'menu');
   ui.levelSelect.classList.toggle('hidden', mode !== 'levels');
   ui.hud.classList.toggle('hidden', !['playing', 'paused'].includes(mode));
@@ -691,6 +746,7 @@ function continueFromCheckpoint() {
   updateHud();
 }
 function goHome() {
+  playtestActive = false;
   setMode('menu');
   document.exitPointerLock?.();
   resetPlayer();
@@ -1022,6 +1078,7 @@ function updateCamera(dt) {
 }
 
 const editor = { selected: null, selectedMesh: null, tool: 'select', snap: true, snapSize: 1, moveForward: false, moveBack: false, moveLeft: false, moveRight: false, moveUp: false, moveDown: false, fast: false };
+const sizeEditableTypes = new Set(['platform', 'wall', 'door', 'hazard']);
 let studioOrbit = null, studioTransform = null, studioTransformHelper = null, studioGrid = null, studioOutline = null, studioDomGizmo = null, studioDomDrag = null;
 const studioRay = new THREE.Raycaster();
 const studioMouse = new THREE.Vector2();
@@ -1064,9 +1121,16 @@ function objectAt(clientX, clientY) {
 function getRootForObject(object) {
   return studioSelectableRoots().find((root) => root.userData.levelObject === object) || null;
 }
+function setDimensionControls(enabled) {
+  for (const field of [ui.selW, ui.selH, ui.selD]) field.disabled = !enabled;
+  ui.dimensionHint.classList.toggle('hidden', enabled);
+  for (const button of document.querySelectorAll('[data-transform="scale"]')) button.disabled = !enabled;
+  ui.toolScale.disabled = Boolean(editor.selected) && !enabled;
+}
 function syncSelected(object) {
   editor.selected = object || null;
   if (!object) {
+    setDimensionControls(true);
     ui.selNone.classList.remove('hidden');
     ui.selPanel.classList.add('hidden');
     refreshExplorer();
@@ -1082,10 +1146,12 @@ function syncSelected(object) {
   ui.selH.value = object.h ?? 1;
   ui.selD.value = object.d ?? 4;
   ui.selLabel.value = object.label || '';
+  setDimensionControls(sizeEditableTypes.has(object.type));
   refreshExplorer();
 }
 function selectObject(object, focus = false) {
   editor.selected = object || null;
+  if (object && editor.tool === 'scale' && !sizeEditableTypes.has(object.type)) setEditorTool('select');
   editor.selectedMesh = null;
   syncSelected(object);
   if (studioTransform) { studioTransform.detach(); studioTransform.visible = false; }
@@ -1102,6 +1168,10 @@ function selectObject(object, focus = false) {
   }
 }
 function setEditorTool(tool) {
+  if (tool === 'scale' && editor.selected && !sizeEditableTypes.has(editor.selected.type)) {
+    studioStatus('SCALE applies to platforms, walls, hazards and gates; this item has a fixed size');
+    return;
+  }
   editor.tool = tool;
   ui.toolSelect.classList.toggle('active', tool === 'select');
   ui.toolMove.classList.toggle('active', tool === 'move');
@@ -1117,7 +1187,7 @@ function setEditorTool(tool) {
       if (studioTransformHelper) studioTransformHelper.visible = true;
     }
   }
-  studioStatus(tool === 'select' ? 'SELECT TOOL • Click an object to select it' : tool === 'move' ? 'MOVE TOOL • Drag the colored arrows to move' : 'SCALE TOOL • Drag the boxes to resize');
+  studioStatus(tool === 'select' ? 'SELECT TOOL • Click an object to select it' : tool === 'move' ? 'MOVE TOOL • Drag a colored arrow or use the inspector' : 'SCALE TOOL • Drag a colored arrow or use the inspector');
 }
 function setupStudioCamera() {
   ensureDomGizmo();
@@ -1134,8 +1204,27 @@ function setupStudioCamera() {
   studioOrbit.mouseButtons.LEFT = null;
   studioOrbit.mouseButtons.RIGHT = THREE.MOUSE.PAN;
   studioOrbit.mouseButtons.MIDDLE = THREE.MOUSE.DOLLY;
-  studioOrbit.target.set(0, 3, -22);
-  camera.position.set(0, 19, 30);
+  const surfaces = level.objects.filter((object) => ['platform', 'wall'].includes(object.type));
+  if (surfaces.length) {
+    const bounds = surfaces.reduce((result, object) => ({
+      minX: Math.min(result.minX, object.x - object.w / 2), maxX: Math.max(result.maxX, object.x + object.w / 2),
+      minY: Math.min(result.minY, object.y - object.h / 2), maxY: Math.max(result.maxY, object.y + object.h / 2),
+      minZ: Math.min(result.minZ, object.z - object.d / 2), maxZ: Math.max(result.maxZ, object.z + object.d / 2)
+    }), { minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity, minZ: Infinity, maxZ: -Infinity });
+    const centerX = (bounds.minX + bounds.maxX) / 2;
+    const centerY = (bounds.minY + bounds.maxY) / 2;
+    const centerZ = (bounds.minZ + bounds.maxZ) / 2;
+    const spanX = bounds.maxX - bounds.minX;
+    const spanY = bounds.maxY - bounds.minY;
+    const spanZ = bounds.maxZ - bounds.minZ;
+    const distance = clamp(Math.max(spanZ * 0.66, spanX * 1.15, spanY * 2.4, 23), 23, 100);
+    studioOrbit.target.set(centerX, centerY, centerZ);
+    camera.position.set(centerX + distance * 0.16, centerY + distance * 0.3, centerZ + distance);
+    studioOrbit.maxDistance = Math.max(140, distance * 3);
+  } else {
+    studioOrbit.target.set(0, 3, -6);
+    camera.position.set(0, 19, 30);
+  }
   studioOrbit.update();
   if (!studioTransform) {
     studioTransform = new TransformControls(camera, renderer.domElement);
@@ -1189,6 +1278,8 @@ function setupStudioCamera() {
     studioTransformHelper = studioTransform;
     scene.add(studioTransform);
   }
+  if (studioTransform.parent !== scene) scene.add(studioTransform);
+  studioTransformHelper = studioTransform;
   if (!studioGrid) { studioGrid = new THREE.GridHelper(160, 160, 0x4d7b8d, 0x244452); scene.add(studioGrid); }
   setEditorTool(editor.tool);
   updateStudioOutline();
@@ -1197,7 +1288,12 @@ function teardownStudioHelpers() {
   if (studioOrbit) { studioOrbit.dispose(); studioOrbit = null; }
   if (studioTransform) { studioTransform.detach(); studioTransform.visible = false; }
   if (studioTransformHelper) { scene.remove(studioTransformHelper); studioTransformHelper = null; }
-  if (studioGrid) { scene.remove(studioGrid); studioGrid = null; }
+  if (studioGrid) {
+    scene.remove(studioGrid);
+    studioGrid.geometry.dispose();
+    for (const material of Array.isArray(studioGrid.material) ? studioGrid.material : [studioGrid.material]) material.dispose();
+    studioGrid = null;
+  }
   if (studioOutline) { scene.remove(studioOutline); studioOutline.geometry.dispose(); studioOutline.material.dispose(); studioOutline = null; }
 }
 function updateStudioOutline() {
@@ -1221,16 +1317,12 @@ function ensureDomGizmo() {
     handle.dataset.axis = name;
     if (kind === 'axis') { handle.innerHTML = '<i class="studio-gizmo-tip"></i>'; }
     handle.addEventListener('pointerdown', (event) => {
-      if (state.mode !== 'studio' || !editor.selected || editor.tool === 'select') return;
+      if (event.button !== 0 || state.mode !== 'studio' || !editor.selected || editor.tool === 'select') return;
+      if (editor.tool === 'scale' && !sizeEditableTypes.has(editor.selected.type)) return;
       event.preventDefault(); event.stopPropagation();
-      studioDomDrag = { axis: name, x: event.clientX, y: event.clientY, object: editor.selected, tool: editor.tool };
+      const axis = studioGizmoLayout()?.axes.find((item) => item.name.toLowerCase() === name);
+      studioDomDrag = { axis: name, x: event.clientX, y: event.clientY, object: editor.selected, tool: editor.tool, direction: axis?.direction || { x: 0, y: -1 } };
       handle.setPointerCapture?.(event.pointerId);
-      studioStatus(`${editor.tool === 'scale' ? 'SCALING' : 'MOVING'} ${name.toUpperCase()} • Release mouse to commit`);
-    });
-    handle.addEventListener('mousedown', (event) => {
-      if (studioDomDrag || state.mode !== 'studio' || !editor.selected || editor.tool === 'select') return;
-      event.preventDefault(); event.stopPropagation();
-      studioDomDrag = { axis: name, x: event.clientX, y: event.clientY, object: editor.selected, tool: editor.tool };
       studioStatus(`${editor.tool === 'scale' ? 'SCALING' : 'MOVING'} ${name.toUpperCase()} • Release mouse to commit`);
     });
     studioDomGizmo.append(handle);
@@ -1241,11 +1333,16 @@ function ensureDomGizmo() {
     event.preventDefault();
     const drag = studioDomDrag; const dx = event.clientX - drag.x; const dy = event.clientY - drag.y; const object = drag.object;
     if (drag.tool === 'move') {
-      if (drag.axis.includes('x') || drag.axis === 'nw' || drag.axis === 'sw') object.x = snap(object.x + dx * 0.025);
-      if (drag.axis.includes('y') || drag.axis === 'nw' || drag.axis === 'ne') object.y = snap(object.y - dy * 0.025);
-      if (drag.axis === 'z') object.z = snap(object.z + dx * 0.025);
+      if (['x', 'y', 'z'].includes(drag.axis)) {
+        const amount = (dx * drag.direction.x + dy * drag.direction.y) * 0.025;
+        object[drag.axis] = snap(object[drag.axis] + amount);
+      } else {
+        if (drag.axis === 'nw' || drag.axis === 'sw') object.x = snap(object.x + dx * 0.025);
+        if (drag.axis === 'nw' || drag.axis === 'ne') object.y = snap(object.y - dy * 0.025);
+      }
     } else {
-      const factor = clamp(1 + (dx - dy) * 0.004, 0.1, 4);
+      const axisDelta = ['x', 'y', 'z'].includes(drag.axis) ? dx * drag.direction.x + dy * drag.direction.y : dx - dy;
+      const factor = clamp(1 + axisDelta * 0.004, 0.1, 4);
       const scaleAxis = drag.axis === 'x' || drag.axis === 'nw' || drag.axis === 'sw' ? 'x' : drag.axis === 'y' || drag.axis === 'ne' || drag.axis === 'se' ? 'y' : 'z';
       if (scaleAxis === 'x') object.w = Math.max(0.25, snap((object.w || 1) * factor));
       if (scaleAxis === 'y') object.h = Math.max(0.25, snap((object.h || 1) * factor));
@@ -1259,37 +1356,40 @@ function ensureDomGizmo() {
     event.preventDefault(); studioDomDrag = null;
     studioStatus(editor.tool === 'scale' ? 'SCALE TOOL • Drag the colored boxes to resize' : 'MOVE TOOL • Drag the colored arrows to move');
   }, { capture: true });
-  window.addEventListener('mousemove', (event) => {
-    if (!studioDomDrag || event.buttons === 0) return;
-    const synthetic = { ...event, preventDefault: () => event.preventDefault() };
-    const drag = studioDomDrag; const dx = synthetic.clientX - drag.x; const dy = synthetic.clientY - drag.y; const object = drag.object;
-    if (drag.tool === 'move') {
-      if (drag.axis.includes('x') || drag.axis === 'nw' || drag.axis === 'sw') object.x = snap(object.x + dx * 0.025);
-      if (drag.axis.includes('y') || drag.axis === 'nw' || drag.axis === 'ne') object.y = snap(object.y - dy * 0.025);
-      if (drag.axis === 'z') object.z = snap(object.z + dx * 0.025);
-    } else {
-      const factor = clamp(1 + (dx - dy) * 0.004, 0.1, 4);
-      const scaleAxis = drag.axis === 'x' || drag.axis === 'nw' || drag.axis === 'sw' ? 'x' : drag.axis === 'y' || drag.axis === 'ne' || drag.axis === 'se' ? 'y' : 'z';
-      if (scaleAxis === 'x') object.w = Math.max(0.25, snap((object.w || 1) * factor));
-      if (scaleAxis === 'y') object.h = Math.max(0.25, snap((object.h || 1) * factor));
-      if (scaleAxis === 'z') object.d = Math.max(0.25, snap((object.d || 1) * factor));
-    }
-    drag.x = synthetic.clientX; drag.y = synthetic.clientY; buildLevel(level); selectObject(object, false);
-  }, { capture: true });
-  window.addEventListener('mouseup', () => {
-    if (!studioDomDrag) return;
-    studioDomDrag = null;
-    studioStatus(editor.tool === 'scale' ? 'SCALE TOOL • Drag the colored boxes to resize' : 'MOVE TOOL • Drag the colored arrows to move');
-  }, { capture: true });
+  window.addEventListener('pointercancel', () => { studioDomDrag = null; }, { capture: true });
+}
+function studioGizmoLayout() {
+  if (!editor.selectedMesh) return null;
+  const rect = ui.game.getBoundingClientRect();
+  camera.updateMatrixWorld(true);
+  const position = editor.selectedMesh.getWorldPosition(new THREE.Vector3());
+  const project = (point) => {
+    const ndc = point.clone().project(camera);
+    return { x: rect.left + (ndc.x + 1) * rect.width / 2, y: rect.top + (1 - ndc.y) * rect.height / 2 };
+  };
+  const origin = project(position);
+  const worldAxes = { x: new THREE.Vector3(1, 0, 0), y: new THREE.Vector3(0, 1, 0), z: new THREE.Vector3(0, 0, 1) };
+  const axes = Object.entries(worldAxes).map(([name, direction]) => {
+    const end = project(position.clone().addScaledVector(direction, 2));
+    let dx = end.x - origin.x, dy = end.y - origin.y;
+    const length = Math.hypot(dx, dy);
+    if (length < 0.01) { dx = name === 'y' ? 0 : 1; dy = name === 'y' ? -1 : 0; }
+    else { dx /= length; dy /= length; }
+    return { name, direction: { x: dx, y: dy }, angle: Math.atan2(dy, dx), end: { x: origin.x + dx * 110, y: origin.y + dy * 110 } };
+  });
+  return { origin, axes };
 }
 function updateDomGizmo() {
   if (!studioDomGizmo || state.mode !== 'studio' || !editor.selectedMesh || editor.tool === 'select') { if (studioDomGizmo) studioDomGizmo.style.display = 'none'; return; }
+  if (editor.tool === 'scale' && !sizeEditableTypes.has(editor.selected?.type)) { studioDomGizmo.style.display = 'none'; return; }
   if (studioDomDrag) return;
   studioDomGizmo.style.display = 'block';
-  const rect = ui.game.getBoundingClientRect(); const main = document.querySelector('.studio-main').getBoundingClientRect();
-  const p = editor.selectedMesh.position.clone().project(camera); const x = rect.left + (p.x + 1) * rect.width / 2 - main.left; const y = rect.top + (1 - p.y) * rect.height / 2 - main.top;
+  const layout = studioGizmoLayout();
+  if (!layout) { studioDomGizmo.style.display = 'none'; return; }
+  const main = document.querySelector('.studio-main').getBoundingClientRect();
+  const x = layout.origin.x - main.left; const y = layout.origin.y - main.top;
   const set = (selector, left, top, transform = '') => { const node = studioDomGizmo.querySelector(selector); if (node) { node.style.left = `${left}px`; node.style.top = `${top}px`; node.style.transform = transform; } };
-  set('.x', x, y - 5); set('.y', x - 5, y, 'rotate(-90deg)'); set('.z', x, y - 5, 'rotate(35deg)');
+  for (const axis of layout.axes) set(`.${axis.name.toLowerCase()}`, x, y - 5, `rotate(${axis.angle}rad) scale(${110 / 150})`);
   set('.nw', x - 86, y - 86); set('.ne', x + 70, y - 86); set('.sw', x - 86, y + 70); set('.se', x + 70, y + 70);
 }
 function updateStudioCamera(dt) {
@@ -1325,9 +1425,11 @@ function selectedChanged() {
   object.x = snap(Number(ui.selX.value) || 0);
   object.y = snap(Number(ui.selY.value) || 0);
   object.z = snap(Number(ui.selZ.value) || 0);
-  object.w = Math.max(0.1, Number(ui.selW.value) || 1);
-  object.h = Math.max(0.1, Number(ui.selH.value) || 1);
-  object.d = Math.max(0.1, Number(ui.selD.value) || 1);
+  if (sizeEditableTypes.has(object.type)) {
+    object.w = Math.max(0.1, Number(ui.selW.value) || 1);
+    object.h = Math.max(0.1, Number(ui.selH.value) || 1);
+    object.d = Math.max(0.1, Number(ui.selD.value) || 1);
+  }
   object.label = ui.selLabel.value;
   buildLevel(level);
   selectObject(level.objects[index], true);
@@ -1346,7 +1448,8 @@ function exportData() {
   level.name = ui.levelName.value.trim() || 'Untitled Level';
   ui.jsonBox.value = JSON.stringify({ version: 2, name: level.name, spawn: level.spawn, objects: level.objects }, null, 2);
   ui.jsonBox.select();
-  navigator.clipboard?.writeText(ui.jsonBox.value).then(() => studioStatus('JSON copied. Share it or paste it into LOAD JSON.')).catch(() => studioStatus('JSON selected — press Ctrl+C.'));
+  if (navigator.clipboard?.writeText) navigator.clipboard.writeText(ui.jsonBox.value).then(() => studioStatus('JSON copied. Share it or paste it into LOAD JSON.')).catch(() => studioStatus('JSON selected — press Ctrl+C.'));
+  else studioStatus('JSON selected — press Ctrl+C.');
 }
 function downloadData() {
   exportData();
@@ -1363,24 +1466,39 @@ function loadData() {
     buildLevel(data);
     ui.levelName.value = level.name;
     selectObject(null);
+    setupStudioCamera();
     studioStatus(`Loaded ${level.name} • ${level.objects.length} objects`);
   } catch (error) { studioStatus(`Invalid JSON: ${error.message}`); }
 }
 function newLevel() {
-  buildLevel({ name: 'New Skybound Level', spawn: { x: 0, y: 1.1, z: 8 }, objects: [{ type: 'platform', x: 0, y: 0, z: 0, w: 18, h: 1, d: 18, label: 'START' }] });
+  buildLevel({
+    name: 'New Skybound Level', spawn: { x: 0, y: 1.1, z: 8 }, objects: [
+      { type: 'platform', x: 0, y: 0, z: 8, w: 16, h: 1, d: 14, label: 'START ISLAND' },
+      { type: 'platform', x: 2, y: 2, z: -7, w: 8, h: 1, d: 8, label: 'MIDWAY ISLAND' },
+      { type: 'platform', x: -1, y: 4, z: -22, w: 12, h: 1, d: 12, label: 'FINISH ISLAND' },
+      { type: 'shard', x: -4, y: 1.2, z: 7, label: 'START SHARD' },
+      { type: 'shard', x: 5, y: 3.2, z: -7, label: 'MIDWAY SHARD' },
+      { type: 'checkpoint', x: 2, y: 2.6, z: -7, label: 'MIDWAY BEACON' },
+      { type: 'goal', x: -1, y: 6.3, z: -23.6, label: 'FINISH PORTAL' }
+    ]
+  });
   ui.levelName.value = level.name;
   selectObject(null);
-  studioStatus('New level created');
+  setupStudioCamera();
+  studioStatus('Starter course created • press TEST RUN to play it');
 }
 function setSpawnHere() {
   const object = editor.selected;
-  if (object) level.spawn = { x: snap(object.x), y: 1.1, z: snap(object.z + Math.max(2, (object.d || 4) / 2 + 2)) };
-  else if (studioOrbit) level.spawn = { x: snap(studioOrbit.target.x), y: 1.1, z: snap(studioOrbit.target.z + 3) };
+  const x = object ? object.x : studioOrbit ? studioOrbit.target.x : 0;
+  const z = object ? object.z : studioOrbit ? studioOrbit.target.z + 3 : 8;
+  level.spawn = { x: snap(x), y: 1.1, z: snap(z) };
   setInitialRespawn();
-  studioStatus(`Spawn set to ${level.spawn.x}, ${level.spawn.y}, ${level.spawn.z}`);
+  const floor = groundBelow(level.spawn.x, level.spawn.z);
+  studioStatus(floor ? `Spawn set on ${object?.label || floor.label || 'platform'}` : 'Spawn saved, but there is no platform directly below it yet');
 }
 function enterStudio() {
   document.exitPointerLock?.();
+  resetStudioInput();
   state.mode = 'studio';
   ui.menu.classList.add('hidden');
   ui.hud.classList.add('hidden');
@@ -1389,14 +1507,31 @@ function enterStudio() {
   ui.victory.classList.add('hidden');
   ui.studio.classList.remove('hidden');
   ui.studio.style.display = 'flex';
+  selectObject(null);
   buildLevel(level);
   ui.levelName.value = level.name;
   setupStudioCamera();
   selectObject(null);
   studioStatus('DEV STUDIO READY • 1 Select • 2 Move • 3 Scale • Ctrl+D Duplicate');
 }
+function resetStudioInput() {
+  editor.moveForward = editor.moveBack = editor.moveLeft = editor.moveRight = false;
+  editor.moveUp = editor.moveDown = editor.fast = false;
+  studioPointer = null;
+  studioGizmoDrag = null;
+  studioDomDrag = null;
+  studioOrbitInput.active = false;
+  if (studioTransform) { studioTransform.userData.dragging = false; studioTransform.userData.scaleBase = null; }
+  if (studioOrbit) studioOrbit.enabled = true;
+}
+function returnToStudio() {
+  playtestActive = false;
+  enterStudio();
+}
 function exitStudio() {
   document.exitPointerLock?.();
+  playtestActive = false;
+  resetStudioInput();
   teardownStudioHelpers();
   activeLevelData = normalizeLevel(level);
   activeCampaignIndex = -1;
@@ -1434,11 +1569,14 @@ ui.restartPause.onclick = restartGame;
 ui.homePause.onclick = goHome;
 ui.retry.onclick = continueFromCheckpoint;
 ui.homeGameOver.onclick = goHome;
+ui.pauseStudio.onclick = returnToStudio;
+ui.gameOverStudio.onclick = returnToStudio;
+ui.victoryStudio.onclick = returnToStudio;
 ui.victoryRetry.onclick = restartGame;
 ui.victoryHome.onclick = goHome;
 ui.nextLevel.onclick = () => launchCampaignLevel(activeCampaignIndex + 1);
 ui.studioBack.onclick = exitStudio;
-ui.studioPlay.onclick = () => { activeLevelData = normalizeLevel(level); activeLevelKind = 'custom'; activeCampaignIndex = -1; teardownStudioHelpers(); startGame(); };
+ui.studioPlay.onclick = () => { activeLevelData = normalizeLevel(level); activeLevelKind = 'custom'; activeCampaignIndex = -1; playtestActive = true; teardownStudioHelpers(); startGame(); };
 ui.newLevel.onclick = newLevel;
 ui.saveMyLevel.onclick = saveMyLevel;
 ui.exportJson.onclick = exportData;
@@ -1452,6 +1590,10 @@ ui.deleteSelected.onclick = () => {
 function applyTransformStrip(action, axis, direction) {
   const object = editor.selected;
   if (!object) return;
+  if (action === 'scale' && !sizeEditableTypes.has(object.type)) {
+    studioStatus('Scale is available for platforms, walls, hazards and gates');
+    return;
+  }
   const step = editor.snap ? editor.snapSize : 0.25;
   if (action === 'move') object[axis] = snap((object[axis] || 0) + direction * step);
   else {
@@ -1498,48 +1640,26 @@ ui.snapSize.onchange = () => {
 };
 let studioPointer = null;
 let studioGizmoDrag = null;
-const studioGizmoRay = new THREE.Raycaster();
-const studioGizmoMouse = new THREE.Vector2();
 function gizmoAxisAt(clientX, clientY) {
   if (!editor.selectedMesh || editor.tool === 'select') return null;
-  // Move/Scale tools are transform-first. Any left drag in these modes is a
-  // valid edit gesture; this guarantees the visible arrows never dead-end if
-  // browser canvas coordinates differ from the rendered gizmo coordinates.
-  if (editor.tool === 'move') return 'X';
-  if (editor.tool === 'scale') return 'XYZ';
-  const rect = ui.game.getBoundingClientRect();
-  studioGizmoMouse.x = ((clientX - rect.left) / rect.width) * 2 - 1;
-  studioGizmoMouse.y = -((clientY - rect.top) / rect.height) * 2 + 1;
-  // Do not depend on the controller's private picker meshes; they differ
-  // between Three.js CDN builds and were the reason the arrows appeared dead.
-  // Some Three.js revisions do not expose the controller's internal picker
-  // meshes to Raycaster. Keep the visible arrows clickable with screen-space
-  // fallback zones around their projected endpoints.
-  const center = editor.selectedMesh.position.clone().project(camera);
-  const sx = rect.left + (center.x + 1) * rect.width / 2;
-  const sy = rect.top + (1 - center.y) * rect.height / 2;
-  const handles = [
-    ['X', sx + 105, sy], ['Y', sx, sy - 105], ['Z', sx, sy + 105],
-    ['XY', sx + 55, sy - 55], ['YZ', sx - 55, sy + 55], ['XZ', sx + 55, sy + 55]
-  ];
-  const nearest = handles.map(([name, x, y]) => ({ name, distance: Math.hypot(clientX - x, clientY - y) })).sort((a, b) => a.distance - b.distance)[0];
-  // Use a forgiving zone because the rendered gizmo can be visually scaled
-  // by the browser while the canvas keeps its internal pixel dimensions.
-  if (nearest?.distance <= 140) return nearest.name;
-  // Move/Scale modes are intentionally transform-first: if a user misses a
-  // thin arrow by a few pixels, still start an axis drag from the gizmo area
-  // rather than silently falling back to camera movement.
-  const offsetX = clientX - sx;
-  const offsetY = clientY - sy;
-  if (Math.hypot(offsetX, offsetY) <= 300) return Math.abs(offsetX) >= Math.abs(offsetY) ? 'X' : 'Y';
-  return null;
+  if (editor.tool === 'scale' && !sizeEditableTypes.has(editor.selected?.type)) return null;
+  const layout = studioGizmoLayout();
+  if (!layout) return null;
+  const candidates = layout.axes.map((axis) => {
+    const dx = axis.end.x - layout.origin.x, dy = axis.end.y - layout.origin.y;
+    const lengthSq = dx * dx + dy * dy;
+    const ratio = clamp(((clientX - layout.origin.x) * dx + (clientY - layout.origin.y) * dy) / lengthSq, 0, 1);
+    const distance = Math.hypot(clientX - (layout.origin.x + ratio * dx), clientY - (layout.origin.y + ratio * dy));
+    return { name: axis.name.toUpperCase(), direction: axis.direction, ratio, distance };
+  }).filter((axis) => axis.ratio >= 0.32 && axis.distance <= 18).sort((a, b) => a.distance - b.distance);
+  return candidates[0] || null;
 }
 function beginGizmoDrag(event) {
   const axis = gizmoAxisAt(event.clientX, event.clientY);
   if (!axis || !editor.selected) return false;
-  studioGizmoDrag = { axis, x: event.clientX, y: event.clientY, object: editor.selected, mesh: editor.selectedMesh };
-  studioTransform.userData.dragging = true;
-  studioStatus(editor.tool === 'scale' ? `SCALING ${axis} • Release mouse to commit` : `MOVING ${axis} • Release mouse to commit`);
+  studioGizmoDrag = { ...axis, x: event.clientX, y: event.clientY, object: editor.selected, mesh: editor.selectedMesh };
+  if (studioTransform) studioTransform.userData.dragging = true;
+  studioStatus(editor.tool === 'scale' ? `SCALING ${axis.name} • Release mouse to commit` : `MOVING ${axis.name} • Release mouse to commit`);
   studioOrbit.enabled = false;
   event.stopImmediatePropagation();
   ui.game.setPointerCapture?.(event.pointerId);
@@ -1550,17 +1670,14 @@ function updateGizmoDrag(event) {
   const drag = studioGizmoDrag;
   const dx = event.clientX - drag.x;
   const dy = event.clientY - drag.y;
-  const amount = (dx - dy) * 0.018;
+  const amount = dx * drag.direction.x + dy * drag.direction.y;
   const object = drag.object;
   if (editor.tool === 'move') {
-    if (drag.axis.includes('X')) object.x = snap(object.x + dx * 0.025);
-    if (drag.axis.includes('Y')) object.y = snap(object.y - dy * 0.025);
-    if (drag.axis.includes('Z')) object.z = snap(object.z + dx * 0.025);
+    object[drag.name.toLowerCase()] = snap(object[drag.name.toLowerCase()] + amount * 0.025);
   } else {
-    const factor = clamp(1 + amount * 0.08, 0.1, 4);
-    if (drag.axis.includes('X')) object.w = Math.max(0.25, snap(object.w * factor));
-    if (drag.axis.includes('Y')) object.h = Math.max(0.25, snap(object.h * factor));
-    if (drag.axis.includes('Z')) object.d = Math.max(0.25, snap(object.d * factor));
+    const factor = clamp(1 + amount * 0.008, 0.1, 4);
+    const dimension = { X: 'w', Y: 'h', Z: 'd' }[drag.name];
+    object[dimension] = Math.max(0.25, snap(object[dimension] * factor));
   }
   drag.x = event.clientX;
   drag.y = event.clientY;
@@ -1570,15 +1687,15 @@ function updateGizmoDrag(event) {
 function endGizmoDrag(event) {
   if (!studioGizmoDrag) return;
   studioGizmoDrag = null;
-  studioTransform.userData.dragging = false;
-  studioOrbit.enabled = true;
+  if (studioTransform) studioTransform.userData.dragging = false;
+  if (studioOrbit) studioOrbit.enabled = true;
   ui.game.releasePointerCapture?.(event.pointerId);
   studioStatus(editor.tool === 'scale' ? 'SCALE TOOL • Drag the colored boxes to resize' : 'MOVE TOOL • Drag the colored arrows to move');
 }
 ui.game.addEventListener('pointerdown', (event) => {
   if (state.mode !== 'studio' || ![0, 2].includes(event.button)) return;
-  // Roblox-style camera control: right-drag always orbits, regardless of
-  // the active editing tool. Left-drag is reserved for selection/transforms.
+  // Right-drag is delegated to OrbitControls for panning. Left-drag selects
+  // objects and only transforms when it starts on a visible axis handle.
   if (event.button === 2) {
     event.preventDefault();
     studioPointer = { x: event.clientX, y: event.clientY, moved: false, camera: true };
@@ -1588,12 +1705,11 @@ ui.game.addEventListener('pointerdown', (event) => {
     ui.game.setPointerCapture?.(event.pointerId);
     return;
   }
-  if (beginGizmoDrag(event)) return;
+  const previousSelection = editor.selected;
   const hit = objectAt(event.clientX, event.clientY);
-  // Select immediately so a visible object is never lost to a competing
-  // camera/transform pointer handler. The same gesture may still orbit.
-  if (hit) selectObject(hit, false);
-  studioPointer = { x: event.clientX, y: event.clientY, moved: false };
+  if (hit && hit !== previousSelection) selectObject(hit, false);
+  if ((!hit || hit === previousSelection) && beginGizmoDrag(event)) return;
+  studioPointer = { x: event.clientX, y: event.clientY, moved: false, camera: false };
   studioOrbitInput.active = true;
   studioOrbitInput.lastX = event.clientX;
   studioOrbitInput.lastY = event.clientY;
@@ -1604,7 +1720,7 @@ ui.game.addEventListener('pointermove', (event) => {
   if (studioGizmoDrag) { updateGizmoDrag(event); return; }
   if (!studioPointer) return;
   if (studioTransform?.userData.dragging) return;
-  if (studioOrbitInput.active) {
+  if (studioOrbitInput.active && !studioPointer.camera) {
     const dx = event.clientX - studioOrbitInput.lastX;
     const dy = event.clientY - studioOrbitInput.lastY;
     if (Math.abs(dx) + Math.abs(dy) > 0) {
@@ -1629,6 +1745,7 @@ ui.game.addEventListener('pointerup', (event) => {
   if (cameraDrag || !click || editor.tool !== 'select') return;
   const hit = objectAt(event.clientX, event.clientY);
   if (hit) selectObject(hit, true);
+  else selectObject(null);
 }, true);
 ui.game.addEventListener('pointercancel', (event) => { if (studioGizmoDrag) endGizmoDrag(event); studioPointer = null; studioOrbitInput.active = false; });
 ui.game.addEventListener('contextmenu', (event) => { if (state.mode === 'studio') event.preventDefault(); });
