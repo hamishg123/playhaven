@@ -10,7 +10,7 @@ const ui = {
   shards: $('shardsHud'), keys: $('keysHud'), score: $('scoreHud'), best: $('bestHud'), bestMenu: $('bestScoreMenu'), levelTitle: $('levelTitleHud'), healthBar: $('healthBar'), healthText: $('healthText'), dashBar: $('dashBar'), dashText: $('dashText'), checkpoint: $('checkpointHud'), objective: $('objectiveHud'), toast: $('messageToast'),
   goScore: $('gameOverScore'), goShards: $('gameOverShards'), goTitle: $('gameOverTitle'), goText: $('gameOverText'), vScore: $('victoryScore'), vShards: $('victoryShards'), vText: $('victoryText'),
   explorer: $('explorer'), toolSelect: $('toolSelect'), toolMove: $('toolMove'), toolScale: $('toolScale'), snapToggle: $('snapToggle'), snapSize: $('snapSize'), duplicateSelected: $('duplicateSelected'), focusSelected: $('focusSelected'),
-  levelName: $('levelName'), selNone: $('selectedNone'), selPanel: $('selectedPanel'), selType: $('selType'), selX: $('selX'), selY: $('selY'), selZ: $('selZ'), selW: $('selW'), selH: $('selH'), selD: $('selD'), dimensionFields: $('dimensionFields'), dimensionHint: $('dimensionHint'), selLabel: $('selLabel'), deleteSelected: $('deleteSelected'),
+  levelName: $('levelName'), selNone: $('selectedNone'), selPanel: $('selectedPanel'), selType: $('selType'), selX: $('selX'), selY: $('selY'), selZ: $('selZ'), selW: $('selW'), selH: $('selH'), selD: $('selD'), selRotation: $('selRotation'), selShape: $('selShape'), dimensionFields: $('dimensionFields'), dimensionHint: $('dimensionHint'), selLabel: $('selLabel'), deleteSelected: $('deleteSelected'),
   newLevel: $('newLevel'), saveMyLevel: $('saveMyLevel'), exportJson: $('exportJson'), downloadJson: $('downloadJson'), jsonBox: $('jsonBox'), loadJson: $('loadJson'), studioStatus: $('studioStatus'), studioPlay: $('studioPlay'), studioBack: $('studioBack'), studioResetCam: $('studioResetCam'), studioTestSpawn: $('studioTestSpawn')
 };
 
@@ -95,7 +95,10 @@ const MAT = {
   hazard: new THREE.MeshStandardMaterial({ color: 0x762844, emissive: 0x7a1634, emissiveIntensity: 0.8, roughness: 0.4 }),
   gate: new THREE.MeshStandardMaterial({ color: 0x4d356c, emissive: 0x25143d, emissiveIntensity: 0.55, roughness: 0.35, metalness: 0.35 }),
   gateGold: new THREE.MeshStandardMaterial({ color: 0xd3a84f, emissive: 0x5d3f0a, emissiveIntensity: 0.44, roughness: 0.32, metalness: 0.5 }),
-  cloud: new THREE.MeshBasicMaterial({ color: 0xe6fbff, transparent: true, opacity: 0.52, depthWrite: false })
+  cloud: new THREE.MeshBasicMaterial({ color: 0xe6fbff, transparent: true, opacity: 0.52, depthWrite: false }),
+  paleStone: new THREE.MeshStandardMaterial({ color: 0xb6d1cc, roughness: 0.9 }),
+  darkStone: new THREE.MeshStandardMaterial({ color: 0x35445e, roughness: 0.86, metalness: 0.12 }),
+  bronze: new THREE.MeshStandardMaterial({ color: 0x9d7042, roughness: 0.42, metalness: 0.56 })
 };
 const sharedMaterials = new Set(Object.values(MAT));
 const GEO = {
@@ -105,151 +108,161 @@ const GEO = {
   octahedron: (radius) => new THREE.OctahedronGeometry(radius, 0)
 };
 
-const platforms = [], hazards = [], collectibles = [], checkpoints = [], enemies = [], doors = [];
+const platforms = [], hazards = [], collectibles = [], checkpoints = [], enemies = [], doors = [], structures = [];
 let goals = [];
 let level = { name: 'Skybound: First Light', spawn: { x: 0, y: 1.1, z: 8 }, objects: [] };
 
+function makeCampaignWorld(name, theme, route, architecture) {
+  const objects = [];
+  route.forEach((step, index) => {
+    const last = index === route.length - 1;
+    objects.push({ type: 'platform', x: step.x, y: step.y, z: step.z, w: step.w, h: 1, d: step.d, shape: step.shape, rotation: step.rotation || 0, label: step.label });
+    if (step.shard ?? (index % 2 === 1 || last)) objects.push({ type: 'shard', x: step.x + (index % 2 ? 2 : -2), y: step.y + 1, z: step.z, label: `${theme.toUpperCase()} SHARD ${index + 1}` });
+    if (step.key) objects.push({ type: 'key', x: step.x - 1.15, y: step.y + 1, z: step.z, label: `KEY-${step.key}` });
+    if (step.checkpoint) objects.push({ type: 'checkpoint', x: step.x, y: step.y + 0.5, z: step.z + 1, label: step.checkpoint });
+    if (step.hazard) objects.push({ type: 'hazard', x: step.x + (step.hazardSide || 2.1), y: step.y + 0.36, z: step.z - 0.4, w: step.hazardW || 2.4, h: 0.18, d: step.hazardD || 2, label: step.hazard });
+    if (step.enemy) objects.push({ type: 'enemy', x: step.x, y: step.y + 0.5, z: step.z - 1.8, label: step.enemy });
+    if (step.gateAfter && route[index + 1]) {
+      const next = route[index + 1];
+      const dx = next.x - step.x, dz = next.z - step.z;
+      objects.push({ type: 'door', x: (step.x + next.x) / 2, y: (step.y + next.y) / 2 + 2.9, z: (step.z + next.z) / 2, w: 7.4, h: 5.8, d: 0.8, rotation: Math.atan2(dx, dz), label: `GATE-${step.gateAfter}` });
+    }
+  });
+  architecture.forEach((site) => {
+    const base = route[site.node];
+    objects.push({ type: 'structure', x: base.x + (site.dx || 0), y: base.y + 0.5, z: base.z + (site.dz || 0), w: site.w || 6, h: site.h || 6, d: site.d || 5, rotation: site.rotation || 0, variant: site.variant, theme, label: site.label });
+  });
+  const summit = route[route.length - 1];
+  objects.push({ type: 'goal', x: summit.x, y: summit.y + 1.9, z: summit.z, label: `${theme.toUpperCase()} PORTAL` });
+  return { name, theme, spawn: { x: route[0].x, y: route[0].y + 1.1, z: route[0].z }, objects };
+}
+
 function defaultLevel() {
-  return {
-    name: 'Skybound: First Light', spawn: { x: 0, y: 1.1, z: 8 }, objects: [
-      { type: 'platform', x: 0, y: 0, z: 8, w: 18, h: 1, d: 18, label: 'LOWER REACH' },
-      { type: 'platform', x: -1.5, y: 2.1, z: -6, w: 12, h: 1, d: 11, label: 'CLOUD RELAY' },
-      { type: 'platform', x: 2, y: 3.9, z: -19, w: 10, h: 1, d: 10, label: 'RUNE STEP' },
-      { type: 'platform', x: -2, y: 5.7, z: -33, w: 12, h: 1, d: 12, label: 'AETHER GATE' },
-      { type: 'platform', x: 0, y: 7.5, z: -50, w: 17, h: 1, d: 16, label: 'SUMMIT' },
-      { type: 'wall', x: -7.6, y: 2.0, z: -7, w: 1, h: 3.2, d: 3.5, label: 'RELAY RUIN' },
-      { type: 'wall', x: 7.4, y: 7.3, z: -50, w: 1, h: 4.5, d: 2.5, label: 'SUMMIT RUIN' },
-      { type: 'shard', x: -4.5, y: 2.1, z: 6, label: 'SKY SHARD 1' },
-      { type: 'shard', x: 3.8, y: 3.8, z: -5.8, label: 'SKY SHARD 2' },
-      { type: 'shard', x: -1.5, y: 5.7, z: -19, label: 'SKY SHARD 3' },
-      { type: 'shard', x: 3.8, y: 7.5, z: -33, label: 'SKY SHARD 4' },
-      { type: 'shard', x: -4.2, y: 9.3, z: -50, label: 'SKY SHARD 5' },
-      { type: 'key', x: -1.5, y: 3.65, z: -7.6, label: 'KEY-1' },
-      { type: 'key', x: -2, y: 7.25, z: -34.2, label: 'KEY-2' },
-      { type: 'checkpoint', x: -1.5, y: 2.6, z: -3.4, label: 'CLOUD RELAY' },
-      { type: 'checkpoint', x: -2, y: 6.2, z: -30.3, label: 'AETHER GATE' },
-      { type: 'hazard', x: 1.8, y: 4.4, z: -15.7, w: 2.1, h: 0.18, d: 2.3, label: 'RUNE SURGE' },
-      { type: 'hazard', x: 1.8, y: 8.0, z: -45, w: 2.4, h: 0.18, d: 2.1, label: 'SUMMIT SURGE' },
-      { type: 'enemy', x: 3.4, y: 4.4, z: -21.2, label: 'SENTINEL A' },
-      { type: 'enemy', x: 2.4, y: 6.2, z: -34.8, label: 'SENTINEL B' },
-      { type: 'door', x: 0, y: 4.7, z: -12.4, w: 8.8, h: 6.2, d: 0.8, label: 'GATE-1' },
-      { type: 'door', x: 0, y: 8.1, z: -41.0, w: 9.0, h: 6.2, d: 0.8, label: 'GATE-2' },
-      { type: 'goal', x: 0, y: 9.8, z: -52.5, label: 'FIRST LIGHT PORTAL' }
-    ]
-  };
+  const n = (x, y, z, w, d, shape, label, more = {}) => ({ x, y, z, w, d, shape, label, ...more });
+  return makeCampaignWorld('Skybound: First Light', 'dawn', [
+    n(0, 0, 14, 20, 18, 'octagon', 'SUNLIT SKYPORT'),
+    n(-4, 1.4, 2, 10, 9, 'hex', 'LOWER WIND ARCH', { shard: true }),
+    n(-10, 2.8, -6, 8.5, 9, 'diamond', 'KEYKEEPER RUIN', { key: 1, gateAfter: 1 }),
+    n(-15, 4.2, 1, 8.5, 8, 'round', 'MOSS GARDEN', { hazard: 'RUNE GARDEN SURGE' }),
+    n(-8, 5.6, 9, 11, 9, 'cross', 'RELAY COURTYARD', { checkpoint: 'OLD RELAY', shard: true }),
+    n(1, 7, 4, 9, 8, 'bridge', 'BROKEN AQUEDUCT', { enemy: 'ARCHIVE SENTINEL' }),
+    n(10, 8.4, -2, 8.5, 8, 'hex', 'GOLDEN BELFRY', { key: 2, gateAfter: 2, shard: true }),
+    n(9, 9.8, -12, 8, 9, 'diamond', 'EASTERN ROOFTOPS', { hazard: 'ROOFTOP RUNE SURGE', hazardSide: -2 }),
+    n(1, 11.2, -20, 12, 11, 'octagon', 'CLOUD TEMPLE', { checkpoint: 'TEMPLE BEACON', shard: true }),
+    n(-6, 12.6, -29, 19, 16, 'round', 'FIRST LIGHT CITADEL', { shard: true })
+  ], [
+    { node: 0, variant: 'dock', dx: 5, dz: 3, w: 7, h: 4.4, d: 6, label: 'SKYPORT TERMINAL' },
+    { node: 2, variant: 'arch', dx: -1, dz: -2.8, w: 6, h: 5, d: 2.5, label: 'KEYKEEPER ARCH' },
+    { node: 4, variant: 'windmill', dx: 3.1, dz: -1.2, w: 4.5, h: 7.8, d: 4.5, label: 'RELAY WINDMILL' },
+    { node: 6, variant: 'tower', dx: 2.7, dz: 2.2, w: 4.6, h: 8, d: 4.6, label: 'GOLDEN BELFRY' },
+    { node: 8, variant: 'temple', dx: -3.4, dz: -2.3, w: 7.5, h: 7, d: 6, label: 'CLOUD TEMPLE' },
+    { node: 9, variant: 'citadel', dx: 4, dz: 1, w: 11, h: 9, d: 9, label: 'CITADEL OF DAWN' }
+  ]);
 }
 
 function campaignLevels() {
-  const cloudbreak = {
-    name: 'Skybound: Cloudbreak Run', spawn: { x: 0, y: 1.1, z: 8 }, objects: [
-      { type: 'platform', x: 0, y: 0, z: 8, w: 18, h: 1, d: 18, label: 'WINDWARD DOCK' },
-      { type: 'platform', x: -3, y: 2.1, z: -6, w: 11, h: 1, d: 10, label: 'CLOUDSTEP' },
-      { type: 'platform', x: 3, y: 4.2, z: -19, w: 10, h: 1, d: 10, label: 'WINDMILL RIDGE' },
-      { type: 'platform', x: -2, y: 6.3, z: -32, w: 11, h: 1, d: 11, label: 'AERIE CAMP' },
-      { type: 'platform', x: 2, y: 8.4, z: -45, w: 11, h: 1, d: 10, label: 'CLOUD BREAK' },
-      { type: 'platform', x: 0, y: 10.5, z: -59, w: 18, h: 1, d: 16, label: 'SUNRISE DECK' },
-      { type: 'shard', x: -4, y: 1.4, z: 7, label: 'WIND SHARD 1' },
-      { type: 'shard', x: -5, y: 3.5, z: -5, label: 'WIND SHARD 2' },
-      { type: 'shard', x: 5, y: 5.6, z: -19, label: 'WIND SHARD 3' },
-      { type: 'shard', x: 1, y: 7.7, z: -32, label: 'WIND SHARD 4' },
-      { type: 'shard', x: 5, y: 9.8, z: -45, label: 'WIND SHARD 5' },
-      { type: 'shard', x: -4, y: 11.9, z: -59, label: 'WIND SHARD 6' },
-      { type: 'key', x: -5, y: 3.5, z: -6, label: 'KEY-1' },
-      { type: 'key', x: -4, y: 7.7, z: -32, label: 'KEY-2' },
-      { type: 'checkpoint', x: 3, y: 4.7, z: -19, label: 'WINDMILL BEACON' },
-      { type: 'checkpoint', x: 2, y: 8.9, z: -45, label: 'CLOUD BREAK BEACON' },
-      { type: 'hazard', x: 3, y: 4.75, z: -21.5, w: 2, h: 0.18, d: 2, label: 'CROSSWIND' },
-      { type: 'enemy', x: -4.2, y: 7.05, z: -32, label: 'WIND SENTINEL' },
-      { type: 'door', x: 0, y: 3.7, z: -12.2, w: 8.5, h: 5.2, d: 0.8, label: 'GATE-1' },
-      { type: 'door', x: 0, y: 8.0, z: -38.5, w: 8.5, h: 5.2, d: 0.8, label: 'GATE-2' },
-      { type: 'goal', x: 0, y: 12.8, z: -60, label: 'CLOUDBREAK PORTAL' }
-    ]
-  };
-  const storm = {
-    name: 'Skybound: Storm Crown', spawn: { x: 0, y: 1.1, z: 8 }, objects: [
-      { type: 'platform', x: 0, y: 0, z: 8, w: 18, h: 1, d: 18, label: 'THUNDER DOCK' },
-      { type: 'platform', x: 4, y: 2, z: -7, w: 9, h: 1, d: 9, label: 'STATIC SPIRE' },
-      { type: 'platform', x: -3, y: 4, z: -22, w: 9, h: 1, d: 9, label: 'LIGHTNING LEDGE' },
-      { type: 'platform', x: 3, y: 6, z: -37, w: 8, h: 1, d: 9, label: 'RAINWATCH' },
-      { type: 'platform', x: -4, y: 8, z: -52, w: 8.5, h: 1, d: 9, label: 'STORM EYE' },
-      { type: 'platform', x: 0, y: 10, z: -68, w: 18, h: 1, d: 17, label: 'CROWN OF SKY' },
-      { type: 'shard', x: -4, y: 1.4, z: 7, label: 'STORM SHARD 1' },
-      { type: 'shard', x: 6, y: 3.4, z: -7, label: 'STORM SHARD 2' },
-      { type: 'shard', x: -5, y: 5.4, z: -22, label: 'STORM SHARD 3' },
-      { type: 'shard', x: 5, y: 7.4, z: -37, label: 'STORM SHARD 4' },
-      { type: 'shard', x: -6, y: 9.4, z: -52, label: 'STORM SHARD 5' },
-      { type: 'shard', x: 4, y: 11.4, z: -68, label: 'STORM SHARD 6' },
-      { type: 'key', x: 6, y: 3.4, z: -7, label: 'KEY-1' },
-      { type: 'key', x: -6, y: 9.4, z: -52, label: 'KEY-2' },
-      { type: 'checkpoint', x: -3, y: 4.5, z: -22, label: 'LIGHTNING BEACON' },
-      { type: 'checkpoint', x: -4, y: 8.5, z: -52, label: 'STORM EYE BEACON' },
-      { type: 'hazard', x: 4, y: 2.5, z: -9.2, w: 2.6, h: 0.18, d: 2.4, label: 'STATIC BURST' },
-      { type: 'hazard', x: 3, y: 6.5, z: -39, w: 2.2, h: 0.18, d: 2.2, label: 'LIGHTNING STRIKE' },
-      { type: 'hazard', x: -1.5, y: 8.6, z: -53.8, w: 2.5, h: 0.18, d: 2.2, label: 'STORM EYE SURGE' },
-      { type: 'enemy', x: -3, y: 4.6, z: -22, label: 'STORM SENTINEL' },
-      { type: 'enemy', x: 3, y: 6.6, z: -37, label: 'CLOUD STALKER' },
-      { type: 'enemy', x: -4, y: 8.6, z: -51, label: 'EYE SENTINEL' },
-      { type: 'door', x: 0, y: 3.5, z: -14, w: 8.5, h: 5, d: 0.8, label: 'GATE-1' },
-      { type: 'door', x: 0, y: 9.5, z: -60.5, w: 8.5, h: 5, d: 0.8, label: 'GATE-2' },
-      { type: 'goal', x: 0, y: 12.3, z: -68, label: 'STORM CROWN PORTAL' }
-    ]
-  };
-  function makeLateCampaignLevel(name, prefix, route) {
-    const objects = [];
-    route.forEach((step, index) => {
-      const last = index === route.length - 1;
-      const width = step.w ?? (index === 0 || last ? 17 : 10);
-      const depth = step.d ?? (index === 0 || last ? 16 : 10);
-      const label = `${prefix} ${String(index + 1).padStart(2, '0')}`;
-      objects.push({ type: 'platform', x: step.x, y: step.y, z: step.z, w: width, h: 1, d: depth, label });
-      objects.push({ type: 'shard', x: step.x + (index % 2 ? 3.2 : -3.2), y: step.y + 1.55, z: step.z, label: `${prefix} SHARD ${index + 1}` });
-      if (index === 1 || index === route.length - 2) objects.push({ type: 'key', x: step.x, y: step.y + 1.6, z: step.z, label: `KEY-${index === 1 ? 1 : 2}` });
-      if (index === 2 || index === route.length - 2) objects.push({ type: 'checkpoint', x: step.x, y: step.y + 0.5, z: step.z + 1.2, label: `${prefix} BEACON ${index}` });
-      const hasHazard = step.hazard ?? [2, 4].includes(index);
-      const hasEnemy = step.enemy ?? [3, 5].includes(index);
-      if (hasHazard) {
-        objects.push({ type: 'hazard', x: step.x + (step.hazardOffset ?? (index % 2 ? -2.3 : 2.3)), y: step.y + 0.6, z: step.z + (step.hazardZ || 0), w: step.hazardW || 2, h: 0.18, d: step.hazardD || 2, label: `${prefix} SURGE ${index}` });
-      }
-      if (hasEnemy) {
-        objects.push({ type: 'enemy', x: step.x, y: step.y + 0.5, z: step.z - 2, label: `${prefix} SENTINEL ${index}` });
-      }
-      if ((index === 1 || index === route.length - 2) && !last) {
-        objects.push({ type: 'door', x: (step.x + route[index + 1].x) / 2, y: step.y + 3, z: step.z - depth / 2 - 0.9, w: 8.5, h: 5.2, d: 0.8, label: `GATE-${index === 1 ? 1 : 2}` });
-      }
-    });
-    const summit = route[route.length - 1];
-    objects.push({ type: 'goal', x: summit.x, y: summit.y + 2.3, z: summit.z - 1.6, label: `${prefix} PORTAL` });
-    return { name, spawn: { x: route[0].x, y: 1.1, z: route[0].z }, objects };
-  }
-  const eclipse = makeLateCampaignLevel('Skybound: Eclipse Spires', 'ECLIPSE', [
-    { x: 0, y: 0, z: 8, w: 17, d: 16 },
-    { x: -5, y: 2.1, z: -7, w: 8.5, d: 9 },
-    { x: 4.5, y: 4.2, z: -20, w: 7, d: 7, hazard: true },
-    { x: -4, y: 6.3, z: -33, w: 7, d: 7, enemy: true },
-    { x: 4, y: 8.4, z: -46, w: 6.5, d: 6.5, hazard: true, enemy: true, hazardW: 2.4 },
-    { x: -3.5, y: 10.5, z: -60, w: 7, d: 7, enemy: true },
-    { x: 0, y: 12.6, z: -74, w: 17, d: 16, hazard: false }
+  const n = (x, y, z, w, d, shape, label, more = {}) => ({ x, y, z, w, d, shape, label, ...more });
+  const cloudbreak = makeCampaignWorld('Skybound: Cloudbreak Run', 'windworks', [
+    n(0, 0, 14, 20, 18, 'octagon', 'WINDWARD AIRDOCK'),
+    n(-5, 1.8, 5, 10, 8, 'hex', 'LOWER TURBINE'),
+    n(-13, 3.6, 9, 8, 7, 'diamond', 'WINDMILL KEYHOUSE', { key: 1, gateAfter: 1, shard: true }),
+    n(-19, 5.4, 1, 9, 8, 'round', 'CROSSWIND GANTRY', { hazard: 'CROSSWIND SURGE', enemy: 'DOCK SENTINEL' }),
+    n(-12, 7.2, -8, 11, 9, 'cross', 'AERIE CAMP', { checkpoint: 'AERIE BEACON', shard: true }),
+    n(-2, 9, -5, 9, 7, 'bridge', 'SKYRAIL TRANSFER'),
+    n(7, 10.8, 2, 8, 8, 'hex', 'UPPER TURBINE', { key: 2, gateAfter: 2, shard: true }),
+    n(16, 12.6, -5, 8, 8, 'diamond', 'WINDLASS', { hazard: 'WINDLASS ARC', hazardSide: -1 }),
+    n(11, 14.4, -15, 11, 9, 'round', 'CLOUD BREAK STATION', { checkpoint: 'CLOUD BREAK BEACON', enemy: 'CLOUD STALKER', shard: true }),
+    n(1, 16.2, -22, 20, 17, 'octagon', 'SUNRISE OBSERVATORY', { shard: true })
+  ], [
+    { node: 0, variant: 'dock', dx: -5, dz: -2, w: 7, h: 4, d: 6, label: 'WINDWARD PORT' },
+    { node: 2, variant: 'windmill', dx: -2.3, dz: 1.6, w: 4, h: 8, d: 4, label: 'LOWER WINDMILL' },
+    { node: 3, variant: 'arch', dx: 1.2, dz: -2.4, w: 6, h: 5.5, d: 2.2, label: 'CROSSWIND ARCH' },
+    { node: 4, variant: 'ruin', dx: 3.5, dz: 1.5, w: 5, h: 5, d: 4, label: 'AERIE OUTPOST' },
+    { node: 6, variant: 'windmill', dx: 2.7, dz: -1.5, w: 4.5, h: 8.5, d: 4.5, label: 'UPPER WINDMILL' },
+    { node: 8, variant: 'observatory', dx: -3.5, dz: 1, w: 7, h: 7, d: 7, label: 'CLOUD BREAK OBSERVATORY' },
+    { node: 9, variant: 'citadel', dx: 4.6, dz: -1, w: 10, h: 8, d: 9, label: 'SUNRISE STATION' }
   ]);
-  const aetherlight = makeLateCampaignLevel('Skybound: Aetherlight Summit', 'AETHERLIGHT', [
-    { x: 0, y: 0, z: 8, w: 17, d: 16 },
-    { x: 5, y: 2, z: -7, w: 8, d: 8 },
-    { x: -4, y: 4, z: -20, w: 7, d: 7, hazard: true },
-    { x: 4, y: 6, z: -33, w: 7, d: 6.5, enemy: true },
-    { x: -4, y: 8, z: -46, w: 6.5, d: 6.5, hazard: true, enemy: true },
-    { x: 4, y: 10, z: -59, w: 6.5, d: 6.5, hazard: true, hazardW: 2.4 },
-    { x: -4, y: 12, z: -72, w: 6.5, d: 7, enemy: true, hazard: true },
-    { x: 0, y: 14, z: -86, w: 17, d: 16, hazard: false }
+  const storm = makeCampaignWorld('Skybound: Storm Crown', 'storm', [
+    n(0, 0, 14, 18, 16, 'octagon', 'THUNDER DOCK'),
+    n(7, 2, 6, 8, 8, 'hex', 'EAST LIGHTNING PIER'),
+    n(14, 4, -1, 7.5, 7.5, 'diamond', 'STATIC KEY SPIRE', { key: 1, gateAfter: 1, shard: true }),
+    n(11, 6, -11, 7.5, 7, 'round', 'STORM CUT', { hazard: 'LIGHTNING STRIKE', enemy: 'STORM WARDEN' }),
+    n(3, 8, -18, 8.5, 8, 'cross', 'RAINWATCH', { checkpoint: 'RAINWATCH BEACON', shard: true }),
+    n(-6, 10, -12, 7.5, 7.5, 'diamond', 'WESTERN BRIDGEHEAD'),
+    n(-14, 12, -19, 7.5, 8, 'hex', 'EYE OF THE KEY', { key: 2, gateAfter: 2, shard: true }),
+    n(-10, 14, -29, 7, 7, 'round', 'THUNDER ROOF', { hazard: 'THUNDER ROOF SURGE', enemy: 'CLOUD STALKER', hazardSide: -1 }),
+    n(-1, 16, -35, 9, 8, 'cross', 'STORM EYE BEACON', { checkpoint: 'STORM EYE', shard: true }),
+    n(9, 18, -28, 7.5, 7.5, 'diamond', 'EAST CROWN'),
+    n(14, 20, -18, 7.5, 8, 'hex', 'UPPER LIGHTNING PIER', { hazard: 'ARC FIELD', hazardSide: -1 }),
+    n(5, 22, -12, 9, 8, 'bridge', 'CROWN CAUSEWAY', { enemy: 'CROWN SENTINEL', shard: true }),
+    n(-3, 24, -20, 19, 16, 'octagon', 'STORM CROWN', { shard: true })
+  ], [
+    { node: 0, variant: 'dock', dx: -5, dz: 2, w: 7, h: 4, d: 6, label: 'THUNDER MOORING' },
+    { node: 2, variant: 'spire', dx: 2.1, dz: 1, w: 4, h: 10, d: 4, label: 'STATIC SPIRE' },
+    { node: 4, variant: 'tower', dx: -2.8, dz: 2.4, w: 4.5, h: 8, d: 4.5, label: 'RAINWATCH TOWER' },
+    { node: 6, variant: 'observatory', dx: -2, dz: -1.5, w: 6, h: 7, d: 6, label: 'KEY OBSERVATORY' },
+    { node: 8, variant: 'temple', dx: 3.4, dz: -1.6, w: 7, h: 7, d: 6, label: 'STORM EYE SANCTUM' },
+    { node: 10, variant: 'spire', dx: -2, dz: 1.4, w: 3.6, h: 9, d: 3.6, label: 'LIGHTNING ROD' },
+    { node: 12, variant: 'citadel', dx: -4, dz: 2.2, w: 11, h: 10, d: 9, label: 'CROWN FORTRESS' }
+  ]);
+  const eclipse = makeCampaignWorld('Skybound: Eclipse Spires', 'eclipse', [
+    n(0, 0, 14, 18, 16, 'octagon', 'MOON GATE LANDING'),
+    n(-7, 2.2, 5, 8.5, 8, 'crescent', 'OUTER CRESCENT'),
+    n(-15, 4.4, 1, 7.5, 7.5, 'hex', 'DUSK KEY SHRINE', { key: 1, gateAfter: 1, shard: true }),
+    n(-11, 6.6, -8, 7.5, 7, 'diamond', 'SHADOW WALK', { hazard: 'ECLIPSE FIELD' }),
+    n(-1, 8.8, -14, 9, 8, 'bridge', 'BROKEN MOON BRIDGE', { checkpoint: 'MOON BRIDGE', shard: true }),
+    n(8, 11, -9, 7.5, 7.5, 'round', 'DARKSIDE TERRACE', { enemy: 'UMBRA SENTINEL' }),
+    n(15, 13.2, 0, 7.5, 7.5, 'hex', 'NIGHT KEY TOWER', { key: 2, gateAfter: 2, shard: true }),
+    n(10, 15.4, 9, 7, 7, 'diamond', 'EASTERN CRESCENT', { enemy: 'ECLIPSE STALKER' }),
+    n(1, 17.6, 13, 9, 8, 'cross', 'HALF-MOON COURT', { checkpoint: 'HALF-MOON BEACON', shard: true }),
+    n(-8, 19.8, 8, 7.5, 7, 'crescent', 'WESTERN RIM'),
+    n(-15, 22, -1, 7.5, 7.5, 'hex', 'UMBRA GARDEN', { hazard: 'UMBRA SURGE' }),
+    n(-8, 24.2, -11, 8, 7, 'diamond', 'LAST SHADOW', { enemy: 'DUSK SENTINEL', shard: true }),
+    n(2, 26.4, -18, 19, 16, 'octagon', 'ECLIPSE MONASTERY', { checkpoint: 'ECLIPSE MONASTERY', shard: true })
+  ], [
+    { node: 0, variant: 'arch', dx: 4, dz: 1, w: 7, h: 6, d: 2.5, label: 'MOON GATE' },
+    { node: 2, variant: 'observatory', dx: -2, dz: -1.8, w: 6, h: 7, d: 6, label: 'DUSK SHRINE' },
+    { node: 4, variant: 'ruin', dx: 2.8, dz: 1.3, w: 5, h: 6, d: 4, label: 'BROKEN MOON PYLON' },
+    { node: 6, variant: 'spire', dx: 2.1, dz: 1.1, w: 4, h: 11, d: 4, label: 'NIGHT KEY TOWER' },
+    { node: 8, variant: 'temple', dx: -3, dz: -1.8, w: 7.5, h: 8, d: 6.5, label: 'HALF-MOON SANCTUM' },
+    { node: 10, variant: 'dome', dx: -2, dz: 1.6, w: 6, h: 6, d: 6, label: 'UMBRA DOME' },
+    { node: 12, variant: 'citadel', dx: 4.5, dz: 0, w: 11, h: 11, d: 10, label: 'ECLIPSE MONASTERY' }
+  ]);
+  const aetherlight = makeCampaignWorld('Skybound: Aetherlight Summit', 'aetherlight', [
+    n(0, 0, 14, 20, 18, 'octagon', 'CELESTIAL GATE'),
+    n(7, 2, 5, 8.5, 8, 'hex', 'EASTERN GALLERY'),
+    n(15, 4, 3, 7.5, 7.5, 'diamond', 'GOLD KEY SPIRE', { key: 1, gateAfter: 1, shard: true }),
+    n(18, 6, -6, 7.5, 7, 'round', 'SUNLINE TERRACE', { hazard: 'SUNLINE BURST' }),
+    n(10, 8, -14, 8.5, 8, 'cross', 'FIRST CITADEL', { checkpoint: 'FIRST CITADEL', shard: true }),
+    n(0, 10, -10, 9, 7, 'bridge', 'CENTRAL SKYBRIDGE', { enemy: 'GOLDEN SENTINEL' }),
+    n(-10, 12, -5, 7.5, 7.5, 'hex', 'WEST KEY CHAMBER', { key: 2, gateAfter: 2, shard: true }),
+    n(-18, 14, -12, 7, 7, 'diamond', 'OUTER BUTTRESS', { hazard: 'AETHER SURGE', enemy: 'CITADEL STALKER' }),
+    n(-13, 16, -23, 8.5, 8, 'round', 'HIGH BEACON', { checkpoint: 'HIGH CITADEL', shard: true }),
+    n(-3, 18, -29, 7.5, 7.5, 'hex', 'NORTH GALLERY'),
+    n(8, 20, -23, 7, 7, 'diamond', 'SUN SPIRE', { enemy: 'SUN SENTINEL' }),
+    n(16, 22, -30, 7.5, 7.5, 'cross', 'EASTERN CROWN'),
+    n(9, 24, -41, 7, 7, 'round', 'LAST BEACON', { checkpoint: 'LAST BEACON', hazard: 'LAST LIGHT SURGE' }),
+    n(-2, 26, -47, 8, 8, 'hex', 'NORTH STAR BRIDGE', { shard: true }),
+    n(-8, 28, -57, 20, 18, 'octagon', 'AETHERLIGHT CITADEL', { shard: true })
+  ], [
+    { node: 0, variant: 'dock', dx: -5, dz: 2, w: 7, h: 4, d: 6, label: 'CELESTIAL MOORING' },
+    { node: 2, variant: 'spire', dx: 2, dz: 1.4, w: 4, h: 11, d: 4, label: 'GOLD KEY SPIRE' },
+    { node: 4, variant: 'citadel', dx: 3, dz: -1.8, w: 8, h: 9, d: 7, label: 'FIRST CITADEL' },
+    { node: 6, variant: 'temple', dx: -2, dz: 1.8, w: 7, h: 8, d: 6, label: 'WEST KEY CHAMBER' },
+    { node: 8, variant: 'observatory', dx: -2.5, dz: -1.6, w: 6.5, h: 8, d: 6.5, label: 'HIGH BEACON OBSERVATORY' },
+    { node: 11, variant: 'spire', dx: -2.2, dz: 1.4, w: 4, h: 12, d: 4, label: 'EASTERN CROWN SPIRE' },
+    { node: 14, variant: 'citadel', dx: 4.2, dz: 2, w: 12, h: 12, d: 10, label: 'AETHERLIGHT KEEP' }
   ]);
   return [defaultLevel(), cloudbreak, storm, eclipse, aetherlight];
 }
 
 const campaignLevelIds = ['first-light', 'cloudbreak-run', 'storm-crown', 'eclipse-spires', 'aetherlight-summit'];
 const campaignSummaries = [
-  'A first ascent through the ancient sky islands.',
-  'A wind-tossed route above the cloudline.',
-  'Climb the storm-battered spires at the heart of the squall.',
-  'Thread narrow eclipse ledges, dodge sentinels, and unlock the gates.',
-  'Tight jumps, surges, and sentinels guard the final summit.'
+  'Wind through the old skyport, garden courtyards, key arches, and dawn citadel.',
+  'Loop between windmills, skyrail gantries, outposts, and the sunrise observatory.',
+  'Zig-zag across storm spires, rainwatch towers, lightning piers, and the crown fortress.',
+  'Circle moon-crescent ledges, shadow gardens, and a high eclipse monastery.',
+  'A long citadel circuit over galleries, bridges, beacons, and gold-tipped spires.'
 ];
 const campaignCatalog = campaignLevels().map((entry, index) => ({ ...entry, id: campaignLevelIds[index] }));
 for (let index = 0; index < campaignCatalog.length; index++) {
@@ -324,7 +337,7 @@ function clearWorld() {
   clearGroup(dynamic);
   clearGroup(effects);
   clearGroup(atmosphere);
-  platforms.length = hazards.length = collectibles.length = checkpoints.length = enemies.length = doors.length = 0;
+  platforms.length = hazards.length = collectibles.length = checkpoints.length = enemies.length = doors.length = structures.length = 0;
   goals = [];
 }
 function addIslandUnderside(o) {
@@ -360,25 +373,135 @@ function addPlatformDressing(o) {
     }
   }
 }
+function platformOutline(shape, w, d) {
+  const hx = w / 2, hz = d / 2;
+  if (shape === 'diamond') return [[0, -hz], [hx, 0], [0, hz], [-hx, 0]];
+  if (shape === 'cross') return [[-hx * .22, -hz], [hx * .22, -hz], [hx * .22, -hz * .22], [hx, -hz * .22], [hx, hz * .22], [hx * .22, hz * .22], [hx * .22, hz], [-hx * .22, hz], [-hx * .22, hz * .22], [-hx, hz * .22], [-hx, -hz * .22], [-hx * .22, -hz * .22]];
+  if (shape === 'crescent') return [[-hx * .28, -hz], [hx * .34, -hz * .88], [hx * .82, -hz * .55], [hx, 0], [hx * .82, hz * .55], [hx * .34, hz * .88], [-hx * .28, hz], [-hx * .78, hz * .58], [-hx * .28, hz * .44], [hx * .04, hz * .22], [hx * .18, 0], [hx * .04, -hz * .22], [-hx * .28, -hz * .44], [-hx * .78, -hz * .58]];
+  const sides = shape === 'hex' ? 6 : shape === 'octagon' ? 8 : shape === 'round' ? 16 : 4;
+  if (sides === 4) return [[-hx, -hz], [hx, -hz], [hx, hz], [-hx, hz]];
+  return Array.from({ length: sides }, (_, i) => {
+    const angle = (Math.PI * 2 * i) / sides - Math.PI / 2;
+    return [Math.cos(angle) * hx, Math.sin(angle) * hz];
+  });
+}
+function footprintTouches(solid, x, z, padding = 0) {
+  const dx = x - solid.x, dz = z - solid.z;
+  const angle = solid.rotation || 0, cosine = Math.cos(angle), sine = Math.sin(angle);
+  const localX = cosine * dx - sine * dz, localZ = sine * dx + cosine * dz;
+  const points = solid.footprint || platformOutline(solid.shape || 'rect', solid.w, solid.d);
+  let inside = false, nearest = Infinity;
+  for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
+    const [ax, az] = points[j], [bx, bz] = points[i];
+    if ((az > localZ) !== (bz > localZ) && localX < ((bx - ax) * (localZ - az)) / (bz - az) + ax) inside = !inside;
+    const vx = bx - ax, vz = bz - az;
+    const ratio = clamp(((localX - ax) * vx + (localZ - az) * vz) / (vx * vx + vz * vz || 1), 0, 1);
+    nearest = Math.min(nearest, Math.hypot(localX - (ax + vx * ratio), localZ - (az + vz * ratio)));
+  }
+  return padding >= 0 ? inside && nearest + 1e-5 >= padding : inside || nearest <= -padding;
+}
 function platform(o) {
-  const h = o.h ?? 1;
-  const material = o.type === 'wall' ? MAT.ruin : MAT.rune;
-  const mesh = addBox(world, material, [o.x, o.y, o.z], [o.w || 4, h, o.d || 4]);
-  const top = o.y + h / 2;
+  const h = o.h ?? 1, w = o.w || 4, d = o.d || 4;
+  const outline = platformOutline(o.shape || 'rect', w, d);
+  const path = new THREE.Shape();
+  path.moveTo(outline[0][0], -outline[0][1]);
+  for (const [x, z] of outline.slice(1)) path.lineTo(x, -z);
+  path.closePath();
+  const geometry = new THREE.ExtrudeGeometry(path, { depth: h, bevelEnabled: false, curveSegments: 6 });
+  geometry.rotateX(-Math.PI / 2);
+  geometry.translate(0, -h / 2, 0);
+  const root = new THREE.Group();
+  root.position.set(o.x, o.y, o.z);
+  root.rotation.y = o.rotation || 0;
+  const mesh = addMesh(root, geometry, o.type === 'wall' ? MAT.ruin : MAT.rune);
+  mesh.castShadow = true;
   if (o.type === 'platform') {
-    const rimMaterial = (o.label || '').includes('SUMMIT') ? MAT.gold : MAT.moss;
-    const rims = [
-      addBox(world, rimMaterial, [o.x, top + 0.035, o.z - (o.d || 4) / 2 + 0.12], [o.w || 4, 0.07, 0.22], { castShadow: false }),
-      addBox(world, rimMaterial, [o.x, top + 0.035, o.z + (o.d || 4) / 2 - 0.12], [o.w || 4, 0.07, 0.22], { castShadow: false }),
-      addBox(world, rimMaterial, [o.x - (o.w || 4) / 2 + 0.12, top + 0.035, o.z], [0.22, 0.07, (o.d || 4) - 0.44], { castShadow: false }),
-      addBox(world, rimMaterial, [o.x + (o.w || 4) / 2 - 0.12, top + 0.035, o.z], [0.22, 0.07, (o.d || 4) - 0.44], { castShadow: false })
-    ];
-    rims.forEach((rim) => markEditorObject(rim, o));
+    const rimGeometry = new THREE.BufferGeometry().setFromPoints(outline.map(([x, z]) => new THREE.Vector3(x, h / 2 + 0.025, z)));
+    const rim = new THREE.LineLoop(rimGeometry, new THREE.LineBasicMaterial({ color: (o.label || '').includes('CITADEL') || (o.label || '').includes('CROWN') ? 0xffd46e : 0x8af0a7, transparent: true, opacity: 0.8 }));
+    root.add(rim);
     addIslandUnderside(o);
     addPlatformDressing(o);
   }
-  platforms.push({ x: o.x, z: o.z, y: top, w: o.w || 4, d: o.d || 4, h, mesh, label: o.label || '' });
-  markEditorObject(mesh, o);
+  world.add(root);
+  markEditorObject(root, o);
+  platforms.push({ x: o.x, z: o.z, y: o.y + h / 2, w, d, h, shape: o.shape || 'rect', rotation: o.rotation || 0, footprint: outline, mesh: root, label: o.label || '' });
+}
+function structure(o) {
+  const group = new THREE.Group();
+  group.position.set(o.x, o.y, o.z);
+  group.rotation.y = o.rotation || 0;
+  const w = o.w || 6, h = o.h || 6, d = o.d || 5;
+  const stone = ['storm', 'eclipse'].includes(o.theme) ? MAT.darkStone : o.theme === 'windworks' ? MAT.paleStone : MAT.ruin;
+  const trim = o.theme === 'aetherlight' ? MAT.bronze : MAT.gateGold;
+  const beam = (x, y, z, sx, sy, sz, material = stone) => addBox(group, material, [x, y, z], [sx, sy, sz]);
+  const pillar = (x, z, height = h * .72, width = Math.max(.42, w * .085)) => {
+    beam(x, height / 2, z, width, height, width, stone);
+    beam(x, .13, z, width * 1.55, .26, width * 1.55, trim);
+    beam(x, height - .12, z, width * 1.22, .22, width * 1.22, trim);
+  };
+  let rotor = null;
+  if (o.variant === 'dock') {
+    beam(0, .38, 0, w, .55, d, MAT.darkStone);
+    beam(0, .7, 0, w * .9, .12, d * .88, trim);
+    for (const x of [-.38, .38]) for (const z of [-.36, .36]) pillar(x * w, z * d, h * .58, .42);
+    beam(0, h * .64, -d * .22, w * .62, .28, .3, stone);
+    beam(w * .31, h * .78, -d * .22, .28, h * .3, .28, trim);
+  } else if (o.variant === 'arch') {
+    for (const side of [-1, 1]) pillar(side * w * .36, 0, h * .78, Math.max(.55, w * .12));
+    beam(0, h * .84, 0, w * .9, h * .16, d * .72, stone);
+    beam(0, h * .95, 0, w, .18, d * .82, trim);
+    const sigil = addMesh(group, GEO.octahedron(.42), MAT.cyan, [0, h * .64, d * .12]);
+    sigil.rotation.z = Math.PI / 4;
+  } else if (o.variant === 'windmill') {
+    beam(0, h * .31, 0, w * .38, h * .62, d * .38, stone);
+    beam(0, h * .12, 0, w * .72, .24, d * .72, trim);
+    rotor = new THREE.Group();
+    rotor.position.set(0, h * .74, d * .23);
+    addBox(rotor, trim, [0, 0, 0], [w * .85, .16, .22]);
+    const blade = addBox(rotor, stone, [0, h * .19, 0], [w * .18, h * .38, .25]);
+    blade.rotation.z = -.16;
+    const blade2 = addBox(rotor, stone, [0, -h * .19, 0], [w * .18, h * .38, .25]);
+    blade2.rotation.z = .16;
+    addMesh(rotor, GEO.sphere(.23, 10, 8), MAT.cyan, [0, 0, .18]);
+    group.add(rotor);
+  } else if (o.variant === 'tower' || o.variant === 'spire') {
+    beam(0, h * .08, 0, w * .72, .36, d * .72, trim);
+    const shaft = addMesh(group, GEO.cylinder(w * .22, w * .34, h * .73, o.variant === 'spire' ? 8 : 10), stone, [0, h * .48, 0]);
+    shaft.castShadow = true;
+    addMesh(group, GEO.torus(w * .34, .12, 8, 28), trim, [0, h * .78, 0]);
+    const crystal = addMesh(group, GEO.octahedron(w * .16), MAT.cyan, [0, h * .91, 0]);
+    crystal.scale.y = 1.8;
+  } else if (o.variant === 'observatory' || o.variant === 'dome') {
+    beam(0, .32, 0, w, .64, d, stone);
+    addMesh(group, GEO.cylinder(w * .48, w * .5, .34, 12), trim, [0, .8, 0]);
+    const dome = addMesh(group, new THREE.SphereGeometry(Math.min(w, d) * .42, 20, 12, 0, Math.PI * 2, 0, Math.PI / 2), o.variant === 'dome' ? MAT.darkStone : MAT.paleStone, [0, .94, 0]);
+    dome.scale.y = h / Math.max(w, d) * 1.25;
+    addMesh(group, GEO.torus(Math.min(w, d) * .43, .09, 8, 28), trim, [0, .96, 0]);
+    const lens = addMesh(group, GEO.octahedron(.36), MAT.cyan, [0, h * .9, 0]);
+    lens.scale.y = 1.6;
+  } else if (o.variant === 'temple' || o.variant === 'citadel') {
+    beam(0, .28, 0, w, .56, d, stone);
+    beam(0, .62, 0, w * .92, .12, d * .9, trim);
+    for (const x of [-.36, .36]) for (const z of [-.32, .32]) pillar(x * w, z * d, h * .63, Math.max(.45, w * .075));
+    beam(0, h * .68, 0, w * .94, .42, d * .9, stone);
+    beam(0, h * .82, 0, w * .8, .16, d * .75, trim);
+    if (o.variant === 'citadel') {
+      for (const x of [-.36, .36]) for (const z of [-.32, .32]) addMesh(group, GEO.cylinder(.05, .42, h * .32, 6), stone, [x * w, h * .98, z * d]);
+    } else {
+      const heart = addMesh(group, GEO.octahedron(.62), MAT.cyan, [0, h * .58, 0]);
+      heart.scale.y = 1.6;
+    }
+  } else if (o.variant === 'ruin') {
+    for (const [x, z, height] of [[-.38, -.28, .7], [.35, -.26, .92], [-.2, .28, .55], [.4, .32, .76]]) pillar(x * w, z * d, h * height, Math.max(.42, w * .09));
+    beam(0, h * .82, -d * .26, w * .82, .24, .34, trim);
+  } else {
+    beam(0, h * .12, 0, w, h * .24, d, stone);
+    for (const side of [-1, 1]) pillar(side * w * .34, 0, h * .76, Math.max(.5, w * .08));
+    beam(0, h * .82, 0, w, .34, d, trim);
+  }
+  world.add(group);
+  markEditorObject(group, o);
+  structures.push({ group, rotor, phase: Math.random() * Math.PI * 2 });
 }
 function shard(o) {
   const group = new THREE.Group();
@@ -452,6 +575,7 @@ function hazard(o) {
 function door(o) {
   const group = new THREE.Group();
   group.position.set(o.x, o.y, o.z);
+  group.rotation.y = o.rotation || 0;
   const width = o.w || 8, height = o.h || 5, depth = o.d || 0.8;
   const slab = addBox(group, new THREE.MeshBasicMaterial({ transparent: true, opacity: 0 }), [0, 0, 0], [width, height, depth], { castShadow: false, receiveShadow: false });
   const fieldMaterial = MAT.gate.clone();
@@ -468,7 +592,7 @@ function door(o) {
   dynamic.add(group);
   markEditorObject(group, o);
   const requiredKey = Number(o.label?.match(/(\d+)/)?.[1] || 1);
-  doors.push({ group, slab, requiredKey, label: o.label || 'GATE', baseY: o.y, open: false, w: o.w || 8, h: o.h || 5, d: o.d || 0.8 });
+  doors.push({ group, slab, requiredKey, label: o.label || 'GATE', baseY: o.y, open: false, w: o.w || 8, h: o.h || 5, d: o.d || 0.8, rotation: o.rotation || 0, footprint: platformOutline('rect', o.w || 8, o.d || 0.8) });
 }
 function goal(o) {
   const group = new THREE.Group();
@@ -488,14 +612,14 @@ function goal(o) {
 
 function normalizeLevel(data) {
   const safe = data && Array.isArray(data.objects) ? data : defaultLevel();
-  const validTypes = new Set(['platform', 'wall', 'shard', 'key', 'checkpoint', 'enemy', 'hazard', 'door', 'goal']);
+  const validTypes = new Set(['platform', 'wall', 'shard', 'key', 'checkpoint', 'enemy', 'hazard', 'door', 'goal', 'structure']);
   const dimensions = {
     platform: [4, 1, 4], wall: [4, 4, 0.8], shard: [1, 1, 1], key: [1, 1, 1],
-    checkpoint: [1.35, 0.25, 1.35], enemy: [1, 1, 1], hazard: [2, 0.18, 2], door: [8, 5, 0.8], goal: [4, 4, 1]
+    checkpoint: [1.35, 0.25, 1.35], enemy: [1, 1, 1], hazard: [2, 0.18, 2], door: [8, 5, 0.8], goal: [4, 4, 1], structure: [6, 6, 5]
   };
   const finite = (value, fallback) => Number.isFinite(Number(value)) ? Number(value) : fallback;
   return {
-    name: String(safe.name || 'Untitled Level'),
+    name: String(safe.name || 'Untitled Level'), theme: String(safe.theme || 'dawn'),
     spawn: { x: finite(safe.spawn?.x, 0), y: finite(safe.spawn?.y, 1.1), z: finite(safe.spawn?.z, 8) },
     objects: safe.objects.filter((object) => object && validTypes.has(String(object.type || 'platform'))).map((object) => {
       const type = String(object.type || 'platform');
@@ -503,6 +627,9 @@ function normalizeLevel(data) {
       return {
         type, x: finite(object.x, 0), y: finite(object.y, 0), z: finite(object.z, 0),
         w: Math.max(0.1, finite(object.w, defaultW)), h: Math.max(0.1, finite(object.h, defaultH)), d: Math.max(0.1, finite(object.d, defaultD)),
+        shape: ['hex', 'octagon', 'round', 'diamond', 'cross', 'crescent', 'bridge'].includes(String(object.shape)) ? String(object.shape) : 'rect',
+        rotation: finite(object.rotation, 0), variant: type === 'structure' ? String(object.variant || 'arch') : undefined,
+        theme: type === 'structure' ? String(object.theme || safe.theme || 'dawn') : undefined,
         label: String(object.label || '')
       };
     })
@@ -552,7 +679,19 @@ function buildLevel(data) {
     });
     level = { ...normalized, objects };
   } else level = normalized;
+  const palettes = {
+    dawn: [0x79c9e4, 0x74bfd6, 0xb9efff, 0xfff1c9], windworks: [0x9adcf0, 0x8bcfdd, 0xc8f2ff, 0xfff4da],
+    storm: [0x40516a, 0x485d70, 0x9db8d0, 0xb7c6d8], eclipse: [0x39365e, 0x48466d, 0xc2b9f0, 0xd7d0ff],
+    aetherlight: [0x5192bd, 0x5796b7, 0xc6efff, 0xffe9b7]
+  };
+  const palette = palettes[level.theme] || palettes.dawn;
+  scene.background.setHex(palette[0]);
+  scene.fog.color.setHex(palette[1]);
+  hemi.color.setHex(palette[2]);
+  sun.color.setHex(palette[3]);
   buildAtmosphere();
+  const skyDome = atmosphere.children.find((child) => child.isMesh);
+  if (skyDome) skyDome.material.color.setHex(palette[0]);
   for (const object of level.objects) {
     if (object.type === 'platform' || object.type === 'wall') platform(object);
     else if (object.type === 'shard') shard(object);
@@ -562,6 +701,7 @@ function buildLevel(data) {
     else if (object.type === 'hazard') hazard(object);
     else if (object.type === 'door') door(object);
     else if (object.type === 'goal') goal(object);
+    else if (object.type === 'structure') structure(object);
   }
   setInitialRespawn();
   if (typeof buildEditorIndex === 'function') buildEditorIndex();
@@ -591,7 +731,7 @@ function halfHeight() { return 0.56; }
 function groundBelow(x, z, ceiling = Infinity) {
   let best = null;
   for (const platformData of platforms) {
-    const inside = x >= platformData.x - platformData.w / 2 && x <= platformData.x + platformData.w / 2 && z >= platformData.z - platformData.d / 2 && z <= platformData.z + platformData.d / 2;
+    const inside = footprintTouches(platformData, x, z);
     if (inside && platformData.y <= ceiling && (!best || platformData.y > best.y)) best = platformData;
   }
   return best;
@@ -702,7 +842,7 @@ function saveMyLevel() {
   level.name = ui.levelName.value.trim() || level.name || 'Untitled Level';
   const levels = getCustomLevels();
   const existing = levels.find((item) => item.name.toLowerCase() === level.name.toLowerCase());
-  const saved = { id: existing?.id || `custom-${Date.now()}`, name: level.name, spawn: { ...level.spawn }, objects: cloneLevelData(level).objects };
+  const saved = { id: existing?.id || `custom-${Date.now()}`, name: level.name, theme: level.theme, spawn: { ...level.spawn }, objects: cloneLevelData(level).objects };
   const next = existing ? levels.map((item) => item.id === existing.id ? saved : item) : [...levels, saved];
   localStorage.setItem('skybound_custom_levels', JSON.stringify(next));
   activeLevelData = cloneLevelData(saved);
@@ -957,21 +1097,21 @@ function updatePlayer(dt) {
   const hh = halfHeight();
   const px = player.position.x, py = player.position.y, pz = player.position.z;
   const solids = [
-    ...platforms.map((item) => ({ x: item.x, z: item.z, y: item.y, w: item.w, h: item.h, d: item.d })),
-    ...doors.filter((gate) => !gate.open).map((gate) => ({ x: gate.group.position.x, z: gate.group.position.z, y: gate.group.position.y + gate.h / 2, w: gate.w, h: gate.h, d: gate.d }))
+    ...platforms.map((item) => ({ x: item.x, z: item.z, y: item.y, w: item.w, h: item.h, d: item.d, shape: item.shape, rotation: item.rotation, footprint: item.footprint })),
+    ...doors.filter((gate) => !gate.open).map((gate) => ({ x: gate.group.position.x, z: gate.group.position.z, y: gate.group.position.y + gate.h / 2, w: gate.w, h: gate.h, d: gate.d, shape: 'rect', rotation: gate.rotation, footprint: gate.footprint }))
   ];
   let nx = px + pstate.vel.x * dt;
   for (const solid of solids) {
     // Don't treat a player standing on a platform top as intersecting its side.
     // The small tolerance also prevents floating-point drift from pinning movement.
     const vertical = py - hh < solid.y - 0.08 && py + hh > solid.y - solid.h + 0.02;
-    const overlap = nx + radius > solid.x - solid.w / 2 && nx - radius < solid.x + solid.w / 2 && pz + radius > solid.z - solid.d / 2 && pz - radius < solid.z + solid.d / 2;
+    const overlap = footprintTouches(solid, nx, pz, -radius);
     if (vertical && overlap) { nx = px; pstate.vel.x = 0; break; }
   }
   let nz = pz + pstate.vel.z * dt;
   for (const solid of solids) {
     const vertical = py - hh < solid.y - 0.08 && py + hh > solid.y - solid.h + 0.02;
-    const overlap = nx + radius > solid.x - solid.w / 2 && nx - radius < solid.x + solid.w / 2 && nz + radius > solid.z - solid.d / 2 && nz - radius < solid.z + solid.d / 2;
+    const overlap = footprintTouches(solid, nx, nz, -radius);
     if (vertical && overlap) { nz = pz; pstate.vel.z = 0; break; }
   }
   player.position.x = nx;
@@ -981,7 +1121,7 @@ function updatePlayer(dt) {
   let top = -Infinity;
   if (pstate.vel.y <= 0) {
     for (const solid of solids) {
-      const overlap = player.position.x + radius > solid.x - solid.w / 2 && player.position.x - radius < solid.x + solid.w / 2 && player.position.z + radius > solid.z - solid.d / 2 && player.position.z - radius < solid.z + solid.d / 2;
+      const overlap = footprintTouches(solid, player.position.x, player.position.z, -radius);
       const oldFoot = py - hh;
       const newFoot = newY - hh;
       // Use a small downward sweep tolerance so a fast fall cannot tunnel through
@@ -1042,6 +1182,7 @@ function updateDemo(dt) {
   processInteractions();
 }
 function updateWorld(dt) {
+  for (const landmark of structures) if (landmark.rotor) landmark.rotor.rotation.z += dt * 0.7;
   for (const item of collectibles) {
     if (item.got) continue;
     item.group.rotation.y += dt * (item.kind === 'shard' ? 1.9 : 1.35);
@@ -1115,17 +1256,19 @@ function refreshExplorer() {
   level.objects.forEach((object) => {
     const row = document.createElement('button');
     row.className = `explorer-item${editor.selected === object ? ' selected' : ''}`;
-    const icon = { platform: '▰', wall: '▤', shard: '◇', key: '◆', checkpoint: '◉', enemy: '●', hazard: '▲', door: '▥', goal: '✦' }[object.type] || '•';
+    const icon = { platform: '▰', wall: '▤', structure: '⌂', shard: '◇', key: '◆', checkpoint: '◉', enemy: '●', hazard: '▲', door: '▥', goal: '✦' }[object.type] || '•';
     row.innerHTML = `<span class="explorer-icon">${icon}</span><span class="explorer-name">${escapeHtml(object.label || object.type)}</span><span class="explorer-type">${object.type}</span>`;
     row.onclick = () => selectObject(object, true);
     ui.explorer.appendChild(row);
   });
 }
 function studioSelectableRoots() {
-  return [...platforms.map((item) => item.mesh), ...collectibles.map((item) => item.group), ...checkpoints.map((item) => item.group), ...enemies.map((item) => item.group), ...hazards.map((item) => item.mesh), ...doors.map((item) => item.group), ...goals.map((item) => item.group)];
+  return [...platforms.map((item) => item.mesh), ...structures.map((item) => item.group), ...collectibles.map((item) => item.group), ...checkpoints.map((item) => item.group), ...enemies.map((item) => item.group), ...hazards.map((item) => item.mesh), ...doors.map((item) => item.group), ...goals.map((item) => item.group)];
 }
 function studioSelectableParts() {
   const parts = [];
+  camera.updateMatrixWorld();
+  world.updateMatrixWorld(true);
   world.traverse((node) => { if (node.userData.levelObject) parts.push(node); });
   return parts;
 }
@@ -1167,6 +1310,9 @@ function syncSelected(object) {
   ui.selW.value = object.w ?? 4;
   ui.selH.value = object.h ?? 1;
   ui.selD.value = object.d ?? 4;
+  ui.selRotation.value = Math.round((object.rotation || 0) * 180 / Math.PI);
+  ui.selShape.value = object.shape || 'rect';
+  ui.selShape.disabled = !['platform', 'wall'].includes(object.type);
   ui.selLabel.value = object.label || '';
   setDimensionControls(sizeEditableTypes.has(object.type));
   refreshExplorer();
@@ -1221,10 +1367,10 @@ function setupStudioCamera() {
   studioOrbit.minDistance = 3;
   studioOrbit.maxDistance = 140;
   studioOrbit.maxPolarAngle = Math.PI - 0.05;
-  // Left-drag selection/orbit is handled below; OrbitControls owns right-drag
-  // rotation and wheel zoom.
+  // Pointer gestures below own selection, orbit and gizmo drags. OrbitControls
+  // remains responsible for wheel zoom and middle-button dolly only.
   studioOrbit.mouseButtons.LEFT = null;
-  studioOrbit.mouseButtons.RIGHT = THREE.MOUSE.ROTATE;
+  studioOrbit.mouseButtons.RIGHT = null;
   studioOrbit.mouseButtons.MIDDLE = THREE.MOUSE.DOLLY;
   const surfaces = level.objects.filter((object) => ['platform', 'wall'].includes(object.type));
   if (surfaces.length) {
@@ -1430,10 +1576,10 @@ function updateStudioCamera(dt) {
   if (editor.moveDown) { studioOrbit.target.y -= speed; camera.position.y -= speed; }
 }
 function addObject(type, x = 0, z = -6) {
-  const y = { platform: 0.5, wall: 2, shard: 2.2, key: 2.3, checkpoint: 0.5, enemy: 1, hazard: 0, door: 3, goal: 2.5 }[type] ?? 0.5;
-  const defaults = { platform: [6, 1, 6], wall: [6, 4, 0.8], shard: [1, 1, 1], key: [0.25, 0.75, 0.25], checkpoint: [1.35, 0.25, 1.35], enemy: [1, 1, 1], hazard: [2, 0.18, 2], door: [6, 5, 0.8], goal: [4, 4, 1] };
+  const y = { platform: 0.5, wall: 2, structure: 0.5, shard: 2.2, key: 2.3, checkpoint: 0.5, enemy: 1, hazard: 0, door: 3, goal: 2.5 }[type] ?? 0.5;
+  const defaults = { platform: [6, 1, 6], wall: [6, 4, 0.8], structure: [6, 5, 4], shard: [1, 1, 1], key: [0.25, 0.75, 0.25], checkpoint: [1.35, 0.25, 1.35], enemy: [1, 1, 1], hazard: [2, 0.18, 2], door: [6, 5, 0.8], goal: [4, 4, 1] };
   const [w, h, d] = defaults[type] || defaults.platform;
-  const object = { type, x: snap(x), y: snap(y), z: snap(z), w, h, d, label: `${type.toUpperCase()}-${level.objects.length + 1}` };
+  const object = { type, x: snap(x), y: snap(y), z: snap(z), w, h, d, shape: type === 'platform' ? 'hex' : 'rect', variant: type === 'structure' ? 'arch' : undefined, rotation: 0, theme: level.theme || 'dawn', label: `${type.toUpperCase()}-${level.objects.length + 1}` };
   level.objects.push(object);
   buildLevel(level);
   selectObject(object, true);
@@ -1447,6 +1593,8 @@ function selectedChanged() {
   object.x = snap(Number(ui.selX.value) || 0);
   object.y = snap(Number(ui.selY.value) || 0);
   object.z = snap(Number(ui.selZ.value) || 0);
+  object.rotation = Number(ui.selRotation.value || 0) * Math.PI / 180;
+  if (['platform', 'wall'].includes(object.type)) object.shape = ui.selShape.value;
   if (sizeEditableTypes.has(object.type)) {
     object.w = Math.max(0.1, Number(ui.selW.value) || 1);
     object.h = Math.max(0.1, Number(ui.selH.value) || 1);
@@ -1468,7 +1616,7 @@ function duplicateSelected() {
 }
 function exportData() {
   level.name = ui.levelName.value.trim() || 'Untitled Level';
-  ui.jsonBox.value = JSON.stringify({ version: 2, name: level.name, spawn: level.spawn, objects: level.objects }, null, 2);
+  ui.jsonBox.value = JSON.stringify({ version: 3, name: level.name, theme: level.theme, spawn: level.spawn, objects: level.objects }, null, 2);
   ui.jsonBox.select();
   if (navigator.clipboard?.writeText) navigator.clipboard.writeText(ui.jsonBox.value).then(() => studioStatus('JSON copied. Share it or paste it into LOAD JSON.')).catch(() => studioStatus('JSON selected — press Ctrl+C.'));
   else studioStatus('JSON selected — press Ctrl+C.');
@@ -1494,14 +1642,23 @@ function loadData() {
 }
 function newLevel() {
   buildLevel({
-    name: 'New Skybound Level', spawn: { x: 0, y: 1.1, z: 8 }, objects: [
-      { type: 'platform', x: 0, y: 0, z: 8, w: 16, h: 1, d: 14, label: 'START ISLAND' },
-      { type: 'platform', x: 2, y: 2, z: -7, w: 8, h: 1, d: 8, label: 'MIDWAY ISLAND' },
-      { type: 'platform', x: -1, y: 4, z: -22, w: 12, h: 1, d: 12, label: 'FINISH ISLAND' },
-      { type: 'shard', x: -4, y: 1.2, z: 7, label: 'START SHARD' },
-      { type: 'shard', x: 5, y: 3.2, z: -7, label: 'MIDWAY SHARD' },
-      { type: 'checkpoint', x: 2, y: 2.6, z: -7, label: 'MIDWAY BEACON' },
-      { type: 'goal', x: -1, y: 6.3, z: -23.6, label: 'FINISH PORTAL' }
+    name: 'New Skybound Level', theme: 'dawn', spawn: { x: 0, y: 1.1, z: 10 }, objects: [
+      { type: 'platform', x: 0, y: 0, z: 10, w: 17, h: 1, d: 15, shape: 'octagon', label: 'START DOCK' },
+      { type: 'structure', x: 4.8, y: 0.5, z: 11, w: 6, h: 4, d: 5, variant: 'dock', label: 'OLD AIRDOCK' },
+      { type: 'platform', x: -7, y: 1.8, z: 0, w: 9, h: 1, d: 8, shape: 'diamond', label: 'WIND TURN' },
+      { type: 'platform', x: -12, y: 3.6, z: -10, w: 8, h: 1, d: 9, shape: 'hex', label: 'KEYKEEPER RUIN' },
+      { type: 'structure', x: -14.2, y: 4.1, z: -10, w: 4, h: 7, d: 4, variant: 'tower', label: 'KEYKEEPER TOWER' },
+      { type: 'key', x: -13, y: 4.6, z: -10, label: 'KEY-1' },
+      { type: 'door', x: -7, y: 6.5, z: -13.5, w: 7, h: 5.8, d: 0.8, rotation: 0.45, label: 'GATE-1' },
+      { type: 'platform', x: -2, y: 5.4, z: -18, w: 9, h: 1, d: 7, shape: 'crescent', label: 'MOON BRIDGE' },
+      { type: 'checkpoint', x: -2, y: 5.9, z: -18, label: 'MOON BRIDGE BEACON' },
+      { type: 'enemy', x: -3, y: 5.9, z: -19.5, label: 'BRIDGE SENTINEL' },
+      { type: 'platform', x: 8, y: 7.2, z: -11, w: 8, h: 1, d: 8, shape: 'cross', label: 'AERIE COURT' },
+      { type: 'hazard', x: 9.8, y: 7.56, z: -11, w: 2.2, h: 0.18, d: 2, label: 'RUNE SURGE' },
+      { type: 'platform', x: 4, y: 9, z: -23, w: 16, h: 1, d: 14, shape: 'round', label: 'FINISH CITADEL' },
+      { type: 'structure', x: 8, y: 9.5, z: -23, w: 8, h: 8, d: 7, variant: 'citadel', label: 'FINISH CITADEL KEEP' },
+      { type: 'shard', x: 1, y: 10, z: -23, label: 'SUMMIT SHARD' },
+      { type: 'goal', x: 4, y: 10.9, z: -23, label: 'FINISH PORTAL' }
     ]
   });
   ui.levelName.value = level.name;
@@ -1652,7 +1809,7 @@ for (const button of document.querySelectorAll('[data-transform]')) {
   button.addEventListener('pointercancel', stopRepeat);
   button.addEventListener('lostpointercapture', stopRepeat);
 }
-for (const field of ['selX', 'selY', 'selZ', 'selW', 'selH', 'selD', 'selLabel']) ui[field].onchange = selectedChanged;
+for (const field of ['selX', 'selY', 'selZ', 'selW', 'selH', 'selD', 'selRotation', 'selShape', 'selLabel']) ui[field].onchange = selectedChanged;
 for (const button of document.querySelectorAll('[data-add]')) button.onclick = () => { const target = studioOrbit?.target || new THREE.Vector3(0, 0, -6); addObject(button.dataset.add, target.x, target.z); };
 ui.studioResetCam.onclick = setupStudioCamera;
 ui.studioTestSpawn.onclick = setSpawnHere;
@@ -1689,6 +1846,12 @@ function gizmoAxisAt(clientX, clientY) {
   }).filter((axis) => axis.ratio >= 0.32 && axis.distance <= 18).sort((a, b) => a.distance - b.distance);
   return candidates[0] || null;
 }
+function captureStudioPointer(event, target = ui.game) {
+  try { target.setPointerCapture?.(event.pointerId); } catch { /* pointer already released or synthetic */ }
+}
+function releaseStudioPointer(event, target = ui.game) {
+  try { target.releasePointerCapture?.(event.pointerId); } catch { /* capture already gone */ }
+}
 function beginGizmoDrag(event) {
   const axis = gizmoAxisAt(event.clientX, event.clientY);
   if (!axis || !editor.selected) return false;
@@ -1697,7 +1860,7 @@ function beginGizmoDrag(event) {
   studioStatus(editor.tool === 'scale' ? `SCALING ${axis.name} • Release mouse to commit` : `MOVING ${axis.name} • Release mouse to commit`);
   studioOrbit.enabled = false;
   event.stopImmediatePropagation();
-  ui.game.setPointerCapture?.(event.pointerId);
+  captureStudioPointer(event);
   return true;
 }
 function updateGizmoDrag(event) {
@@ -1724,55 +1887,70 @@ function endGizmoDrag(event) {
   studioGizmoDrag = null;
   if (studioTransform) studioTransform.userData.dragging = false;
   if (studioOrbit) studioOrbit.enabled = true;
-  ui.game.releasePointerCapture?.(event.pointerId);
+  releaseStudioPointer(event);
   studioStatus(editor.tool === 'scale' ? 'SCALE TOOL • Drag the colored boxes to resize' : 'MOVE TOOL • Drag the colored arrows to move');
 }
-ui.game.addEventListener('pointerdown', (event) => {
-  if (state.mode !== 'studio' || event.button !== 0) return;
-  // A left click selects; a left drag edits only when it starts on a visible
-  // handle, otherwise it orbits. Right-drag rotation is handled by OrbitControls.
+function orbitStudioByDrag(dx, dy) {
+  if (!studioOrbit || (!dx && !dy)) return;
+  const target = studioOrbit.target;
+  const offset = camera.position.clone().sub(target);
+  const spherical = new THREE.Spherical().setFromVector3(offset);
+  const speed = (Math.PI * 2) / Math.max(1, ui.game.clientHeight);
+  spherical.theta -= dx * speed;
+  spherical.phi = clamp(spherical.phi - dy * speed, 0.06, Math.PI - 0.06);
+  offset.setFromSpherical(spherical);
+  camera.position.copy(target).add(offset);
+  camera.lookAt(target);
+  studioOrbit.update();
+}
+window.addEventListener('pointerdown', (event) => {
+  if (state.mode !== 'studio' || event.target !== ui.game || (event.button !== 0 && event.button !== 2)) return;
+  event.preventDefault();
+  event.stopImmediatePropagation();
+  if (event.button === 2) {
+    studioPointer = { button: 2, pointerId: event.pointerId, x: event.clientX, y: event.clientY, lastX: event.clientX, lastY: event.clientY, moved: false };
+    studioOrbitInput.active = true;
+    captureStudioPointer(event);
+    return;
+  }
   const previousSelection = editor.selected;
   const hit = objectAt(event.clientX, event.clientY);
-  if (hit && hit !== previousSelection) selectObject(hit, false);
+  if (hit) selectObject(hit, false);
   if ((!hit || hit === previousSelection) && beginGizmoDrag(event)) return;
-  studioPointer = { x: event.clientX, y: event.clientY, moved: false };
+  studioPointer = { button: 0, pointerId: event.pointerId, x: event.clientX, y: event.clientY, lastX: event.clientX, lastY: event.clientY, moved: false };
   studioOrbitInput.active = true;
-  studioOrbitInput.lastX = event.clientX;
-  studioOrbitInput.lastY = event.clientY;
-  ui.game.setPointerCapture?.(event.pointerId);
+  captureStudioPointer(event);
 }, true);
-ui.game.addEventListener('pointermove', (event) => {
+window.addEventListener('pointermove', (event) => {
   if (state.mode !== 'studio') return;
   if (studioGizmoDrag) { updateGizmoDrag(event); return; }
-  if (!studioPointer) return;
-  if (studioTransform?.userData.dragging) return;
-  if (studioOrbitInput.active) {
-    const dx = event.clientX - studioOrbitInput.lastX;
-    const dy = event.clientY - studioOrbitInput.lastY;
-    if (Math.abs(dx) + Math.abs(dy) > 0) {
-      studioOrbit.rotateLeft(dx * 0.008);
-      studioOrbit.rotateUp(dy * 0.008);
-      studioOrbit.update();
-      studioOrbitInput.lastX = event.clientX;
-      studioOrbitInput.lastY = event.clientY;
-    }
-  }
+  if (!studioPointer || studioPointer.pointerId !== event.pointerId) return;
+  const dx = event.clientX - studioPointer.lastX;
+  const dy = event.clientY - studioPointer.lastY;
+  orbitStudioByDrag(dx, dy);
+  studioPointer.lastX = event.clientX;
+  studioPointer.lastY = event.clientY;
   if (Math.hypot(event.clientX - studioPointer.x, event.clientY - studioPointer.y) > 5) studioPointer.moved = true;
 }, true);
-ui.game.addEventListener('pointerup', (event) => {
-  if (state.mode !== 'studio' || event.button !== 0) return;
+window.addEventListener('pointerup', (event) => {
+  if (state.mode !== 'studio') return;
   if (studioGizmoDrag) { endGizmoDrag(event); return; }
-  if (!studioPointer) return;
-  const click = !studioPointer.moved;
+  if (!studioPointer || studioPointer.pointerId !== event.pointerId) return;
+  const pointer = studioPointer;
+  const click = !pointer.moved;
   studioPointer = null;
   studioOrbitInput.active = false;
-  ui.game.releasePointerCapture?.(event.pointerId);
-  if (!click || editor.tool !== 'select') return;
+  releaseStudioPointer(event);
+  if (!click || pointer.button !== 0) return;
   const hit = objectAt(event.clientX, event.clientY);
   if (hit) selectObject(hit, true);
-  else selectObject(null);
+  else if (editor.tool === 'select') selectObject(null);
 }, true);
-ui.game.addEventListener('pointercancel', (event) => { if (studioGizmoDrag) endGizmoDrag(event); studioPointer = null; studioOrbitInput.active = false; });
+window.addEventListener('pointercancel', (event) => {
+  if (studioGizmoDrag) endGizmoDrag(event);
+  if (studioPointer?.pointerId === event.pointerId) studioPointer = null;
+  studioOrbitInput.active = false;
+});
 ui.game.addEventListener('contextmenu', (event) => { if (state.mode === 'studio') event.preventDefault(); });
 window.addEventListener('keydown', (event) => {
   if (state.mode !== 'studio' || ['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)) return;
