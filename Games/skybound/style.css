@@ -35,3 +35,5 @@
 @media(max-width:600px){.level-select-card{padding:23px 16px}.level-grid{grid-template-columns:1fr}.level-card{min-height:125px}.level-tabs{margin-top:18px}}
 
 .studio-group input:disabled,.transform-strip button:disabled,.tool-btn:disabled{opacity:.42;cursor:not-allowed}.transform-strip button:disabled:hover,.transform-strip button:disabled:active{background:rgba(87,206,235,.1);border-color:rgba(120,230,248,.28)}
+
+.studio-group select{width:100%;margin-top:5px;padding:9px;background:rgba(255,255,255,.055);border:1px solid var(--line);border-radius:3px;color:var(--ink);font-size:10px;letter-spacing:.05em}.studio-group select option{background:#10283a;color:#effaff}.studio-group select:disabled{opacity:.48;cursor:not-allowed}.studio-group input:disabled{opacity:.48;cursor:not-allowed}
