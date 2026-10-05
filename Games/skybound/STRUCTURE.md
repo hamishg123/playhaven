@@ -5,7 +5,7 @@ Skybound is a self-contained static Three.js game. `index.html` owns the canvas 
 | Area | Ownership | Responsibility |
 |---|---|---|
 | Renderer and scene | `game.js` scene setup | Lighting, per-level sky palettes, fog, camera, and world groups |
-| Authored levels | `defaultLevel()` and `campaignLevels()` | Five multidirectional campaigns with shaped platforms, keys, gates, hazards, checkpoints, enemies, and landmark architecture |
+| Authored levels | `level-1.json`, `defaultLevel()`, and `campaignLevels()` | Level 1 loads the standalone authored JSON; four further multidirectional campaigns use shaped platforms, keys, gates, hazards, checkpoints, enemies, and landmark architecture |
 | World geometry | `platformOutline()`, `platform()`, `structure()` | Extruded island silhouettes, matching player collision footprints, platform-attached cliff/dressing meshes, edge runes, animated windmills, and authored ruins/towers/temples/citadels |
 | Runtime entities | `platforms`, `hazards`, `collectibles`, `checkpoints`, `enemies`, `doors`, `structures`, `goals` | Collision, rendering, animation, and interaction state; rebuilds clear children without detaching their permanent scene groups |
 | Player | `player` and `pstate` | Camera-relative movement, coyote time, jump buffer, double jump, sprint dash, health, and respawn state |
