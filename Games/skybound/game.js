@@ -1,6 +1,7 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.162.0/build/three.module.js';
 import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.162.0/examples/jsm/controls/OrbitControls.js';
 import { TransformControls } from 'https://cdn.jsdelivr.net/npm/three@0.162.0/examples/jsm/controls/TransformControls.js';
+import firstCampaignLevel from './level-1.json' with { type: 'json' };
 
 const $ = (id) => document.getElementById(id);
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
@@ -142,26 +143,7 @@ function makeCampaignWorld(name, theme, route, architecture) {
 }
 
 function defaultLevel() {
-  const n = (x, y, z, w, d, shape, label, more = {}) => ({ x, y, z, w, d, shape, label, ...more });
-  return makeCampaignWorld('Skybound: First Light', 'dawn', [
-    n(0, 0, 14, 20, 18, 'octagon', 'SUNLIT SKYPORT'),
-    n(-4, 1.4, 2, 10, 9, 'hex', 'LOWER WIND ARCH', { shard: true }),
-    n(-10, 2.8, -6, 8.5, 9, 'diamond', 'KEYKEEPER RUIN', { key: 1, gateAfter: 1 }),
-    n(-15, 4.2, 1, 8.5, 8, 'round', 'MOSS GARDEN', { hazard: 'RUNE GARDEN SURGE' }),
-    n(-8, 5.6, 9, 11, 9, 'cross', 'RELAY COURTYARD', { checkpoint: 'OLD RELAY', shard: true }),
-    n(1, 7, 4, 9, 8, 'bridge', 'BROKEN AQUEDUCT', { enemy: 'ARCHIVE SENTINEL' }),
-    n(10, 8.4, -2, 8.5, 8, 'hex', 'GOLDEN BELFRY', { key: 2, gateAfter: 2, shard: true }),
-    n(9, 9.8, -12, 8, 9, 'diamond', 'EASTERN ROOFTOPS', { hazard: 'ROOFTOP RUNE SURGE', hazardSide: -2 }),
-    n(1, 11.2, -20, 12, 11, 'octagon', 'CLOUD TEMPLE', { checkpoint: 'TEMPLE BEACON', shard: true }),
-    n(-6, 12.6, -29, 19, 16, 'round', 'FIRST LIGHT CITADEL', { shard: true })
-  ], [
-    { node: 0, variant: 'dock', dx: 5, dz: 3, w: 7, h: 4.4, d: 6, label: 'SKYPORT TERMINAL' },
-    { node: 2, variant: 'arch', dx: -1, dz: -2.8, w: 6, h: 5, d: 2.5, label: 'KEYKEEPER ARCH' },
-    { node: 4, variant: 'windmill', dx: 3.1, dz: -1.2, w: 4.5, h: 7.8, d: 4.5, label: 'RELAY WINDMILL' },
-    { node: 6, variant: 'tower', dx: 2.7, dz: 2.2, w: 4.6, h: 8, d: 4.6, label: 'GOLDEN BELFRY' },
-    { node: 8, variant: 'temple', dx: -3.4, dz: -2.3, w: 7.5, h: 7, d: 6, label: 'CLOUD TEMPLE' },
-    { node: 9, variant: 'citadel', dx: 4, dz: 1, w: 11, h: 9, d: 9, label: 'CITADEL OF DAWN' }
-  ]);
+  return JSON.parse(JSON.stringify(firstCampaignLevel));
 }
 
 function campaignLevels() {
@@ -232,7 +214,7 @@ function campaignLevels() {
     { node: 10, variant: 'dome', dx: -2, dz: 1.6, w: 6, h: 6, d: 6, label: 'UMBRA DOME' },
     { node: 12, variant: 'citadel', dx: 4.5, dz: 0, w: 11, h: 11, d: 10, label: 'ECLIPSE MONASTERY' }
   ]);
-  const aetherlight = makeCampaignWorld('Skybound: Aetherlight Summit', 'aetherlight', [
+  const aetherlight = makeCampaignWorld('Skybound: Aetherlight Keep', 'aetherlight', [
     n(0, 0, 14, 20, 18, 'octagon', 'CELESTIAL GATE'),
     n(7, 2, 5, 8.5, 8, 'hex', 'EASTERN GALLERY'),
     n(15, 4, 3, 7.5, 7.5, 'diamond', 'GOLD KEY SPIRE', { key: 1, gateAfter: 1, shard: true }),
@@ -262,7 +244,7 @@ function campaignLevels() {
 
 const campaignLevelIds = ['first-light', 'cloudbreak-run', 'storm-crown', 'eclipse-spires', 'aetherlight-summit'];
 const campaignSummaries = [
-  'Wind through the old skyport, garden courtyards, key arches, and dawn citadel.',
+  'Climb celestial galleries, key spires, skybridges, and the North Star summit.',
   'Loop between windmills, skyrail gantries, outposts, and the sunrise observatory.',
   'Zig-zag across storm spires, rainwatch towers, lightning piers, and the crown fortress.',
   'Circle moon-crescent ledges, shadow gardens, and a high eclipse monastery.',
