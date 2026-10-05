@@ -6,7 +6,7 @@ Skybound is a self-contained static Three.js game. `index.html` owns the canvas 
 |---|---|---|
 | Renderer and scene | `game.js` scene setup | Lighting, per-level sky palettes, fog, camera, and world groups |
 | Authored levels | `defaultLevel()` and `campaignLevels()` | Five multidirectional campaigns with shaped platforms, keys, gates, hazards, checkpoints, enemies, and landmark architecture |
-| World geometry | `platformOutline()`, `platform()`, `structure()` | Extruded island silhouettes, matching player collision footprints, dressed islands, animated windmills, and authored ruins/towers/temples/citadels |
+| World geometry | `platformOutline()`, `platform()`, `structure()` | Extruded island silhouettes, matching player collision footprints, platform-attached cliff/dressing meshes, edge runes, animated windmills, and authored ruins/towers/temples/citadels |
 | Runtime entities | `platforms`, `hazards`, `collectibles`, `checkpoints`, `enemies`, `doors`, `structures`, `goals` | Collision, rendering, animation, and interaction state; rebuilds clear children without detaching their permanent scene groups |
 | Player | `player` and `pstate` | Camera-relative movement, coyote time, jump buffer, double jump, sprint dash, health, and respawn state |
 | Progression | `state`, campaign selection, and entity interactions | Shards, keys, score, saved campaign completions, gate unlocking, checkpoints, and recovery |
@@ -18,6 +18,8 @@ The five campaign routes now weave east/west as well as north/south, climb at di
 
 Platform rendering and ground checks share the same rotated polygon outline. Side collision and landing sweeps use that footprint too, so a player cannot land on invisible square corners outside a shaped island.
 
+Island undersides, rubble, grass tufts, and beacon posts are children of their platform so they stay attached during Studio transforms. Campaign shards, keys, hazards, and sentinels use surface-relative offsets; pickups retain only a restrained bob, while portal rings and beacon crystals intentionally hover as visual landmarks.
+
 The campaign selector keeps the first level available and unlocks the next stage when a campaign level is completed. Completion IDs and unlock progress are stored in browser local storage. Levels saved from Dev Studio are stored there too and can be launched or removed from the My Levels tab.
 
 ## Dev Studio
@@ -28,7 +30,7 @@ Scale controls apply only to platforms, walls, hazards, and gates. New Level cre
 
 ## Level Object Contract
 
-Every object is a JSON record with `type`, `x`, `y`, `z`, optional `w`, `h`, `d`, `rotation` (radians), `shape`, `variant`, `theme`, and `label`. Supported types are `platform`, `wall`, `structure`, `shard`, `key`, `checkpoint`, `enemy`, `hazard`, `door`, and `goal`. A `shard` is a score collectible; a `key` contributes to the sequential gate requirement. Legacy rectangle levels remain supported when `shape` is omitted.
+Every object is a JSON record with `type`, `x`, `y`, `z`, optional `w`, `h`, `d`, `rotation` (radians), `shape`, `variant`, `theme`, and `label`. Supported types are `platform`, `wall`, `structure`, `shard`, `key`, `checkpoint`, `enemy`, `hazard`, `door`, and `goal`. A `shard` is a score collectible; a `key` contributes to the sequential gate requirement. Campaign platform `y` is its center, so its walkable top is `y + h/2`; generated pickups and hazards are positioned relative to that surface. Legacy rectangle levels remain supported when `shape` is omitted.
 
 ## Recovery Contract
 

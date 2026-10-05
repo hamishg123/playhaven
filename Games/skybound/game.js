@@ -36,7 +36,7 @@ ui.bestMenu.textContent = state.best;
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x75cbed);
-scene.fog = new THREE.FogExp2(0x73c1db, 0.008);
+scene.fog = new THREE.FogExp2(0x73c1db, 0.0065);
 const camera = new THREE.PerspectiveCamera(62, innerWidth / innerHeight, 0.05, 500);
 const renderer = new THREE.WebGLRenderer({ antialias: true, canvas: ui.game, powerPreference: 'high-performance' });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
@@ -52,11 +52,14 @@ scene.add(hemi);
 const sun = new THREE.DirectionalLight(0xfff1c9, 2.4);
 sun.position.set(-28, 42, 18);
 sun.castShadow = true;
-sun.shadow.mapSize.set(1024, 1024);
+sun.shadow.mapSize.set(2048, 2048);
 sun.shadow.camera.left = -65;
 sun.shadow.camera.right = 65;
 sun.shadow.camera.top = 65;
 sun.shadow.camera.bottom = -65;
+sun.shadow.bias = -0.00028;
+sun.shadow.normalBias = 0.024;
+sun.shadow.radius = 4;
 scene.add(sun);
 const skyFill = new THREE.DirectionalLight(0x5ae8ff, 0.55);
 skyFill.position.set(28, 14, -28);
@@ -95,7 +98,8 @@ const MAT = {
   hazard: new THREE.MeshStandardMaterial({ color: 0x762844, emissive: 0x7a1634, emissiveIntensity: 0.8, roughness: 0.4 }),
   gate: new THREE.MeshStandardMaterial({ color: 0x4d356c, emissive: 0x25143d, emissiveIntensity: 0.55, roughness: 0.35, metalness: 0.35 }),
   gateGold: new THREE.MeshStandardMaterial({ color: 0xd3a84f, emissive: 0x5d3f0a, emissiveIntensity: 0.44, roughness: 0.32, metalness: 0.5 }),
-  cloud: new THREE.MeshBasicMaterial({ color: 0xe6fbff, transparent: true, opacity: 0.52, depthWrite: false }),
+  cloud: new THREE.MeshBasicMaterial({ color: 0xe6fbff, transparent: true, opacity: 0.3, depthWrite: false }),
+  turf: new THREE.MeshStandardMaterial({ color: 0x74bd7a, emissive: 0x123019, emissiveIntensity: 0.18, roughness: 0.92 }),
   paleStone: new THREE.MeshStandardMaterial({ color: 0xb6d1cc, roughness: 0.9 }),
   darkStone: new THREE.MeshStandardMaterial({ color: 0x35445e, roughness: 0.86, metalness: 0.12 }),
   bronze: new THREE.MeshStandardMaterial({ color: 0x9d7042, roughness: 0.42, metalness: 0.56 })
@@ -117,11 +121,11 @@ function makeCampaignWorld(name, theme, route, architecture) {
   route.forEach((step, index) => {
     const last = index === route.length - 1;
     objects.push({ type: 'platform', x: step.x, y: step.y, z: step.z, w: step.w, h: 1, d: step.d, shape: step.shape, rotation: step.rotation || 0, label: step.label });
-    if (step.shard ?? (index % 2 === 1 || last)) objects.push({ type: 'shard', x: step.x + (index % 2 ? 2 : -2), y: step.y + 1, z: step.z, label: `${theme.toUpperCase()} SHARD ${index + 1}` });
-    if (step.key) objects.push({ type: 'key', x: step.x - 1.15, y: step.y + 1, z: step.z, label: `KEY-${step.key}` });
+    if (step.shard ?? (index % 2 === 1 || last)) objects.push({ type: 'shard', x: step.x + (index % 2 ? 2 : -2), y: step.y + 0.82, z: step.z, label: `${theme.toUpperCase()} SHARD ${index + 1}` });
+    if (step.key) objects.push({ type: 'key', x: step.x - 1.15, y: step.y + 0.82, z: step.z, label: `KEY-${step.key}` });
     if (step.checkpoint) objects.push({ type: 'checkpoint', x: step.x, y: step.y + 0.5, z: step.z + 1, label: step.checkpoint });
-    if (step.hazard) objects.push({ type: 'hazard', x: step.x + (step.hazardSide || 2.1), y: step.y + 0.36, z: step.z - 0.4, w: step.hazardW || 2.4, h: 0.18, d: step.hazardD || 2, label: step.hazard });
-    if (step.enemy) objects.push({ type: 'enemy', x: step.x, y: step.y + 0.5, z: step.z - 1.8, label: step.enemy });
+    if (step.hazard) objects.push({ type: 'hazard', x: step.x + (step.hazardSide || 2.1), y: step.y + 0.465, z: step.z - 0.4, w: step.hazardW || 2.4, h: 0.18, d: step.hazardD || 2, label: step.hazard });
+    if (step.enemy) objects.push({ type: 'enemy', x: step.x, y: step.y + 1, z: step.z - 1.8, label: step.enemy });
     if (step.gateAfter && route[index + 1]) {
       const next = route[index + 1];
       const dx = next.x - step.x, dz = next.z - step.z;
@@ -340,36 +344,56 @@ function clearWorld() {
   platforms.length = hazards.length = collectibles.length = checkpoints.length = enemies.length = doors.length = structures.length = 0;
   goals = [];
 }
-function addIslandUnderside(o) {
+function addIslandUnderside(o, root) {
   if (o.type !== 'platform') return;
   const radius = Math.max(2.6, Math.min(o.w, o.d) * 0.38);
   const height = clamp(Math.min(o.w, o.d) * 0.65, 4.5, 10);
-  const rock = addMesh(world, GEO.cylinder(radius * 0.55, radius, height, 9), MAT.underside, [o.x, o.y - height / 2 - 0.35, o.z]);
+  const rock = addMesh(root, GEO.cylinder(radius * 0.55, radius, height, 9), MAT.underside, [0, -height / 2 - 0.35, 0]);
   rock.rotation.y = (o.x + o.z) * 0.17;
   rock.scale.x = Math.max(0.85, o.w / Math.max(o.d, 1));
   rock.scale.z = Math.max(0.85, o.d / Math.max(o.w, 1));
-  const glow = addMesh(world, GEO.cylinder(radius * 0.6, radius * 0.75, 0.15, 12), MAT.moss, [o.x, o.y - 0.55, o.z]);
+  const glow = addMesh(root, GEO.cylinder(radius * 0.6, radius * 0.75, 0.15, 12), MAT.moss, [0, -0.55, 0]);
   glow.scale.x = Math.max(0.85, o.w / Math.max(o.d, 1));
   glow.scale.z = Math.max(0.85, o.d / Math.max(o.w, 1));
 }
-function addPlatformDressing(o) {
+function addPlatformDressing(o, root) {
   const seed = Math.abs(Math.round(o.x * 17 + o.z * 13));
+  const top = (o.h ?? 1) / 2;
+  const footprint = { x: 0, z: 0, w: o.w, d: o.d, shape: o.shape || 'rect', rotation: 0 };
   for (let i = 0; i < 5; i++) {
     const a = ((seed + i * 71) % 360) * Math.PI / 180;
-    const x = o.x + Math.cos(a) * Math.max(1.2, o.w * 0.35);
-    const z = o.z + Math.sin(a) * Math.max(1.2, o.d * 0.35);
-    const rock = addMesh(world, GEO.octahedron(0.32 + ((seed + i) % 4) * 0.06), MAT.ruin, [x, o.y + o.h / 2 + 0.25, z]);
+    let x = Math.cos(a) * o.w * 0.34;
+    let z = Math.sin(a) * o.d * 0.34;
+    if (!footprintTouches(footprint, x, z, 0.08)) { x *= 0.62; z *= 0.62; }
+    if (!footprintTouches(footprint, x, z, 0.04)) continue;
+    const size = 0.22 + ((seed + i) % 4) * 0.045;
+    const rock = addMesh(root, GEO.octahedron(size), MAT.ruin, [x, top + size * 0.65 - 0.025, z]);
     rock.scale.y = 0.65;
-    rock.rotation.set(i * 0.2, a, i * 0.1);
+    rock.rotation.y = a;
+  }
+  for (let i = 0; i < 4; i++) {
+    const a = ((seed + 31 + i * 97) % 360) * Math.PI / 180;
+    const x = Math.cos(a) * o.w * 0.23;
+    const z = Math.sin(a) * o.d * 0.23;
+    if (!footprintTouches(footprint, x, z, 0.25)) continue;
+    const tuft = new THREE.Group();
+    tuft.position.set(x, top, z);
+    root.add(tuft);
+    for (let bladeIndex = 0; bladeIndex < 3; bladeIndex++) {
+      const height = 0.22 + ((seed + i + bladeIndex) % 3) * 0.035;
+      const blade = addMesh(tuft, GEO.cylinder(0, 0.045, height, 5), MAT.turf, [(bladeIndex - 1) * 0.055, height / 2, 0]);
+      blade.rotation.z = (bladeIndex - 1) * 0.22;
+      blade.rotation.x = (bladeIndex - 1) * -0.13;
+    }
   }
   if (o.label.includes('SUMMIT') || o.label.includes('GATE')) {
     for (const side of [-1, 1]) {
       const beacon = new THREE.Group();
-      beacon.position.set(o.x + side * Math.min(o.w * 0.32, 4.5), o.y + o.h / 2, o.z - o.d * 0.22);
+      beacon.position.set(side * Math.min(o.w * 0.32, 4.5), o.h / 2, -o.d * 0.22);
       addMesh(beacon, GEO.cylinder(0.25, 0.36, 1.8, 6), MAT.ruin, [0, 0.9, 0]);
       const crystal = addMesh(beacon, GEO.octahedron(0.26), MAT.cyan, [0, 1.95, 0]);
       crystal.rotation.z = Math.PI / 4;
-      dynamic.add(beacon);
+      root.add(beacon);
     }
   }
 }
@@ -419,9 +443,15 @@ function platform(o) {
     const rimGeometry = new THREE.BufferGeometry().setFromPoints(outline.map(([x, z]) => new THREE.Vector3(x, h / 2 + 0.025, z)));
     const rim = new THREE.LineLoop(rimGeometry, new THREE.LineBasicMaterial({ color: (o.label || '').includes('CITADEL') || (o.label || '').includes('CROWN') ? 0xffd46e : 0x8af0a7, transparent: true, opacity: 0.8 }));
     root.add(rim);
-    addIslandUnderside(o);
-    addPlatformDressing(o);
+    const innerRune = new THREE.LineLoop(
+      new THREE.BufferGeometry().setFromPoints(outline.map(([x, z]) => new THREE.Vector3(x * 0.82, h / 2 + 0.016, z * 0.82))),
+      new THREE.LineBasicMaterial({ color: 0x64e5ed, transparent: true, opacity: 0.28 })
+    );
+    root.add(innerRune);
+    addIslandUnderside(o, root);
+    addPlatformDressing(o, root);
   }
+  root.userData.outlineTarget = mesh;
   world.add(root);
   markEditorObject(root, o);
   platforms.push({ x: o.x, z: o.z, y: o.y + h / 2, w, d, h, shape: o.shape || 'rect', rotation: o.rotation || 0, footprint: outline, mesh: root, label: o.label || '' });
@@ -441,8 +471,8 @@ function structure(o) {
   };
   let rotor = null;
   if (o.variant === 'dock') {
-    beam(0, .38, 0, w, .55, d, MAT.darkStone);
-    beam(0, .7, 0, w * .9, .12, d * .88, trim);
+    beam(0, .25, 0, w, .55, d, MAT.darkStone);
+    beam(0, .57, 0, w * .9, .12, d * .88, trim);
     for (const x of [-.38, .38]) for (const z of [-.36, .36]) pillar(x * w, z * d, h * .58, .42);
     beam(0, h * .64, -d * .22, w * .62, .28, .3, stone);
     beam(w * .31, h * .78, -d * .22, .28, h * .3, .28, trim);
@@ -547,7 +577,7 @@ function checkpoint(o) {
 }
 function enemy(o) {
   const group = new THREE.Group();
-  group.position.set(o.x, o.y + 0.62, o.z);
+  group.position.set(o.x, o.y, o.z);
   const body = addMesh(group, GEO.sphere(0.56, 18, 12), MAT.enemy, [0, 0, 0]);
   body.scale.set(1.22, 0.76, 1);
   addMesh(group, GEO.sphere(0.15, 10, 8), MAT.enemyEye, [0, 0.02, 0.5]);
@@ -560,7 +590,7 @@ function enemy(o) {
   group.add(glow);
   dynamic.add(group);
   markEditorObject(group, o);
-  enemies.push({ group, originX: o.x, originZ: o.z, baseY: o.y + 0.62, path: 1.8, phase: Math.random() * Math.PI * 2, dead: false, label: o.label || 'SENTINEL' });
+  enemies.push({ group, originX: o.x, originZ: o.z, baseY: o.y, path: 1.8, phase: Math.random() * Math.PI * 2, dead: false, label: o.label || 'SENTINEL' });
 }
 function hazard(o) {
   const group = new THREE.Group();
@@ -636,13 +666,13 @@ function normalizeLevel(data) {
   };
 }
 function buildAtmosphere() {
-  const sky = addMesh(atmosphere, GEO.sphere(180, 24, 14), new THREE.MeshBasicMaterial({ color: 0x83d9ef, side: THREE.BackSide }), [0, 25, -28]);
+  const sky = addMesh(atmosphere, GEO.sphere(220, 24, 14), new THREE.MeshBasicMaterial({ color: 0x83d9ef, side: THREE.BackSide }), [0, 25, -28]);
   sky.scale.y = 0.6;
   const cloudMaterial = MAT.cloud.clone();
   for (let i = 0; i < 26; i++) {
     const cloud = new THREE.Group();
     const angle = i * 2.4;
-    const radius = 58 + (i % 6) * 13;
+    const radius = 86 + (i % 6) * 13;
     cloud.position.set(Math.sin(angle) * radius, 17 + (i % 5) * 5, -28 + Math.cos(angle) * radius);
     for (let puff = 0; puff < 3; puff++) {
       const part = addMesh(cloud, GEO.sphere(1, 12, 8), cloudMaterial, [(puff - 1) * 1.35, (puff % 2) * 0.22, 0]);
@@ -654,15 +684,15 @@ function buildAtmosphere() {
     atmosphere.add(cloud);
   }
   const starGeometry = new THREE.BufferGeometry();
-  const count = 280;
+  const count = 420;
   const points = new Float32Array(count * 3);
   for (let i = 0; i < count; i++) {
-    points[i * 3] = (Math.sin(i * 87.1) * 0.5 + 0.5) * 170 - 85;
-    points[i * 3 + 1] = 9 + ((i * 29) % 45);
-    points[i * 3 + 2] = -100 + ((i * 53) % 110);
+    points[i * 3] = (Math.sin(i * 87.1) * 0.5 + 0.5) * 220 - 110;
+    points[i * 3 + 1] = 12 + ((i * 29) % 58);
+    points[i * 3 + 2] = -170 + ((i * 53) % 230);
   }
   starGeometry.setAttribute('position', new THREE.BufferAttribute(points, 3));
-  const dust = new THREE.Points(starGeometry, new THREE.PointsMaterial({ color: 0xd6fbff, size: 0.07, transparent: true, opacity: 0.46 }));
+  const dust = new THREE.Points(starGeometry, new THREE.PointsMaterial({ color: 0xe2fbff, size: 0.085, transparent: true, opacity: 0.4 }));
   atmosphere.add(dust);
 }
 function buildLevel(data) {
@@ -687,6 +717,7 @@ function buildLevel(data) {
   const palette = palettes[level.theme] || palettes.dawn;
   scene.background.setHex(palette[0]);
   scene.fog.color.setHex(palette[1]);
+  scene.fog.density = level.theme === 'eclipse' ? 0.0074 : 0.0062;
   hemi.color.setHex(palette[2]);
   sun.color.setHex(palette[3]);
   buildAtmosphere();
@@ -1186,7 +1217,7 @@ function updateWorld(dt) {
   for (const item of collectibles) {
     if (item.got) continue;
     item.group.rotation.y += dt * (item.kind === 'shard' ? 1.9 : 1.35);
-    item.group.position.y = item.baseY + Math.sin(state.time * 2.4 + item.phase) * 0.18;
+    item.group.position.y = item.baseY + Math.sin(state.time * 2.4 + item.phase) * 0.045;
   }
   for (const checkpointData of checkpoints) {
     checkpointData.spire.rotation.y += dt * 1.4;
@@ -1196,7 +1227,7 @@ function updateWorld(dt) {
     if (enemyData.dead) continue;
     const phase = state.time * 0.9 + enemyData.phase;
     enemyData.group.position.x = enemyData.originX + Math.sin(phase) * enemyData.path;
-    enemyData.group.position.y = enemyData.baseY + Math.sin(phase * 1.7) * 0.18;
+    enemyData.group.position.y = enemyData.baseY + Math.sin(phase * 1.7) * 0.035;
     enemyData.group.rotation.y = Math.sin(phase) * 0.6;
   }
   for (const hazardData of hazards) {
@@ -1466,8 +1497,9 @@ function teardownStudioHelpers() {
 }
 function updateStudioOutline() {
   if (state.mode !== 'studio' || !editor.selectedMesh) { if (studioOutline) studioOutline.visible = false; return; }
-  if (!studioOutline) { studioOutline = new THREE.BoxHelper(editor.selectedMesh, 0x59efff); scene.add(studioOutline); }
-  else { studioOutline.visible = true; studioOutline.setFromObject(editor.selectedMesh); }
+  const outlineTarget = editor.selectedMesh.userData.outlineTarget || editor.selectedMesh;
+  if (!studioOutline) { studioOutline = new THREE.BoxHelper(outlineTarget, 0x59efff); scene.add(studioOutline); }
+  else { studioOutline.visible = true; studioOutline.setFromObject(outlineTarget); }
   studioOutline.material.color.setHex(editor.tool === 'select' ? 0x59efff : editor.tool === 'scale' ? 0xffc857 : 0x62ff9a);
   studioOutline.material.transparent = true;
   studioOutline.material.opacity = 0.95;
