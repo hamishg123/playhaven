@@ -5,12 +5,17 @@ import firstCampaignLevel from './level-1.json' with { type: 'json' };
 
 const $ = (id) => document.getElementById(id);
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+const formatRunTime = (seconds) => {
+  const tenths = Math.floor(Math.max(0, seconds) * 10);
+  return `${String(Math.floor(tenths / 600)).padStart(2, '0')}:${String(Math.floor(tenths / 10) % 60).padStart(2, '0')}.${tenths % 10}`;
+};
+const wrapRotation = (angle) => Math.atan2(Math.sin(angle), Math.cos(angle));
 const ui = {
   menu: $('menu'), levelSelect: $('levelSelect'), levelGrid: $('levelGrid'), campaignTab: $('campaignTab'), myLevelsTab: $('myLevelsTab'), closeLevels: $('closeLevels'), hud: $('hud'), pause: $('pauseScreen'), gameOver: $('gameOverScreen'), victory: $('victoryScreen'), how: $('howPanel'), loading: $('loading'), loadingBar: $('loadingBar'), loadingText: $('loadingText'), studio: $('studio'), game: $('game'), flash: $('flash'),
   play: $('playBtn'), levels: $('levelsBtn'), dev: $('devBtn'), howBtn: $('howBtn'), closeHow: $('closeHow'), resume: $('resumeBtn'), restartPause: $('restartPauseBtn'), pauseLevels: $('pauseLevelsBtn'), pauseStudio: $('pauseStudioBtn'), homePause: $('homePauseBtn'), retry: $('retryBtn'), gameOverLevels: $('gameOverLevelsBtn'), gameOverStudio: $('gameOverStudioBtn'), homeGameOver: $('homeGameOverBtn'), nextLevel: $('nextLevelBtn'), victoryRetry: $('victoryRetryBtn'), victoryLevels: $('victoryLevelsBtn'), victoryStudio: $('victoryStudioBtn'), victoryHome: $('victoryHomeBtn'),
-  shards: $('shardsHud'), keys: $('keysHud'), score: $('scoreHud'), best: $('bestHud'), bestMenu: $('bestScoreMenu'), levelTitle: $('levelTitleHud'), healthBar: $('healthBar'), healthText: $('healthText'), dashBar: $('dashBar'), dashText: $('dashText'), checkpoint: $('checkpointHud'), objective: $('objectiveHud'), toast: $('messageToast'),
-  goScore: $('gameOverScore'), goShards: $('gameOverShards'), goTitle: $('gameOverTitle'), goText: $('gameOverText'), vScore: $('victoryScore'), vShards: $('victoryShards'), vText: $('victoryText'),
-  explorer: $('explorer'), toolSelect: $('toolSelect'), toolMove: $('toolMove'), toolScale: $('toolScale'), snapToggle: $('snapToggle'), snapSize: $('snapSize'), duplicateSelected: $('duplicateSelected'), focusSelected: $('focusSelected'),
+  shards: $('shardsHud'), keys: $('keysHud'), timer: $('timerHud'), score: $('scoreHud'), best: $('bestHud'), bestMenu: $('bestScoreMenu'), levelTitle: $('levelTitleHud'), healthBar: $('healthBar'), healthText: $('healthText'), dashBar: $('dashBar'), dashText: $('dashText'), checkpoint: $('checkpointHud'), objective: $('objectiveHud'), toast: $('messageToast'),
+  goScore: $('gameOverScore'), goShards: $('gameOverShards'), goTime: $('gameOverTime'), goTitle: $('gameOverTitle'), goText: $('gameOverText'), vScore: $('victoryScore'), vShards: $('victoryShards'), vTime: $('victoryTime'), vText: $('victoryText'),
+  explorer: $('explorer'), toolSelect: $('toolSelect'), toolMove: $('toolMove'), toolScale: $('toolScale'), toolRotate: $('toolRotate'), snapToggle: $('snapToggle'), snapSize: $('snapSize'), duplicateSelected: $('duplicateSelected'), focusSelected: $('focusSelected'),
   levelName: $('levelName'), selNone: $('selectedNone'), selPanel: $('selectedPanel'), selType: $('selType'), selX: $('selX'), selY: $('selY'), selZ: $('selZ'), selW: $('selW'), selH: $('selH'), selD: $('selD'), selRotation: $('selRotation'), selShape: $('selShape'), dimensionFields: $('dimensionFields'), dimensionHint: $('dimensionHint'), selLabel: $('selLabel'), deleteSelected: $('deleteSelected'),
   newLevel: $('newLevel'), saveMyLevel: $('saveMyLevel'), exportJson: $('exportJson'), downloadJson: $('downloadJson'), jsonBox: $('jsonBox'), loadJson: $('loadJson'), studioStatus: $('studioStatus'), studioPlay: $('studioPlay'), studioBack: $('studioBack'), studioResetCam: $('studioResetCam'), studioTestSpawn: $('studioTestSpawn')
 };
@@ -874,6 +879,7 @@ function objectiveText() {
 function updateHud() {
   ui.shards.textContent = `${state.shards} / ${collectibles.filter((item) => item.kind === 'shard').length}`;
   ui.keys.textContent = `${state.keys} / ${collectibles.filter((item) => item.kind === 'key').length}`;
+  ui.timer.textContent = formatRunTime(state.runTime);
   ui.score.textContent = state.score;
   ui.best.textContent = state.best;
   ui.healthBar.style.width = `${state.health}%`;
@@ -939,6 +945,7 @@ function gameOver(title, message) {
   ui.goText.textContent = message;
   ui.goScore.textContent = state.score;
   ui.goShards.textContent = state.shards;
+  ui.goTime.textContent = formatRunTime(state.runTime);
 }
 function victory() {
   if (state.mode !== 'playing') return;
@@ -951,6 +958,7 @@ function victory() {
   }
   state.score += 600;
   updateHud();
+  ui.vTime.textContent = formatRunTime(state.runTime);
   setMode('victory');
   ui.nextLevel.classList.toggle('hidden', activeLevelKind !== 'campaign' || activeCampaignIndex >= campaignCatalog.length - 1);
   ui.vScore.textContent = state.score;
@@ -1340,7 +1348,7 @@ function selectObject(object, focus = false) {
   if (object) {
     const root = getRootForObject(object);
     editor.selectedMesh = root;
-    if (root && studioTransform && editor.tool !== 'select') {
+    if (root && studioTransform && editor.tool !== 'select' && editor.tool !== 'rotate') {
       studioTransform.attach(root);
       studioTransform.visible = true;
       if (studioTransformHelper) studioTransformHelper.visible = true;
@@ -1357,18 +1365,25 @@ function setEditorTool(tool) {
   ui.toolSelect.classList.toggle('active', tool === 'select');
   ui.toolMove.classList.toggle('active', tool === 'move');
   ui.toolScale.classList.toggle('active', tool === 'scale');
+  ui.toolRotate.classList.toggle('active', tool === 'rotate');
   if (studioTransform) {
     studioTransform.detach();
     studioTransform.visible = false;
     if (studioTransformHelper) studioTransformHelper.visible = false;
-    if (editor.selectedMesh && tool !== 'select') {
+    if (editor.selectedMesh && tool !== 'select' && tool !== 'rotate') {
       studioTransform.setMode(tool === 'scale' ? 'scale' : 'translate');
       studioTransform.attach(editor.selectedMesh);
       studioTransform.visible = true;
       if (studioTransformHelper) studioTransformHelper.visible = true;
     }
   }
-  studioStatus(tool === 'select' ? 'SELECT TOOL • Click an object to select it' : tool === 'move' ? 'MOVE TOOL • Drag a colored arrow or use the inspector' : 'SCALE TOOL • Drag a colored arrow or use the inspector');
+  studioStatus(editorToolPrompt(tool));
+}
+function editorToolPrompt(tool = editor.tool) {
+  if (tool === 'select') return 'SELECT TOOL • Click an object to select it';
+  if (tool === 'move') return 'MOVE TOOL • Drag a colored arrow or use the inspector';
+  if (tool === 'scale') return 'SCALE TOOL • Drag a colored box or use the inspector';
+  return 'ROTATE TOOL • Drag the pink ring or use ← / →';
 }
 function setupStudioCamera() {
   ensureDomGizmo();
@@ -1421,7 +1436,7 @@ function setupStudioCamera() {
     studioTransform.setScaleSnap(editor.snapSize / 2);
     studioTransform.addEventListener('dragging-changed', (event) => {
       studioTransform.userData.dragging = event.value;
-      studioStatus(event.value ? `${editor.tool === 'scale' ? 'SCALING' : 'MOVING'} • Release mouse to commit` : editor.tool === 'scale' ? 'SCALE TOOL • Drag the colored boxes to resize' : 'MOVE TOOL • Drag the colored arrows to move');
+      studioStatus(event.value ? `${editor.tool.toUpperCase()} • Release mouse to commit` : editorToolPrompt());
       if (event.value && editor.tool === 'scale' && editor.selected) {
         studioTransform.userData.scaleBase = { w: editor.selected.w ?? 1, h: editor.selected.h ?? 1, d: editor.selected.d ?? 1 };
       }
@@ -1444,6 +1459,7 @@ function setupStudioCamera() {
       object.x = snap(mesh.position.x);
       object.y = snap(mesh.position.y);
       object.z = snap(mesh.position.z);
+      if (editor.tool === 'rotate') object.rotation = mesh.rotation.y;
       if (editor.tool === 'scale' && ['platform', 'wall', 'door', 'hazard'].includes(object.type)) {
         const base = studioTransform.userData.scaleBase || { w: object.w, h: object.h, d: object.d };
         object.w = Math.max(0.25, snap(base.w * mesh.scale.x));
@@ -1482,7 +1498,7 @@ function updateStudioOutline() {
   const outlineTarget = editor.selectedMesh.userData.outlineTarget || editor.selectedMesh;
   if (!studioOutline) { studioOutline = new THREE.BoxHelper(outlineTarget, 0x59efff); scene.add(studioOutline); }
   else { studioOutline.visible = true; studioOutline.setFromObject(outlineTarget); }
-  studioOutline.material.color.setHex(editor.tool === 'select' ? 0x59efff : editor.tool === 'scale' ? 0xffc857 : 0x62ff9a);
+  studioOutline.material.color.setHex(editor.tool === 'select' ? 0x59efff : editor.tool === 'scale' ? 0xffc857 : editor.tool === 'rotate' ? 0xff83d1 : 0x62ff9a);
   studioOutline.material.transparent = true;
   studioOutline.material.opacity = 0.95;
   studioOutline.material.depthTest = false;
@@ -1492,20 +1508,25 @@ function ensureDomGizmo() {
   if (studioDomGizmo) return;
   studioDomGizmo = document.createElement('div');
   studioDomGizmo.className = 'studio-gizmo-overlay';
-  const handles = [['x', 'axis'], ['y', 'axis'], ['z', 'axis'], ['nw', 'scale'], ['ne', 'scale'], ['sw', 'scale'], ['se', 'scale']];
+  const handles = [['x', 'axis'], ['y', 'axis'], ['z', 'axis'], ['nw', 'scale'], ['ne', 'scale'], ['sw', 'scale'], ['se', 'scale'], ['rotate', 'rotate']];
   for (const [name, kind] of handles) {
     const handle = document.createElement('button');
     handle.className = `studio-gizmo-handle studio-gizmo-${kind} ${name}`;
     handle.dataset.axis = name;
     if (kind === 'axis') { handle.innerHTML = '<i class="studio-gizmo-tip"></i>'; }
+    if (kind === 'rotate') handle.setAttribute('aria-label', 'Drag to rotate the selected part around Y');
     handle.addEventListener('pointerdown', (event) => {
       if (event.button !== 0 || state.mode !== 'studio' || !editor.selected || editor.tool === 'select') return;
+      if (kind === 'axis' && editor.tool !== 'move') return;
+      if (kind === 'scale' && editor.tool !== 'scale') return;
+      if (kind === 'rotate' && editor.tool !== 'rotate') return;
       if (editor.tool === 'scale' && !sizeEditableTypes.has(editor.selected.type)) return;
       event.preventDefault(); event.stopPropagation();
       const axis = studioGizmoLayout()?.axes.find((item) => item.name.toLowerCase() === name);
-      studioDomDrag = { axis: name, x: event.clientX, y: event.clientY, object: editor.selected, tool: editor.tool, direction: axis?.direction || { x: 0, y: -1 } };
+      const layout = kind === 'rotate' ? studioGizmoLayout() : null;
+      studioDomDrag = { axis: name, x: event.clientX, y: event.clientY, object: editor.selected, tool: editor.tool, direction: axis?.direction || { x: 0, y: -1 }, lastAngle: layout ? Math.atan2(event.clientY - layout.origin.y, event.clientX - layout.origin.x) : 0 };
       handle.setPointerCapture?.(event.pointerId);
-      studioStatus(`${editor.tool === 'scale' ? 'SCALING' : 'MOVING'} ${name.toUpperCase()} • Release mouse to commit`);
+      studioStatus(editor.tool === 'rotate' ? 'ROTATING Y • Release mouse to commit' : `${editor.tool === 'scale' ? 'SCALING' : 'MOVING'} ${name.toUpperCase()} • Release mouse to commit`);
     });
     studioDomGizmo.append(handle);
   }
@@ -1514,7 +1535,19 @@ function ensureDomGizmo() {
     if (!studioDomDrag) return;
     event.preventDefault();
     const drag = studioDomDrag; const dx = event.clientX - drag.x; const dy = event.clientY - drag.y; const object = drag.object;
-    if (drag.tool === 'move') {
+    if (drag.tool === 'rotate') {
+      const origin = studioGizmoLayout()?.origin;
+      if (origin) {
+        const angle = Math.atan2(event.clientY - origin.y, event.clientX - origin.x);
+        let delta = angle - drag.lastAngle;
+        if (delta > Math.PI) delta -= Math.PI * 2;
+        if (delta < -Math.PI) delta += Math.PI * 2;
+        drag.lastAngle = angle;
+        const step = Math.PI / 12;
+        const nextRotation = (object.rotation || 0) + delta;
+        object.rotation = wrapRotation(editor.snap ? Math.round(nextRotation / step) * step : nextRotation);
+      }
+    } else if (drag.tool === 'move') {
       if (['x', 'y', 'z'].includes(drag.axis)) {
         const amount = (dx * drag.direction.x + dy * drag.direction.y) * 0.025;
         object[drag.axis] = snap(object[drag.axis] + amount);
@@ -1536,7 +1569,7 @@ function ensureDomGizmo() {
   window.addEventListener('pointerup', (event) => {
     if (!studioDomDrag) return;
     event.preventDefault(); studioDomDrag = null;
-    studioStatus(editor.tool === 'scale' ? 'SCALE TOOL • Drag the colored boxes to resize' : 'MOVE TOOL • Drag the colored arrows to move');
+    studioStatus(editorToolPrompt());
   }, { capture: true });
   window.addEventListener('pointercancel', () => { studioDomDrag = null; }, { capture: true });
 }
@@ -1571,6 +1604,16 @@ function updateDomGizmo() {
   const main = document.querySelector('.studio-main').getBoundingClientRect();
   const x = layout.origin.x - main.left; const y = layout.origin.y - main.top;
   const set = (selector, left, top, transform = '') => { const node = studioDomGizmo.querySelector(selector); if (node) { node.style.left = `${left}px`; node.style.top = `${top}px`; node.style.transform = transform; } };
+  const rotateHandle = studioDomGizmo.querySelector('.studio-gizmo-rotate');
+  if (editor.tool === 'rotate') {
+    studioDomGizmo.querySelectorAll('.studio-gizmo-axis, .studio-gizmo-scale').forEach((handle) => { handle.style.display = 'none'; });
+    if (rotateHandle) rotateHandle.style.display = 'block';
+    set('.studio-gizmo-rotate', x - 66, y - 66);
+    return;
+  }
+  if (rotateHandle) rotateHandle.style.display = 'none';
+  studioDomGizmo.querySelectorAll('.studio-gizmo-axis').forEach((handle) => { handle.style.display = editor.tool === 'move' ? 'block' : 'none'; });
+  studioDomGizmo.querySelectorAll('.studio-gizmo-scale').forEach((handle) => { handle.style.display = editor.tool === 'scale' ? 'block' : 'none'; });
   for (const axis of layout.axes) set(`.${axis.name.toLowerCase()}`, x, y - 5, `rotate(${axis.angle}rad) scale(${110 / 150})`);
   set('.nw', x - 86, y - 86); set('.ne', x + 70, y - 86); set('.sw', x - 86, y + 70); set('.se', x + 70, y + 70);
 }
@@ -1830,6 +1873,7 @@ ui.studioTestSpawn.onclick = setSpawnHere;
 ui.toolSelect.onclick = () => setEditorTool('select');
 ui.toolMove.onclick = () => setEditorTool('move');
 ui.toolScale.onclick = () => setEditorTool('scale');
+ui.toolRotate.onclick = () => setEditorTool('rotate');
 ui.duplicateSelected.onclick = duplicateSelected;
 ui.focusSelected.onclick = () => { if (editor.selectedMesh && studioOrbit) { studioOrbit.target.copy(editor.selectedMesh.position); studioOrbit.update(); } };
 ui.snapToggle.onchange = () => {
@@ -1847,7 +1891,7 @@ ui.snapSize.onchange = () => {
 let studioPointer = null;
 let studioGizmoDrag = null;
 function gizmoAxisAt(clientX, clientY) {
-  if (!editor.selectedMesh || editor.tool === 'select') return null;
+  if (!editor.selectedMesh || editor.tool === 'select' || editor.tool === 'rotate') return null;
   if (editor.tool === 'scale' && !sizeEditableTypes.has(editor.selected?.type)) return null;
   const layout = studioGizmoLayout();
   if (!layout) return null;
@@ -1871,7 +1915,7 @@ function beginGizmoDrag(event) {
   if (!axis || !editor.selected) return false;
   studioGizmoDrag = { ...axis, x: event.clientX, y: event.clientY, object: editor.selected, mesh: editor.selectedMesh };
   if (studioTransform) studioTransform.userData.dragging = true;
-  studioStatus(editor.tool === 'scale' ? `SCALING ${axis.name} • Release mouse to commit` : `MOVING ${axis.name} • Release mouse to commit`);
+  studioStatus(`${editor.tool === 'scale' ? 'SCALING' : 'MOVING'} ${axis.name} • Release mouse to commit`);
   studioOrbit.enabled = false;
   event.stopImmediatePropagation();
   captureStudioPointer(event);
@@ -1902,7 +1946,7 @@ function endGizmoDrag(event) {
   if (studioTransform) studioTransform.userData.dragging = false;
   if (studioOrbit) studioOrbit.enabled = true;
   releaseStudioPointer(event);
-  studioStatus(editor.tool === 'scale' ? 'SCALE TOOL • Drag the colored boxes to resize' : 'MOVE TOOL • Drag the colored arrows to move');
+  studioStatus(editorToolPrompt());
 }
 function orbitStudioByDrag(dx, dy) {
   if (!studioOrbit || (!dx && !dy)) return;
@@ -1968,7 +2012,10 @@ window.addEventListener('pointercancel', (event) => {
 ui.game.addEventListener('contextmenu', (event) => { if (state.mode === 'studio') event.preventDefault(); });
 window.addEventListener('keydown', (event) => {
   if (state.mode !== 'studio' || ['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)) return;
-  if (editor.selected && ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'KeyZ', 'KeyX'].includes(event.code)) {
+  const transformKeys = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'KeyZ', 'KeyX'];
+  const rotateKeys = ['ArrowLeft', 'ArrowRight', 'KeyZ', 'KeyX'];
+  const handlesTransformKey = editor.tool === 'rotate' ? rotateKeys.includes(event.code) : ['move', 'scale'].includes(editor.tool) && transformKeys.includes(event.code);
+  if (editor.selected && handlesTransformKey) {
     event.preventDefault();
     const amount = event.shiftKey ? 0.25 : 1;
     if (editor.tool === 'scale') {
@@ -1983,9 +2030,14 @@ window.addEventListener('keydown', (event) => {
       if (event.code === 'ArrowDown') editor.selected.y = snap(editor.selected.y - amount);
       if (event.code === 'KeyZ') editor.selected.z = snap(editor.selected.z - amount);
       if (event.code === 'KeyX') editor.selected.z = snap(editor.selected.z + amount);
+    } else if (editor.tool === 'rotate') {
+      const direction = ['ArrowLeft', 'KeyZ'].includes(event.code) ? -1 : 1;
+      const angleStep = event.shiftKey ? Math.PI / 180 : Math.PI / 12;
+      const nextRotation = (editor.selected.rotation || 0) + direction * angleStep;
+      editor.selected.rotation = wrapRotation(editor.snap ? Math.round(nextRotation / angleStep) * angleStep : nextRotation);
     }
     buildLevel(level); selectObject(editor.selected, false);
-    studioStatus(editor.tool === 'scale' ? 'SCALE TOOL • Arrow keys resize selected part' : 'MOVE TOOL • Arrow keys move selected part');
+    studioStatus(editor.tool === 'rotate' ? `ROTATION • ${Math.round((editor.selected.rotation || 0) * 180 / Math.PI)}°` : editor.tool === 'scale' ? 'SCALE TOOL • Arrow keys resize selected part' : 'MOVE TOOL • Arrow keys move selected part');
     return;
   }
   const key = event.key.toLowerCase();
@@ -1994,6 +2046,7 @@ window.addEventListener('keydown', (event) => {
   if (key === '1') return setEditorTool('select');
   if (key === '2') return setEditorTool('move');
   if (key === '3') return setEditorTool('scale');
+  if (key === '4') return setEditorTool('rotate');
   if (key === 'f') return ui.focusSelected.click();
   if (key === 'w') editor.moveForward = true;
   else if (key === 's') editor.moveBack = true;
@@ -2029,7 +2082,10 @@ function animate(now) {
   const dt = Math.min(0.033, (now - last) / 1000 || 0.016);
   last = now;
   state.time += dt;
-  if (state.mode === 'playing') state.runTime += dt;
+  if (state.mode === 'playing') {
+    state.runTime += dt;
+    ui.timer.textContent = formatRunTime(state.runTime);
+  }
   updateWorld(dt);
   updateEffects(dt);
   if (state.mode === 'playing') {

@@ -9,8 +9,8 @@ Skybound is a self-contained static Three.js game. `index.html` owns the canvas 
 | World geometry | `platformOutline()`, `platform()`, `structure()` | Extruded island silhouettes, matching player collision footprints, platform-attached cliff/dressing meshes, edge runes, animated windmills, and authored ruins/towers/temples/citadels |
 | Runtime entities | `platforms`, `hazards`, `collectibles`, `checkpoints`, `enemies`, `doors`, `structures`, `goals` | Collision, rendering, animation, and interaction state; rebuilds clear children without detaching their permanent scene groups |
 | Player | `player` and `pstate` | Camera-relative movement, coyote time, jump buffer, double jump, sprint dash, health, and respawn state |
-| Progression | `state`, campaign selection, and entity interactions | Shards, keys, score, saved campaign completions, gate unlocking, checkpoints, and recovery |
-| Dev Studio | `editor`, Studio helpers, and inspector | Left-click picking, right-drag orbit, shape/rotation controls, XYZ step buttons, axis handles, import/export, and reversible playtesting |
+| Progression | `state`, campaign selection, and entity interactions | Shards, keys, score, saved campaign completions, gate unlocking, checkpoints, recovery, and an elapsed level clock that pauses with gameplay and appears in the results |
+| Dev Studio | `editor`, Studio helpers, and inspector | Left-click picking, right-drag orbit, shape/rotation controls, XYZ step buttons, axis handles, key-4 rotate mode with a draggable Y ring, import/export, and reversible playtesting |
 
 ## Campaign
 
@@ -24,7 +24,9 @@ The campaign selector keeps the first level available and unlocks the next stage
 
 ## Dev Studio
 
-The viewport frames the current route on entry. A left-click on visible geometry selects it in every tool mode; clicking buttons, handles, or inspector controls does not move the selected part. Right-mouse drag explicitly rotates the camera, empty-space left drag also orbits, and the wheel zooms. The inspector provides X/Y/Z movement, rotation in degrees, and footprint choices for platforms and walls. Move arrows and the Z−/Z+ buttons remain separate from menu/tool icons. Test Run can return to the same editor from pause, defeat, or victory.
+The viewport frames the current route on entry. A left-click on visible geometry selects it in every tool mode; clicking buttons, handles, or inspector controls does not move the selected part. Right-mouse drag explicitly rotates the camera, empty-space left drag also orbits, and the wheel zooms. The inspector provides X/Y/Z movement, rotation in degrees, and footprint choices for platforms and walls. Press `4` to activate the rotate tool, then drag its ring to yaw a part; left/right arrows adjust it in snapped steps. Move arrows and the Z−/Z+ buttons remain separate from menu/tool icons. Test Run can return to the same editor from pause, defeat, or victory.
+
+The in-game timer measures active gameplay time (pauses and menus do not count), resets for each new/restarted run, and remains visible in the HUD and level results.
 
 Scale controls apply only to platforms, walls, hazards, and gates. New Level creates a shaped, turning starter course with a key gate, hazards, a checkpoint, landmarks, and a portal. Imported coordinates and dimensions are normalized to finite values and per-type defaults.
 
