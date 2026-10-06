@@ -52,3 +52,27 @@
 @media(max-width:800px){.stat.best-time-stat{min-width:0}.stat.timer-stat b,.stat.best-time-stat b{font-size:14px}.stat.best-time-stat span{font-size:7px;letter-spacing:.04em;white-space:nowrap}}
 @media(max-width:600px){.results{gap:clamp(8px,2vw,14px)}.results span{font-size:7px;letter-spacing:.08em}.results b{font-size:30px}}
 @media(max-width:420px){.stat{padding:5px 3px}.stat span{font-size:6px;letter-spacing:.04em}.stat b{font-size:15px}.stat.timer-stat b,.stat.best-time-stat b{font-size:12px}}
+
+/* Make the active clock and personal record the HUD's primary time pair. */
+.hud-top{gap:12px}
+.stats-row,.time-stats,.progress-stats{display:flex;align-items:stretch;gap:8px}
+.time-stats .stat{min-width:120px;padding:8px 12px}
+.time-stats .stat span{font-size:8px;letter-spacing:.11em}
+.time-stats .stat b{display:block;font:700 27px/1 'Barlow Condensed';font-variant-numeric:tabular-nums;letter-spacing:.045em}
+.time-stats .timer-stat{border-color:rgba(114,235,255,.58);box-shadow:0 0 18px rgba(69,215,255,.16),0 9px 24px rgba(0,24,40,.16)}
+.time-stats .timer-stat b{color:#f2fdff}
+.time-stats .best-time-stat{border-color:rgba(255,212,110,.52);box-shadow:0 0 16px rgba(255,212,110,.12),0 9px 24px rgba(0,24,40,.16)}
+.time-stats .best-time-stat b{color:var(--gold)}
+.progress-stats .stat{min-width:78px}
+.results{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:24px 0}
+.results>div{display:flex;min-width:0;min-height:84px;flex-direction:column;justify-content:center;padding:12px 14px;border:1px solid rgba(220,248,255,.18);border-radius:4px;background:linear-gradient(145deg,rgba(20,67,88,.46),rgba(255,255,255,.035));text-align:left}
+.results span{font-size:9px;letter-spacing:.11em;color:#b9d4de}
+.results b{display:block;margin-top:5px;font:700 clamp(34px,6vw,44px)/.95 'Barlow Condensed';font-variant-numeric:tabular-nums;letter-spacing:.035em}
+.results .run-time-result{border-color:rgba(114,235,255,.46);background:linear-gradient(145deg,rgba(24,113,137,.3),rgba(255,255,255,.035))}
+.results .run-time-result b{color:#aef4ff}
+.results .best-time-result{border-color:rgba(255,212,110,.5);background:linear-gradient(145deg,rgba(130,99,34,.28),rgba(255,255,255,.035))}
+.results .best-time-result span{color:#ffe49d}
+.results .best-time-result b{color:var(--gold)}
+@media(max-width:800px){.hud-top{top:12px;left:16px;right:16px;flex-direction:column;gap:6px}.stats-row{width:100%;display:grid;grid-template-rows:auto auto;gap:4px}.time-stats,.progress-stats{width:100%;gap:4px}.time-stats .stat,.progress-stats .stat{min-width:0;flex:1}.time-stats .stat{padding:7px 10px}.time-stats .stat b{font-size:22px}.progress-stats .stat{padding:5px 6px}.progress-stats .stat span{font-size:7px;letter-spacing:.05em}.progress-stats .stat b{font-size:16px}.objective-chip{top:122px;min-width:0;width:min(440px,88vw)}}
+@media(max-width:420px){.hud-top{top:8px;left:8px;right:8px}.time-stats .stat{padding:6px 8px}.time-stats .stat span{font-size:7px}.time-stats .stat b{font-size:20px}.progress-stats .stat{padding:5px 4px}.progress-stats .stat span{font-size:6px;letter-spacing:.03em}.progress-stats .stat b{font-size:14px}.objective-chip{top:104px;width:calc(100vw - 16px)}.results{gap:8px}.results>div{min-height:72px;padding:10px 8px}.results span{font-size:7px;letter-spacing:.055em}.results b{font-size:32px}}
+@media(max-width:600px){.pause-card{max-height:calc(100vh - 20px);overflow-y:auto}.results{gap:8px;margin:16px 0}}
