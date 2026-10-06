@@ -13,8 +13,8 @@ const wrapRotation = (angle) => Math.atan2(Math.sin(angle), Math.cos(angle));
 const ui = {
   menu: $('menu'), levelSelect: $('levelSelect'), levelGrid: $('levelGrid'), campaignTab: $('campaignTab'), myLevelsTab: $('myLevelsTab'), closeLevels: $('closeLevels'), hud: $('hud'), pause: $('pauseScreen'), gameOver: $('gameOverScreen'), victory: $('victoryScreen'), how: $('howPanel'), loading: $('loading'), loadingBar: $('loadingBar'), loadingText: $('loadingText'), studio: $('studio'), game: $('game'), flash: $('flash'),
   play: $('playBtn'), levels: $('levelsBtn'), dev: $('devBtn'), howBtn: $('howBtn'), closeHow: $('closeHow'), resume: $('resumeBtn'), restartPause: $('restartPauseBtn'), pauseLevels: $('pauseLevelsBtn'), pauseStudio: $('pauseStudioBtn'), homePause: $('homePauseBtn'), retry: $('retryBtn'), gameOverLevels: $('gameOverLevelsBtn'), gameOverStudio: $('gameOverStudioBtn'), homeGameOver: $('homeGameOverBtn'), nextLevel: $('nextLevelBtn'), victoryRetry: $('victoryRetryBtn'), victoryLevels: $('victoryLevelsBtn'), victoryStudio: $('victoryStudioBtn'), victoryHome: $('victoryHomeBtn'),
-  shards: $('shardsHud'), keys: $('keysHud'), timer: $('timerHud'), score: $('scoreHud'), best: $('bestHud'), bestMenu: $('bestScoreMenu'), levelTitle: $('levelTitleHud'), healthBar: $('healthBar'), healthText: $('healthText'), dashBar: $('dashBar'), dashText: $('dashText'), checkpoint: $('checkpointHud'), objective: $('objectiveHud'), toast: $('messageToast'),
-  goScore: $('gameOverScore'), goShards: $('gameOverShards'), goTime: $('gameOverTime'), goTitle: $('gameOverTitle'), goText: $('gameOverText'), vScore: $('victoryScore'), vShards: $('victoryShards'), vTime: $('victoryTime'), vText: $('victoryText'),
+  shards: $('shardsHud'), keys: $('keysHud'), timer: $('timerHud'), bestTime: $('bestTimeHud'), score: $('scoreHud'), best: $('bestHud'), bestMenu: $('bestScoreMenu'), levelTitle: $('levelTitleHud'), healthBar: $('healthBar'), healthText: $('healthText'), dashBar: $('dashBar'), dashText: $('dashText'), checkpoint: $('checkpointHud'), objective: $('objectiveHud'), toast: $('messageToast'),
+  goScore: $('gameOverScore'), goShards: $('gameOverShards'), goTime: $('gameOverTime'), goBestTime: $('gameOverBestTime'), goTitle: $('gameOverTitle'), goText: $('gameOverText'), vScore: $('victoryScore'), vShards: $('victoryShards'), vTime: $('victoryTime'), vBestTime: $('victoryBestTime'), vText: $('victoryText'),
   explorer: $('explorer'), toolSelect: $('toolSelect'), toolMove: $('toolMove'), toolScale: $('toolScale'), toolRotate: $('toolRotate'), snapToggle: $('snapToggle'), snapSize: $('snapSize'), duplicateSelected: $('duplicateSelected'), focusSelected: $('focusSelected'),
   levelName: $('levelName'), selNone: $('selectedNone'), selPanel: $('selectedPanel'), selType: $('selType'), selX: $('selX'), selY: $('selY'), selZ: $('selZ'), selW: $('selW'), selH: $('selH'), selD: $('selD'), selRotation: $('selRotation'), selShape: $('selShape'), dimensionFields: $('dimensionFields'), dimensionHint: $('dimensionHint'), selLabel: $('selLabel'), deleteSelected: $('deleteSelected'),
   newLevel: $('newLevel'), saveMyLevel: $('saveMyLevel'), exportJson: $('exportJson'), downloadJson: $('downloadJson'), jsonBox: $('jsonBox'), loadJson: $('loadJson'), studioStatus: $('studioStatus'), studioPlay: $('studioPlay'), studioBack: $('studioBack'), studioResetCam: $('studioResetCam'), studioTestSpawn: $('studioTestSpawn')
@@ -25,6 +25,15 @@ const state = {
   mode: 'menu', score: 0, shards: 0, keys: 0, health: 100,
   best: Number(localStorage.getItem('skybound_best') || 0), checkpoint: 'START', time: 0, runTime: 0
 };
+const bestTimeStorageKey = 'skybound_best_times';
+const bestTimes = (() => {
+  try {
+    const saved = JSON.parse(localStorage.getItem(bestTimeStorageKey) || '{}');
+    return saved && typeof saved === 'object' && !Array.isArray(saved)
+      ? Object.fromEntries(Object.entries(saved).filter(([, value]) => Number.isFinite(value) && value >= 0))
+      : {};
+  } catch { return {}; }
+})();
 let selectedCampaignIndex = 0;
 let activeCampaignIndex = 0;
 let activeLevelKind = 'campaign';
@@ -264,6 +273,35 @@ maxUnlockedCampaign = clamp(maxUnlockedCampaign, 0, campaignCatalog.length - 1);
 localStorage.setItem('skybound_completed_levels', JSON.stringify([...completedCampaignIds]));
 const cloneLevelData = (data) => JSON.parse(JSON.stringify(data));
 let activeLevelData = cloneLevelData(campaignCatalog[0]);
+function campaignBestTimeKey(entry) { return `campaign:${entry.id}`; }
+function customBestTimeKey(entry) {
+  const id = String(entry?.id || '').trim();
+  if (id) return `custom:${id}`;
+  const serialized = JSON.stringify({ name: entry?.name || '', theme: entry?.theme || '', spawn: entry?.spawn || {}, objects: entry?.objects || [] });
+  let hash = 2166136261;
+  for (let index = 0; index < serialized.length; index++) hash = Math.imul(hash ^ serialized.charCodeAt(index), 16777619);
+  return `custom:draft-${(hash >>> 0).toString(16)}`;
+}
+function activeBestTimeKey() {
+  if (activeLevelKind === 'campaign' && campaignCatalog[activeCampaignIndex]) return campaignBestTimeKey(campaignCatalog[activeCampaignIndex]);
+  return customBestTimeKey(activeLevelData || level);
+}
+function bestTimeFor(key) {
+  const time = bestTimes[key];
+  return Number.isFinite(time) && time >= 0 ? time : null;
+}
+function formatBestTime(key) {
+  const time = bestTimeFor(key);
+  return time === null ? '—' : formatRunTime(time);
+}
+function saveBestTimeForActiveLevel() {
+  const key = activeBestTimeKey();
+  const previous = bestTimeFor(key);
+  if (previous !== null && previous <= state.runTime) return false;
+  bestTimes[key] = state.runTime;
+  try { localStorage.setItem(bestTimeStorageKey, JSON.stringify(bestTimes)); } catch {}
+  return true;
+}
 
 function emptyGroup(group) {
   while (group.children.length) group.remove(group.children[0]);
@@ -806,7 +844,7 @@ function renderLevelSelect() {
     ui.levelGrid.innerHTML = campaignCatalog.map((entry, index) => {
       const locked = index > maxUnlockedCampaign;
       const complete = completedCampaignIds.has(entry.id);
-      return `<button class="level-card" data-campaign="${index}" ${locked ? 'disabled' : ''}><span class="level-number">CAMPAIGN ${String(index + 1).padStart(2, '0')}</span><strong>${escapeHtml(entry.name.replace(/^Skybound:\s*/, ''))}</strong><small>${campaignSummaries[index] || 'A new sky-island route awaits.'}</small><span class="level-state">${locked ? 'LOCKED' : complete ? 'CLEARED' : 'AVAILABLE'}</span></button>`;
+      return `<button class="level-card" data-campaign="${index}" ${locked ? 'disabled' : ''}><span class="level-number">CAMPAIGN ${String(index + 1).padStart(2, '0')}</span><strong>${escapeHtml(entry.name.replace(/^Skybound:\s*/, ''))}</strong><small>${campaignSummaries[index] || 'A new sky-island route awaits.'}</small><span class="level-best-time">BEST TIME <b>${formatBestTime(campaignBestTimeKey(entry))}</b></span><span class="level-state">${locked ? 'LOCKED' : complete ? 'CLEARED' : 'AVAILABLE'}</span></button>`;
     }).join('');
     ui.levelGrid.querySelectorAll('[data-campaign]').forEach((card) => card.addEventListener('click', () => launchCampaignLevel(Number(card.dataset.campaign))));
     return;
@@ -816,7 +854,7 @@ function renderLevelSelect() {
     ui.levelGrid.innerHTML = '<div class="level-empty">No saved levels yet.<br>Open the Dev Studio, build a route, then choose <b>SAVE TO MY LEVELS</b>.</div>';
     return;
   }
-  ui.levelGrid.innerHTML = customLevels.map((entry) => `<article class="level-card" data-custom-card="${escapeHtml(entry.id)}" role="button" tabindex="0"><span class="level-number">YOUR LEVEL · ${entry.objects.length} OBJECTS</span><strong>${escapeHtml(entry.name || 'Untitled Level')}</strong><small>Saved in this browser. Select to play or remove it from your library.</small><button class="delete-level" data-delete-custom="${escapeHtml(entry.id)}">REMOVE</button></article>`).join('');
+  ui.levelGrid.innerHTML = customLevels.map((entry) => `<article class="level-card" data-custom-card="${escapeHtml(entry.id)}" role="button" tabindex="0"><span class="level-number">YOUR LEVEL · ${entry.objects.length} OBJECTS</span><strong>${escapeHtml(entry.name || 'Untitled Level')}</strong><small>Saved in this browser. Select to play or remove it from your library.</small><span class="level-best-time">BEST TIME <b>${formatBestTime(customBestTimeKey(entry))}</b></span><button class="delete-level" data-delete-custom="${escapeHtml(entry.id)}">REMOVE</button></article>`).join('');
   ui.levelGrid.querySelectorAll('[data-custom-card]').forEach((card) => card.addEventListener('click', (event) => {
     if (event.target.closest('[data-delete-custom]')) return;
     launchCustomLevel(getCustomLevels().find((entry) => entry.id === card.dataset.customCard));
@@ -854,6 +892,7 @@ function launchCustomLevel(entry) {
   activeCampaignIndex = -1;
   activeLevelKind = 'custom';
   activeLevelData = normalizeLevel(entry);
+  activeLevelData.id = String(entry.id);
   startGame();
 }
 function saveMyLevel() {
@@ -880,6 +919,7 @@ function updateHud() {
   ui.shards.textContent = `${state.shards} / ${collectibles.filter((item) => item.kind === 'shard').length}`;
   ui.keys.textContent = `${state.keys} / ${collectibles.filter((item) => item.kind === 'key').length}`;
   ui.timer.textContent = formatRunTime(state.runTime);
+  ui.bestTime.textContent = formatBestTime(activeBestTimeKey());
   ui.score.textContent = state.score;
   ui.best.textContent = state.best;
   ui.healthBar.style.width = `${state.health}%`;
@@ -946,6 +986,7 @@ function gameOver(title, message) {
   ui.goScore.textContent = state.score;
   ui.goShards.textContent = state.shards;
   ui.goTime.textContent = formatRunTime(state.runTime);
+  ui.goBestTime.textContent = formatBestTime(activeBestTimeKey());
 }
 function victory() {
   if (state.mode !== 'playing') return;
@@ -956,14 +997,16 @@ function victory() {
     maxUnlockedCampaign = Math.max(maxUnlockedCampaign, Math.min(campaignCatalog.length - 1, activeCampaignIndex + 1));
     localStorage.setItem('skybound_unlocked_level', String(maxUnlockedCampaign));
   }
+  const isNewBestTime = saveBestTimeForActiveLevel();
   state.score += 600;
   updateHud();
   ui.vTime.textContent = formatRunTime(state.runTime);
+  ui.vBestTime.textContent = formatBestTime(activeBestTimeKey());
   setMode('victory');
   ui.nextLevel.classList.toggle('hidden', activeLevelKind !== 'campaign' || activeCampaignIndex >= campaignCatalog.length - 1);
   ui.vScore.textContent = state.score;
   ui.vShards.textContent = state.shards;
-  ui.vText.textContent = `${level.name} complete — the First Light is restored.`;
+  ui.vText.textContent = `${level.name} complete — the First Light is restored.${isNewBestTime ? ' New best time!' : ''}`;
 }
 function respawn(reason = 'SKYLINE RECOVERY') {
   resetPlayer();

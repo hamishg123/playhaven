@@ -43,3 +43,12 @@
 .studio-gizmo-rotate{width:132px;height:132px;border:2px dashed rgba(255,131,209,.9);border-radius:50%;background:radial-gradient(circle,rgba(255,131,209,.035) 52%,rgba(255,131,209,.14) 100%);box-shadow:0 0 0 1px rgba(255,131,209,.22),0 0 16px rgba(255,98,199,.3);color:#ffe2f4;font-size:17px;letter-spacing:.04em}
 .studio-gizmo-rotate::after{content:"↻ Y";position:absolute;right:8px;top:3px;padding:2px 5px;border-radius:8px;background:rgba(15,24,45,.9);color:#ffd4ef;font:800 10px Inter,system-ui,sans-serif}
 @media(max-width:800px){.stat.timer-stat{min-width:0}}
+
+.stat.best-time-stat{min-width:108px}
+.level-card .level-best-time{display:block;margin-top:10px;color:#aee4ef;font-size:8px;font-weight:800;letter-spacing:.12em}
+.level-card .level-best-time b{color:var(--gold);font:700 14px 'Barlow Condensed';letter-spacing:.04em;margin-left:4px}
+.results{gap:clamp(9px,2.6vw,22px)}
+.best-time-result span{font-size:8px;letter-spacing:.07em;white-space:nowrap}
+@media(max-width:800px){.stat.best-time-stat{min-width:0}.stat.timer-stat b,.stat.best-time-stat b{font-size:14px}.stat.best-time-stat span{font-size:7px;letter-spacing:.04em;white-space:nowrap}}
+@media(max-width:600px){.results{gap:clamp(8px,2vw,14px)}.results span{font-size:7px;letter-spacing:.08em}.results b{font-size:30px}}
+@media(max-width:420px){.stat{padding:5px 3px}.stat span{font-size:6px;letter-spacing:.04em}.stat b{font-size:15px}.stat.timer-stat b,.stat.best-time-stat b{font-size:12px}}
