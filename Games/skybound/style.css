@@ -37,3 +37,9 @@
 .studio-group input:disabled,.transform-strip button:disabled,.tool-btn:disabled{opacity:.42;cursor:not-allowed}.transform-strip button:disabled:hover,.transform-strip button:disabled:active{background:rgba(87,206,235,.1);border-color:rgba(120,230,248,.28)}
 
 .studio-group select{width:100%;margin-top:5px;padding:9px;background:rgba(255,255,255,.055);border:1px solid var(--line);border-radius:3px;color:var(--ink);font-size:10px;letter-spacing:.05em}.studio-group select option{background:#10283a;color:#effaff}.studio-group select:disabled{opacity:.48;cursor:not-allowed}.studio-group input:disabled{opacity:.48;cursor:not-allowed}
+
+.tool-row{grid-template-columns:repeat(4,minmax(0,1fr))}
+.stat.timer-stat{min-width:108px}
+.studio-gizmo-rotate{width:132px;height:132px;border:2px dashed rgba(255,131,209,.9);border-radius:50%;background:radial-gradient(circle,rgba(255,131,209,.035) 52%,rgba(255,131,209,.14) 100%);box-shadow:0 0 0 1px rgba(255,131,209,.22),0 0 16px rgba(255,98,199,.3);color:#ffe2f4;font-size:17px;letter-spacing:.04em}
+.studio-gizmo-rotate::after{content:"↻ Y";position:absolute;right:8px;top:3px;padding:2px 5px;border-radius:8px;background:rgba(15,24,45,.9);color:#ffd4ef;font:800 10px Inter,system-ui,sans-serif}
+@media(max-width:800px){.stat.timer-stat{min-width:0}}
