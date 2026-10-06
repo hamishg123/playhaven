@@ -1006,7 +1006,7 @@ function victory() {
   ui.nextLevel.classList.toggle('hidden', activeLevelKind !== 'campaign' || activeCampaignIndex >= campaignCatalog.length - 1);
   ui.vScore.textContent = state.score;
   ui.vShards.textContent = state.shards;
-  ui.vText.textContent = `${level.name} complete — the First Light is restored.${isNewBestTime ? ' New best time!' : ''}`;
+  ui.vText.textContent = `${level.name} complete — the First Light is restored.${isNewBestTime ? ' New personal best!' : ''}`;
 }
 function respawn(reason = 'SKYLINE RECOVERY') {
   resetPlayer();
